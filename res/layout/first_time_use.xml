@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+	android:id="@+id/widget33"
+	android:layout_width="fill_parent"
+	android:layout_height="fill_parent"
+	android:orientation="vertical"
+	xmlns:android="http://schemas.android.com/apk/res/android">
+<TextView
+	android:id="@+id/firstUseStatementText"
+	android:layout_width="wrap_content"
+	android:layout_height="wrap_content"
+	android:padding="2dp"
+	android:text="@string/firstUseStatement"
+	android:gravity="left" />
+<Button
+	android:id="@+id/dontCreateAccountButton"
+	android:layout_width="fill_parent"
+	android:layout_height="wrap_content"
+	android:padding="2dp"
+	android:text="@string/noAccountContinue"
+	android:typeface="serif"
+	android:textStyle="bold"
+	android:gravity="center"
+	android:layout_gravity="center_horizontal" 
+	android:onClick="dontCreateAccountButtonClicked"/>
+<Button
+	android:id="@+id/createNewAccountButton"
+	android:layout_width="fill_parent"
+	android:layout_height="wrap_content"
+	android:padding="2dp"
+	android:text="@string/createAccount"
+	android:typeface="serif"
+	android:textStyle="bold"
+	android:gravity="center"
+	android:layout_gravity="center_horizontal" 
+	android:onClick="createNewAccountButtonClicked"/>
+<Button
+	android:id="@+id/signInButton"
+	android:layout_width="fill_parent"
+	android:layout_height="wrap_content"
+	android:padding="2dp"
+	android:text="@string/signIn"
+	android:typeface="serif"
+	android:textStyle="bold" 
+	android:gravity="center"
+	android:layout_gravity="center_horizontal"
+	android:onClick="signInButtonClicked"/>
+</LinearLayout>

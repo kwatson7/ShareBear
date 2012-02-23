@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="app_name">Share Bear</string>
+	<string name="signIn">Sign in</string>
+	<string name="firstUseStatement">
+		We\'ve noticed you don\'t have an account on this phone. Please select one of
+		the following:
+		</string>
+	<string name="createAccount">Create a new account</string>
+	<string name="noAccountContinue">
+		Don\'t create account\n(Cannot access from web or if phone is lost, but you can change later)</string>
+	<string name="identifyingInformationExplanation">Please enter your name, your phone number(s) (separated by commas if multiple numbers), and your email address(es) (separated by commas if multiple addresses).\n\nThis information is required so others know who you are when you add them to groups.\n\nSome information may already be filled in that was read from your address book.</string>
+	<string name="yourFirstName">Your first name</string>
+	<string name="yourPhoneNumbers">Your phone numbers</string>
+	<string name="yourEmailAddresses">Your email addresses</string>
+	<string name="ok">OK</string>
+	<string name="cancel">Cancel</string>
+	<string name="registrationNotCompleted">Entering personal info canceled.\nRegistration not completed.\nPlease select an option.</string>
+	<string name="allFieldsRequired">All fields must have a value. Please try again.</string>
+	<string name="yourLastName">Your last name</string>
+	<string name="yourUserName">User Name</string>
+	<string name="yourPassword">Password</string>
+	<color name="listViewColor">#fff</color>
+	<string name="pickGroupString">&quot;Pick a group to add to list&quot;</string>
+</resources>

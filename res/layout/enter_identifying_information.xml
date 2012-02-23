@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView
+	android:id="@+id/ScrollView01"
+	android:layout_height="fill_parent"
+	android:layout_width="fill_parent"
+	xmlns:android="http://schemas.android.com/apk/res/android">
+<LinearLayout
+	android:id="@+id/widget32"
+	android:layout_width="fill_parent"
+	android:layout_height="fill_parent"
+	android:orientation="vertical">
+<LinearLayout
+	android:id="@+id/widget32"
+	android:layout_width="fill_parent"
+	android:layout_height="fill_parent"
+	android:orientation="vertical">
+<TextView
+	android:text="@string/identifyingInformationExplanation"
+	android:id="@+id/widget33"
+	android:layout_height="wrap_content"
+	android:layout_width="fill_parent"
+	android:layout_gravity="center_horizontal"
+	android:gravity="left">
+</TextView>
+<LinearLayout
+	android:id="@+id/widget32"
+	android:layout_width="fill_parent"
+	android:layout_height="fill_parent"
+	android:orientation="horizontal">
+<EditText
+	android:id="@+id/yourFirstName"
+	android:layout_width="0px"
+	android:layout_height="wrap_content"
+	android:padding="2dp"
+	android:hint="@string/yourLastName"
+	android:textSize="18sp"
+	android:typeface="serif"
+	android:textStyle="bold"
+	android:gravity="left" 
+	android:nextFocusDown="@+id/yourLastName"
+	android:imeOptions="actionNext"
+	android:inputType="text"
+	android:layout_weight="1"/>
+<EditText
+	android:id="@+id/yourLastName"
+	android:layout_width="0px"
+	android:layout_height="wrap_content"
+	android:padding="2dp"
+	android:hint="@string/yourFirstName"
+	android:textSize="18sp"
+	android:typeface="serif"
+	android:textStyle="bold"
+	android:gravity="left" 
+	android:imeOptions="actionNext"
+	android:inputType="text"
+	android:layout_weight="1"/>
+</LinearLayout>
+<EditText
+	android:id="@+id/yourPhoneNumbers"
+	android:layout_width="fill_parent"
+	android:layout_height="wrap_content"
+	android:padding="2dp"
+	android:hint="@string/yourPhoneNumbers"
+	android:textSize="18sp"
+	android:typeface="serif"
+	android:textStyle="bold"
+	android:gravity="left"
+	android:inputType="phone" 
+	android:imeOptions="actionNext"/>
+<EditText
+	android:id="@+id/yourEmailAddresses"
+	android:layout_width="fill_parent"
+	android:layout_height="wrap_content"
+	android:padding="2dp"
+	android:hint="@string/yourEmailAddresses"
+	android:textSize="18sp"
+	android:typeface="serif"
+	android:textStyle="bold"
+	android:gravity="left" 
+	android:singleLine="true"
+	android:inputType="textEmailAddress"
+	android:imeOptions="actionDone"/>
+<EditText
+	android:id="@+id/yourUserName"
+	android:layout_width="fill_parent"
+	android:layout_height="wrap_content"
+	android:padding="2dp"
+	android:hint="@string/yourUserName"
+	android:textSize="18sp"
+	android:typeface="serif"
+	android:textStyle="bold"
+	android:gravity="left" 
+	android:singleLine="true"
+	android:inputType="text"
+	android:imeOptions="actionNext"/>
+<EditText
+	android:id="@+id/yourPassword"
+	android:layout_width="fill_parent"
+	android:layout_height="wrap_content"
+	android:padding="2dp"
+	android:hint="@string/yourPassword"
+	android:textSize="18sp"
+	android:typeface="serif"
+	android:textStyle="bold"
+	android:gravity="left" 
+	android:singleLine="true"
+	android:inputType="textPassword"
+	android:imeOptions="actionDone"/>
+</LinearLayout>
+<LinearLayout
+	android:id="@+id/widget40"
+	android:layout_width="fill_parent"
+	android:layout_height="wrap_content"
+	android:orientation = "horizontal" >
+<Button
+	android:id="@+id/okButton"
+	android:layout_width="0dp"
+	android:layout_height="wrap_content"
+	android:text="@string/ok"
+	android:layout_weight="1" 
+	android:onClick="okClicked"/>
+<Button
+	android:id="@+id/cancelButton"
+	android:layout_width="0dp"
+	android:layout_height="wrap_content"
+	android:text="@string/cancel"
+	android:layout_weight="1" 
+	android:onClick="cancelClicked"/>
+</LinearLayout>
+</LinearLayout>
+</ScrollView>

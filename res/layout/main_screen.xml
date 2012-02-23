@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="vertical" android:layout_width="fill_parent"
+	android:layout_height="fill_parent"
+	android:background="@drawable/wedding_blurred">
+	<LinearLayout android:id="@+id/linearLayout1"
+		android:orientation="horizontal"
+		android:layout_width="fill_parent"
+		android:layout_height="0px"
+		android:layout_weight="1"
+		android:padding="5dp">
+		<ImageView android:id="@+id/createNewGroupButton"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_weight="1"
+			android:scaleType="fitCenter"
+			android:src="@drawable/create_new_group_button"
+			android:clickable="true"
+			android:onClick="createNewGroupClicked"/>
+		<ImageView android:id="@+id/button4"
+			android:layout_width="0px"
+			android:layout_height="wrap_content"
+			android:layout_weight="1"
+			android:clickable="true"
+			android:src="@drawable/coming_soon_xml"/>
+	</LinearLayout>
+	<LinearLayout android:id="@+id/linearLayout2"
+		android:orientation="horizontal"
+		android:layout_width="fill_parent"
+		android:layout_height="0px"
+		android:layout_weight="1"
+		android:padding="5dp">
+		<ImageView android:id="@+id/button4"
+			android:layout_width="0px"
+			android:layout_height="wrap_content"
+			android:layout_weight="1"
+			android:clickable="true"
+			android:src="@drawable/coming_soon_xml"/>
+		<ImageView android:id="@+id/button4"
+			android:layout_width="0px"
+			android:layout_height="wrap_content"
+			android:layout_weight="1"
+			android:clickable="true"
+			android:src="@drawable/coming_soon_xml"/>
+	</LinearLayout>
+	<LinearLayout android:id="@+id/linearLayout3"
+		android:orientation="horizontal"
+		android:layout_width="fill_parent"
+		android:layout_height="0px"
+		android:layout_weight="1"
+		android:padding="5dp">
+		<ImageView android:id="@+id/button5"
+			android:layout_width="0px"
+			android:layout_height="wrap_content"
+			android:layout_weight="1"
+			android:clickable="true"
+			android:src="@drawable/coming_soon_xml"/>
+		<ImageView android:id="@+id/button6"
+			android:layout_width="0px"
+			android:layout_height="wrap_content"
+			android:layout_weight="1"
+			android:clickable="true"
+			android:src="@drawable/coming_soon_xml"/>
+	</LinearLayout>
+</LinearLayout>

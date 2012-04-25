@@ -89,7 +89,7 @@ CustomAsyncTask<Object, Integer, ArrayList <TwoObjects<String, Long>>> {
 			rawId = cursor.getLong(colRawId);
 			String displayName = cursor.getString(colDisplayName);
 			
-			isChecked = mContactChecked.isChecked(colRawId);
+			isChecked = mContactChecked.isChecked((long)colRawId);
 			if (isChecked==null || !isChecked){
 
 				// keep track of names that we are adding

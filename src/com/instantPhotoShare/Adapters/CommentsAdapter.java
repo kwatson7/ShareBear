@@ -23,7 +23,7 @@ public class CommentsAdapter {
 		"create table "
 		+TABLE_NAME +" ("
 		+KEY_ROW_ID +" integer primary key autoincrement, "
-		+KEY_SERVER_ID +" integer, "
+		+KEY_SERVER_ID +" integer DEFAULT '-1', "
 		+KEY_USER_ID +" integer not null, "
 		+KEY_PICTURE_ID +" integer not null, "
 		+KEY_DATE_MADE + " text not null, "

@@ -1,6 +1,8 @@
 package com.instantPhotoShare.Adapters;
 
 
+import java.util.ArrayList;
+
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
@@ -10,7 +12,7 @@ extends SQLiteOpenHelper{
 
 	// database variables
 	private static final String DATABASE_NAME = "data.db";
-	private static final int DATABASE_VERSION = 1;
+	private static final int DATABASE_VERSION = 4;
 
 	// instance of database
 	private static DatabaseHelper instance;
@@ -54,16 +56,31 @@ extends SQLiteOpenHelper{
 		db.execSQL(CommentsAdapter.TABLE_CREATE);
 		db.execSQL(PicturesInGroupsAdapter.TABLE_CREATE);
 		db.execSQL(UsersInGroupsAdapter.TABLE_CREATE);
+		db.execSQL(NotificationsAdapter.TABLE_CREATE);
 	}
 
 	@Override
 	public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-		db.execSQL("DROP TABLE IF EXISTS "+PicturesAdapter.TABLE_NAME);
-		db.execSQL("DROP TABLE IF EXISTS "+GroupsAdapter.TABLE_NAME);
-		db.execSQL("DROP TABLE IF EXISTS "+UsersAdapter.TABLE_NAME);
-		db.execSQL("DROP TABLE IF EXISTS "+CommentsAdapter.TABLE_NAME);
-		db.execSQL("DROP TABLE IF EXISTS "+PicturesInGroupsAdapter.TABLE_NAME);
-		db.execSQL("DROP TABLE IF EXISTS "+UsersInGroupsAdapter.TABLE_NAME);
-		onCreate(db);
+		
+		// grab upgrades for various tables
+		ArrayList<String> picturesUpgrades = PicturesAdapter.upgradeStrings(oldVersion, newVersion);
+		for (String item : picturesUpgrades)
+			db.execSQL(item);
+		ArrayList<String> groupsUpgrades = GroupsAdapter.upgradeStrings(oldVersion, newVersion);
+		for (String item : groupsUpgrades)
+			db.execSQL(item);
+		ArrayList<String> usersUpgrades = UsersAdapter.upgradeStrings(oldVersion, newVersion);
+		for (String item : usersUpgrades)
+			db.execSQL(item);
+		
+		
+		//db.execSQL("DROP TABLE IF EXISTS "+PicturesAdapter.TABLE_NAME);
+		//db.execSQL("DROP TABLE IF EXISTS "+GroupsAdapter.TABLE_NAME);
+		//db.execSQL("DROP TABLE IF EXISTS "+UsersAdapter.TABLE_NAME);
+		//db.execSQL("DROP TABLE IF EXISTS "+CommentsAdapter.TABLE_NAME);
+		//db.execSQL("DROP TABLE IF EXISTS "+PicturesInGroupsAdapter.TABLE_NAME);
+		//db.execSQL("DROP TABLE IF EXISTS "+UsersInGroupsAdapter.TABLE_NAME);
+		//db.execSQL("DROP TABLE IF EXISTS "+NotificationsAdapter.TABLE_NAME);
+		//onCreate(db);
 	}
 }

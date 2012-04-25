@@ -19,6 +19,7 @@ public class ContactCursorWrapper {
 	private int mContactIdColumn; 			// The column where contact id is stored
 	private int mNameColumn;				// the column where diplay_name is stored
 	private int mPhotoIdColumn; 			// The column where photo_id is stored
+	private int mLookupKeyColumn; 			// The column where the lookup key is stored
 	
 	// misc private variables
 	private Cursor cursor; 					// The cursor storing the info of contacts
@@ -87,6 +88,25 @@ public class ContactCursorWrapper {
 	}
 	
 	/**
+	 * The lookup key used to search contacts
+	 * @return
+	 */
+	public String getLookupKey(){
+		if (!checkCursor())
+			return "";
+		return cursor.getString(mLookupKeyColumn);
+	}
+	
+	public Uri getLookupUri(){
+		if (!checkCursor())
+			return null;
+		//TODO: should be a different lookup uri for contact and for photo
+		//return ContactsContract.Contacts.getLookupUri(getId(), getLookupKey());
+		//return ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, getId());
+		return Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_LOOKUP_URI, getLookupKey());
+	}
+	
+	/**
 	 * Return the photo id of the contact or -1 if the cursor is unreadable.
 	 * @return the photo id of the contact or -1 if the cursor is unreadable.
 	 */
@@ -119,11 +139,16 @@ public class ContactCursorWrapper {
 			return false;
 	}
 	
+	/**
+	 * The columns this cursor returns
+	 * @return
+	 */
 	public String[] getColumnsArray(){
 		return new String[]{
 				ContactsContract.Contacts.DISPLAY_NAME, 
 				ContactsContract.Contacts._ID,
-				ContactsContract.Contacts.PHOTO_ID
+				ContactsContract.Contacts.PHOTO_ID,
+				ContactsContract.Contacts.LOOKUP_KEY
 		};
 	}
 	
@@ -180,10 +205,8 @@ public class ContactCursorWrapper {
     	if (image != null){
 
     		// grab the phone id of this contact and load bitmap
-    		long rawId = getId();
-    		Uri uri = ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, rawId);
     		InputStream input = ContactsContract.Contacts.
-    		openContactPhotoInputStream(ctx.getContentResolver(), uri);
+    			openContactPhotoInputStream(ctx.getContentResolver(), getLookupUri());
     		if (input != null) {
     			image.setImageBitmap(BitmapFactory.decodeStream(input));
     			return true;
@@ -202,7 +225,7 @@ public class ContactCursorWrapper {
 		UsersAdapter users = new UsersAdapter(ctx);
 		
 		// grab the default contact
-		return users.getDefaultContactInfoFromContactsDatabaseRowId((int) getId());
+		return users.getDefaultContactInfoFromContactsDatabaseRowId((int)getId());
 	}
 	
 	/**
@@ -211,7 +234,7 @@ public class ContactCursorWrapper {
 	 * @param contactId The contact id
 	 * @param defaultContactMethod The default contact method. ie "johnsmith@gmail.com"
 	 */
-	public void setDefaultContact(Context ctx, int contactId, String defaultContactMethod){
+	public static void setDefaultContact(Context ctx, int contactId, String defaultContactMethod){
 		// the users adpater
 		UsersAdapter users = new UsersAdapter(ctx);
 		
@@ -236,6 +259,7 @@ public class ContactCursorWrapper {
 			mContactIdColumn = cursor.getColumnIndexOrThrow(ContactsContract.Contacts._ID);
 			mNameColumn = cursor.getColumnIndexOrThrow(ContactsContract.Contacts.DISPLAY_NAME);
 			mPhotoIdColumn = cursor.getColumnIndexOrThrow(ContactsContract.Contacts.PHOTO_ID);
+			mLookupKeyColumn = cursor.getColumnIndexOrThrow(ContactsContract.Contacts.LOOKUP_KEY);
 		}catch(IllegalArgumentException e){
 			throw new IllegalArgumentException("Inputted cursor into ContactCursorWrapper does not have all the required columns");
 		}

@@ -1,48 +1,68 @@
 package com.instantPhotoShare.Adapters;
 
-
+import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashSet;
+
+import com.instantPhotoShare.Prefs;
+import com.instantPhotoShare.Utils;
+import com.tools.ThreeObjects;
+import com.tools.TwoStrings;
 
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.net.Uri;
+import android.provider.ContactsContract;
+import android.provider.ContactsContract.CommonDataKinds;
 
 public class UsersAdapter
-extends TableAdapter{
+extends TableAdapter <UsersAdapter>{
 
 	/** Table name */
 	public static final String TABLE_NAME = "userInfo";
 	
 	// user table keys
 	public static final String KEY_ROW_ID = "_id";
-	public static final String KEY_NAME = "name";
-	public static final String KEY_SERVER_ID = "serverId";
-	public static final String KEY_EMAILS = "userEmails";
-	public static final String KEY_PHONES = "userPhones";	
-	public static final String KEY_PICTURE_ID = "pictureId";
-	public static final String KEY_DATE_JOINED = "dateJoined";
-	public static final String KEY_HAS_ACCOUNT = "hasAccount";
-	public static final String KEY_IS_UPDATING = "isUpdating";
-	public static final String KEY_IS_SYNCED = "isSynced";
-	public static final String KEY_DEFAULT_CONTACT = "defaultContact";
-	public static final String KEY_CONTACTS_ROW_ID = "contactsRowId";
+	private static final String KEY_FIRST_NAME = "firstName";
+	private static final String KEY_LAST_NAME = "lastName";
+	private static final String KEY_SERVER_ID = "serverId";
+	private static final String KEY_EMAILS = "userEmails";
+	private static final String KEY_PHONES = "userPhones";	
+	private static final String KEY_PICTURE_ID = "pictureId";
+	private static final String KEY_DATE_JOINED = "dateJoined";
+	private static final String KEY_HAS_ACCOUNT = "hasAccount";
+	private static final String KEY_IS_UPDATING = "isUpdating";
+	private static final String KEY_LAST_UPDATE_ATTEMPT_TIME = "KEY_LAST_UPDATE_ATTEMPT_TIME";
+	private static final String KEY_IS_SYNCED = "isSynced";
+	private static final String KEY_DEFAULT_CONTACT = "defaultContact";
+	private static final String KEY_CONTACTS_ROW_ID = "contactsRowId";
+	private static final String KEY_LOOKUP_KEY = "KEY_LOOKUP_KEY";
+	
+	private static final String DELIM = ","; // cannot change this as hashset converter does commas
+	
+	private static final String LOOKUP_KEY_TYPE = "String not null default ''";
 	
 	/** Table creation string */
 	public static String TABLE_CREATE = 
 		"create table "
 		+TABLE_NAME +" ("
 		+KEY_ROW_ID +" integer primary key autoincrement, "
-		+KEY_NAME +" text, "
-		+KEY_SERVER_ID +" integer, "
+		+KEY_FIRST_NAME +" text DEFAULT '', "
+		+KEY_LAST_NAME +" text DEFAULT '', "
+		+KEY_SERVER_ID +" integer DEFAULT '-1', "
 		+KEY_EMAILS +" text, "
 		+KEY_PHONES +" text, "
-		+KEY_PICTURE_ID +" integer, "
+		+KEY_PICTURE_ID +" integer DEFAULT '-1', "
 		+KEY_DATE_JOINED +" text, "
 		+KEY_HAS_ACCOUNT +" boolean DEFAULT 'FALSE', "
 		+KEY_IS_UPDATING +" boolean DEFAULT 'FALSE', "
+		+KEY_LAST_UPDATE_ATTEMPT_TIME +" text not null DEFAULT '1900-01-01 01:00:00', "
 		+KEY_IS_SYNCED +" boolean DEFAULT 'FALSE', "
 		+KEY_DEFAULT_CONTACT + " TEXT, "
 		+KEY_CONTACTS_ROW_ID + " integer DEFAULT '-1', "
+		+KEY_LOOKUP_KEY + LOOKUP_KEY_TYPE + ", "
 		+"foreign key(" +KEY_PICTURE_ID +") references " +PicturesAdapter.TABLE_NAME +"(" +PicturesAdapter.KEY_ROW_ID + ")" 
 		+");";
 	
@@ -51,43 +71,272 @@ extends TableAdapter{
 	}
 	
 	/**
-	 * Get a cursor for all the users that are linked to the group groupId
-	 * in UsersInGroups table
-	 * @param groupId
-	 * @return A cursor on the users that match the groupId in UsersInGroups table
+	 * Return a list of SQL statements to perform upon an upgrade from oldVersion to newVersion.
+	 * @param oldVersion old version of database
+	 * @param newVersion new version of database
+	 * @return The arraylist of sql statements. Will not be null.
 	 */
-	public Cursor getUsersInGroup(long groupId){
+	public static ArrayList<String> upgradeStrings(int oldVersion, int newVersion){
+		ArrayList<String> out = new ArrayList<String>(1);
+		if (oldVersion < 4 && newVersion >= 4){
+			String upgradeQuery = 
+				"ALTER TABLE " +
+				TABLE_NAME + " ADD COLUMN " + 
+				KEY_LOOKUP_KEY + " "+
+				LOOKUP_KEY_TYPE;
+			out.add(upgradeQuery);
+		}
+		
+		return out;
+	}
+	
+	/**
+	 * Make a new contact in the database or update an existing one.
+	 * Puts isUpdating to false and doesn't overwrite serverId if -1 is input.
+	 * @param ctx The context to perform searches on
+	 * @param contactId The contactId from the address book
+	 * @param lookupKey the lookup key used to find the user later
+	 * @param defaultContactMethod The default contact method for the user. If empty, then it will not overwrite
+	 * @param serverId The server id (-1) if not known.
+	 * @return The row id added or updated.
+	 */
+	public long makeNewUser(
+			Context ctx,
+			long contactId,
+			String lookupKey,
+			String defaultContactMethod,
+			long serverId){
 
-		// create the query where we match up all the pictures that are in the group
-		String query = 
-			"SELECT users.* FROM "
-			+UsersAdapter.TABLE_NAME + " users "
-			+" INNER JOIN "
-			+UsersInGroupsAdapter.TABLE_NAME + " groups "
-			+" ON "
-			+"users." + UsersAdapter.KEY_ROW_ID + " = "
-			+"groups." + UsersInGroupsAdapter.KEY_USER_ID
-			+" WHERE "
-			+"groups." + UsersInGroupsAdapter.KEY_GROUP_ID
-			+"=?";
+		// initialize items to insert.
+		ContentValues values = new ContentValues();
 
-		// do the query
-		Cursor cursor = database.rawQuery(
-				query,
-				new String[]{String.valueOf(groupId)});
+		// misc values
+		values.put(KEY_CONTACTS_ROW_ID, contactId);
+		if (defaultContactMethod != null && defaultContactMethod.length() > 0)
+			values.put(KEY_DEFAULT_CONTACT, defaultContactMethod);
+		if (serverId >= 0)
+			values.put(KEY_SERVER_ID, serverId);
+		values.put(KEY_IS_UPDATING, false);
+		if (lookupKey != null && lookupKey.length() > 0)
+			values.put(KEY_LOOKUP_KEY, lookupKey);
 
-		// return the cursor
-		return cursor;
+		// find emails, phones, and names
+		TwoStrings fullName = null;
+		ThreeObjects<HashSet<TwoStrings>, HashSet<TwoStrings>, TwoStrings>  phoneEmailName = 
+			com.tools.CustomCursors.getContactPhoneArrayEmailArrayAndName(ctx, contactId);
+		if (phoneEmailName != null){
+			String phone = phoneEmailName.mObject1.toString();
+			String email = phoneEmailName.mObject2.toString();
+			// remove []
+			if (phone.length()>= 2)
+				phone = phone.substring(1, phone.length()-1);
+			if (email.length()>= 2)
+				email = email.substring(1, email.length()-1);
+			fullName = phoneEmailName.mObject3;
+
+			// fill first and last name
+			if (fullName != null){
+				values.put(KEY_FIRST_NAME, fullName.mObject1);
+				values.put(KEY_LAST_NAME, fullName.mObject2);
+			}
+
+			// phone and email
+			values.put(KEY_PHONES, phone);
+			values.put(KEY_EMAILS, email);
+		}	
+
+		// The where clause
+		String where = 
+			KEY_CONTACTS_ROW_ID + " = ?";
+		
+		// The selection args
+		String[] selectionArgs = {String.valueOf(contactId)};
+		
+		// update the row, insert it if not possible
+		long newRow = -1;
+		int affected = database.update(TABLE_NAME,
+				values,
+				where,
+				selectionArgs);
+		if (affected == 0)
+			newRow = database.insert(TABLE_NAME, null, values);
+		if (affected == 1)
+			newRow = getRowIdGivenContactsDatabaseRowId(contactId);
+		if (affected > 1 && !Prefs.debug.allowMultipleUpdates)
+			throw new IllegalArgumentException("attempting to update more than one row. This should never happen");
+
+		return newRow;
+	}
+	
+	/**
+	 * Insert a new user into the database. Return the new rowId or -1 if unsuccessful.
+	 * This user will not have a serverId attached
+	 * to it, and its isSynced column will be false. Use setIsSynced to set these.
+	 * @param ctx Context used for various calls
+	 * @param firstName The first name of this person
+	 * @param lastName The last name
+	 * @param userEmails a comma separated list of emails 
+	 * @param userPhone a phone number for this person
+	 * @param pictureId The picture id to the picture for this person, null if not known
+	 * @param dateJoined The date this user joined, use Utils.getNowTime() if now.
+	 * @param hasAccount boolean if this user has an account, pass false if not known
+	 * @param defaultContact the default method of contacting this person, ie user@gmail.com, null if not known
+	 * @param contactsRowId The rowId of the link to the user in the phone's adddress book
+	 * @return The rowId of the group, -1 if it failed.
+	 */
+	public long makeNewUser(
+			Context ctx,
+			String firstName,
+			String lastName,
+			String userEmails,
+			String userPhone,
+			Long pictureId,
+			String dateJoined,
+			boolean hasAccount,
+			String defaultContact,
+			Long contactsRowId){		
+
+		// create values
+		ContentValues values = new ContentValues();
+		values.put(KEY_FIRST_NAME, firstName);
+		values.put(KEY_PICTURE_ID, pictureId);
+		values.put(KEY_DATE_JOINED, dateJoined);
+		values.put(KEY_LAST_NAME, lastName);
+		values.put(KEY_EMAILS, userEmails);
+		values.put(KEY_PHONES, userPhone);
+		values.put(KEY_HAS_ACCOUNT, hasAccount);
+		values.put(KEY_DEFAULT_CONTACT, defaultContact);
+		values.put(KEY_CONTACTS_ROW_ID, contactsRowId);
+		
+		// create new row
+		long newRow = database.insert(
+				TABLE_NAME,
+				null,
+				values);
+		
+		return newRow;
+	}	
+	
+	/**
+	 * Return a user for the given rowId
+	 * 
+	 * @param rowId id of the user to retrieve
+	 * @return User object, null if none found at rowId
+	 */
+	public User fetchUser(long rowId){
+
+		// default
+		User output = null;
+		
+		// grab the cursor
+		Cursor cursor =
+
+			database.query(
+					true,
+					TABLE_NAME,
+					null,
+					KEY_ROW_ID + "='" + rowId +"'",
+					null,
+					null,
+					null,
+					null,
+					null);
+		
+		// check null
+		if (cursor == null || !cursor.moveToFirst())
+			return output;
+		
+		// check if we are accessing more than one row, this shouuldn't happen
+		if (cursor.getCount() > 1 && !Prefs.debug.allowMultipleUpdates)
+			throw new IllegalArgumentException("attempting to access more than one row. This should never happen");
+		
+		// make the group from cursor
+		output = new User(cursor);
+		
+		// close and return
+		cursor.close();
+		return output;
+	}
+	
+	/**
+	 * Get an array of all users stored in database
+	 * @return
+	 */
+	public ArrayList<User> fetchAllUsers(){
+		
+		// grab the cursor over all groups
+		Cursor cursor = fetchAllCursor(TABLE_NAME);
+		
+		// initalize output
+		ArrayList<User> output = new ArrayList<User>();
+		
+		// check null
+		if (cursor == null)
+			return output;
+		
+		// loop over cursor
+		while (cursor.moveToNext()){
+			output.add(new User(cursor));
+		}
+		
+		cursor.close();
+		return output;
+	}
+	
+	/**
+	 * If we are updating to the server, then set this field to true.
+	 * When we are done updating, make sure to set to false. <br>
+	 * If isUpdating is true, then we know we are not synced, so we will set sync to false as well.
+	 * @param rowId the rowId of the group to update.
+	 * @param isUpdating boolean if we are updating or not
+	 * @return boolean if we updated successfully to sql table.
+	 */
+	public boolean setIsUpdating(long rowId, boolean isUpdating){
+
+		ContentValues values = new ContentValues();
+		values.put(KEY_IS_UPDATING, isUpdating);	
+		if (isUpdating)
+			values.put(KEY_IS_SYNCED, false);
+		if (isUpdating)
+			values.put(KEY_LAST_UPDATE_ATTEMPT_TIME, Utils.getNowTime());
+
+		return database.update(
+				TABLE_NAME,
+				values,
+				KEY_ROW_ID + "='" + rowId + "'", null) > 0;	
+	}
+	
+	/**
+	 * If we are synced to the server, then set this field to true.
+	 * Also if we set to synced, then we know we aren't updating, so that is set to false.
+	 * @param rowId the rowId of the group to update.
+	 * @param isSynced boolean if we are synced
+	 * @param newServerId, input -1, if not known and nothing will be saved
+	 * @return boolean if we updated successfully to sql table.
+	 */
+	public boolean setIsSynced(long rowId, boolean isSynced, long newServerId){
+
+		ContentValues values = new ContentValues();
+		values.put(KEY_IS_SYNCED, isSynced);	
+		if (isSynced)
+			values.put(KEY_IS_UPDATING, false);
+		if (newServerId != -1)
+			values.put(KEY_SERVER_ID, newServerId);
+
+		return database.update(
+				TABLE_NAME,
+				values,
+				KEY_ROW_ID + "='" + rowId + "'", null) > 0;	
 	}
 	
 	/**
 	 * Get the row id from the phone's contact database that aligns with this "user" rowId
-	 * @param rowId The rowId in the "user" database
+	 * @param contactId The rowId in the "user" database
 	 * @return the rowId in the contacts database on the phone, -1 if none.
 	 */
-	public int getRowIdFromContactsDatabase(int rowId){
+	public int getRowIdFromContactsDatabase(long contactId){
 		
-		return getIntFrowRowId(rowId, KEY_CONTACTS_ROW_ID);
+		return getIntFrowRowId(contactId, KEY_CONTACTS_ROW_ID);
 	}
 	
 	/**
@@ -150,6 +399,7 @@ extends TableAdapter{
 		ContentValues values = new ContentValues(2);
 		values.put(KEY_CONTACTS_ROW_ID, contactsRowId);	
 		values.put(KEY_DEFAULT_CONTACT, defaultContact);
+		values.put(KEY_IS_UPDATING, false);
 		
 		// The where clause
 		String where = 
@@ -163,18 +413,19 @@ extends TableAdapter{
 				values,
 				where,
 				selectionArgs);
-		if (affected == 0){
-			int test = (int) database.insert(TABLE_NAME, null, values);
-			int kyle = 6;
+		if (affected == 0)
+			database.insert(TABLE_NAME, null, values);
+		if (affected > 1 && !Prefs.debug.allowMultipleUpdates){
+			throw new IllegalArgumentException("attempting to update more than one row. This should never happen");
 		}
 	}
 	
 	/**
 	 * Get the rowId in this database given the contacts Database row id
-	 * @param contactRowId The contacts Database rowId
+	 * @param contactId The contacts Database rowId
 	 * @return the "users" database row id, -1 if not found.
 	 */
-	public int getRowIdGivenContactsDatabaseRowId(int contactRowId){
+	public int getRowIdGivenContactsDatabaseRowId(long contactId){
 		
 		// default output
 		int output = -1;
@@ -184,7 +435,7 @@ extends TableAdapter{
 			KEY_CONTACTS_ROW_ID+ " = ?";
 		
 		// the selection args
-		String[] selectionArgs = {String.valueOf(contactRowId)};
+		String[] selectionArgs = {String.valueOf(contactId)};
 		
 		// do the query
 		Cursor cursor = database.query(
@@ -212,16 +463,238 @@ extends TableAdapter{
 		return output;
 	}
 	
+	/**
+	 * Delete the given user. Also delete any connections in user - group database
+	 * @param ctx Context needed to delete connections
+	 * @param rowId the rowId of the user to delete
+	 * @return the number of connections deleted
+	 */
+	public int deleteUser(Context ctx, long rowId){
+
+		// The where clause
+		String where = 
+			KEY_ROW_ID + " = ?";
+		
+		// The selection args
+		String[] selectionArgs = {String.valueOf(rowId)};
+		
+		// delete the row
+		int effected = database.delete(
+				TABLE_NAME,
+				where,
+				selectionArgs);
+
+		// throw error if we somehow linked to more than one group
+		if (effected > 1 && !Prefs.debug.allowMultipleUpdates)
+			throw new IllegalArgumentException("attempting to delete more than one row in groups. This should never happen");
+		
+		// delte teh connections
+		UsersInGroupsAdapter connections = new UsersInGroupsAdapter(ctx);
+		return connections.deleteUser(rowId);				
+	}
 	
-	// helper functions
+	
 	
 	/**
+	 * Load the user the given rowId into the cursor for this object
+	 * @param rowId
+	 */
+	public void fetchUserCursor(long rowId){
+		
+		// grab the cursor
+		Cursor cursor =
+
+			database.query(
+					true,
+					TABLE_NAME,
+					null,
+					KEY_ROW_ID + "='" + rowId +"'",
+					null,
+					null,
+					null,
+					null,
+					null);
+		
+		setCursor(cursor);
+	}
+	
+	/**
+	 * Load all users into this cursor
+	 * @return
+	 */
+	public void fetchAllUsersCursor(){
+		
+		// grab the cursor over all groups
+		Cursor cursor = fetchAllCursor(TABLE_NAME);
+		
+		// return the cursor
+		setCursor(cursor);
+	}
+	
+	/**
+	 * Get a cursor for all the users that are linked to the group groupId
+	 * in UsersInGroups table
+	 * @param groupId
+	 * @return A cursor on the users that match the groupId in UsersInGroups table
+	 */
+	public void fetchUsersInGroup(long groupId){
+
+		// create the query where we match up all the pictures that are in the group
+		String query = 
+			"SELECT users.* FROM "
+			+UsersAdapter.TABLE_NAME + " users "
+			+" INNER JOIN "
+			+UsersInGroupsAdapter.TABLE_NAME + " groups "
+			+" ON "
+			+"users." + UsersAdapter.KEY_ROW_ID + " = "
+			+"groups." + UsersInGroupsAdapter.KEY_USER_ID
+			+" WHERE "
+			+"groups." + UsersInGroupsAdapter.KEY_GROUP_ID
+			+"=?";
+
+		// do the query
+		Cursor cursor = database.rawQuery(
+				query,
+				new String[]{String.valueOf(groupId)});
+
+		// return the cursor
+		setCursor(cursor);
+	}
+	
+	/**
+	 * Return the users first name
+	 * @return
+	 */
+	public String getFirstName(){
+		if (!checkCursor())
+			return "";
+		return getString(KEY_FIRST_NAME);
+	}
+	
+	/**
+	 * Return the users last name
+	 * @return
+	 */
+	public String getLastName(){
+		if (!checkCursor())
+			return "";
+		return getString(KEY_LAST_NAME);
+	}
+	
+	/**
+	 * Return the users name. Usually first + last
+	 * @return
+	 */
+	public String getName(){
+		String first = getFirstName();
+		String last = getLastName();
+		String name = "";
+		if (first != null)
+			name+=first;
+		if (last != null){
+			if (name.length() > 0)
+				name += " ";
+			name+=last;
+		}
+		return name;
+	}
+	
+	/**
+	 * Readable string of user, usually getName();
+	 */
+	public String toString(){
+		return getName();
+	}
+	
+	/**
+	 * Return a comma delimited list of the default contact methods.
+	 * @return
+	 */
+	public String getDefaultContactMethod(){
+		if (!checkCursor())
+			return "";
+		return getString(KEY_DEFAULT_CONTACT);
+	}
+	
+	/**
+	 * Return the contact id from the google address book
+	 * @return
+	 */
+	public long getContactDatabaseRowId(Context ctx){
+		if (!checkCursor())
+			return -1;
+		
+		// just use the current contactId if there is no lookupKey
+		if (getLookupKey().length() == 0)
+			return getLong(KEY_CONTACTS_ROW_ID);
+		
+		// if we have a lookup key, then use it
+		Uri uri = ContactsContract.Contacts.getLookupUri(getLong(KEY_CONTACTS_ROW_ID), getLookupKey());
+		//Uri uri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_LOOKUP_URI, getLookupKey());
+		Uri uri2 = ContactsContract.Contacts.lookupContact(ctx.getContentResolver(), uri);
+		String[] projection = {ContactsContract.Contacts._ID};
+		Cursor cursor = ctx.getContentResolver().query(
+				uri2,
+				projection,
+				null, null, null);
+		int id = -1;
+		if (cursor != null && cursor.moveToFirst()){
+			id = getInt(0);
+		}
+		
+		int kyle = 6;
+		return id;
+		//return getLong(KEY_CONTACTS_ROW_ID);
+	}
+	
+	/**
+	 * Return the lookup key to find the user in the database
+	 * @return
+	 */
+	public String getLookupKey(){
+		if (!checkCursor())
+			return "";
+		return getString(KEY_LOOKUP_KEY);
+	}
+	
+	/**
+	 * Return the server id or -1 if none
+	 * @return
+	 */
+	public long getServerId(){
+		if (!checkCursor())
+			return -1;
+		return getLong(KEY_SERVER_ID);
+	}
+	
+	/**
+	 * Return the row ID of the contact, -1 if none
+	 * @return
+	 */
+	public long getRowId(){
+		if (!checkCursor())
+			return -1;
+		return getLong(KEY_ROW_ID);
+	}
+	
+	/**
+	 * Return the comma separated list of phone numbers for this user.
+	 * @return
+	 */
+	public String getPhones(){
+		if (!checkCursor())
+			return "";
+		return getString(KEY_PHONES);
+	}
+	
+	// helper functions
+	/**
 	 * Get an int from the table for a given rowID and a given column. -1 if none found
-	 * @param rowId the rowId to search on
+	 * @param contactId the rowId to search on
 	 * @param columnName The column name will throw exception if name is not found
 	 * @return the value at that row and column name, -1 if none found.
 	 */
-	private int getIntFrowRowId(int rowId, String columnName){
+	private int getIntFrowRowId(long contactId, String columnName){
 		
 		// default output
 		int output = -1;
@@ -231,7 +704,7 @@ extends TableAdapter{
 			KEY_ROW_ID + " = ?";
 		
 		// the selection args
-		String[] selectionArgs = {String.valueOf(rowId)};
+		String[] selectionArgs = {String.valueOf(contactId)};
 		
 		// do the query
 		Cursor cursor = database.query(
@@ -448,5 +921,254 @@ extends TableAdapter{
 		output =  cursor.getString(cursor.getColumnIndexOrThrow(columnName));
 		cursor.close();
 		return output;
+	}
+	
+	/**
+	 * Object that defines a user.
+	 *
+	 */
+	public class User{
+		private long rowId = -1;
+		private String firstName;
+		private String lastName;
+		private long serverId = -1;
+		private ArrayList<String> emailsArray;
+		private String phone;
+		private long pictureId;
+		private String dateJoined;
+		private boolean hasAccount;
+		private boolean isUpdating;
+		private boolean isSynced;
+		private String defaultContactMethod;
+		private long contactsRowId;
+
+		private boolean isEmpty = true;
+		private String lastUpdateAttemptTime;
+			
+		/**
+		 * Create a user from the database cursor at the current location.
+		 * @param cursor
+		 */
+		private User(Cursor cursor){
+			
+			// check null and size of cursor
+			if (cursor == null)
+				return;
+			
+			// fill fields
+			setEmpty(false);	
+			setRowId(cursor.getLong(cursor.getColumnIndexOrThrow(KEY_ROW_ID)));
+			setFirstName(cursor.getString(cursor.getColumnIndexOrThrow(KEY_FIRST_NAME)));
+			setLastName(cursor.getString(cursor.getColumnIndexOrThrow(KEY_LAST_NAME)));
+			setServerId(cursor.getLong(cursor.getColumnIndexOrThrow(KEY_SERVER_ID)));
+			setEmailsArray(com.tools.Tools.setArrayFromString(cursor.getString(cursor.getColumnIndexOrThrow(KEY_EMAILS)), DELIM));
+			setPhone(cursor.getString(cursor.getColumnIndexOrThrow(KEY_PHONES)));
+			setPictureId(cursor.getLong(cursor.getColumnIndexOrThrow(KEY_PICTURE_ID)));
+			setDateJoined(cursor.getString(cursor.getColumnIndexOrThrow(KEY_DATE_JOINED)));
+			setLastUpdateAttemptTime(cursor.getString(cursor.getColumnIndexOrThrow(KEY_LAST_UPDATE_ATTEMPT_TIME)));	
+			setHasAccount(cursor.getInt(cursor.getColumnIndexOrThrow(KEY_HAS_ACCOUNT)) > 0);
+			setUpdating(cursor.getInt(cursor.getColumnIndexOrThrow(KEY_IS_UPDATING))>0);
+			setSynced(cursor.getInt(cursor.getColumnIndexOrThrow(KEY_IS_SYNCED))>0);
+			setDefaultContactMethod(cursor.getString(cursor.getColumnIndexOrThrow(KEY_DEFAULT_CONTACT)));
+			setContactsRowId(cursor.getInt(cursor.getColumnIndexOrThrow(KEY_CONTACTS_ROW_ID)));
+		}
+		
+		@Override
+		public String toString(){
+			return getFullName();
+		}
+		
+		/**
+		 * Return first + last name as full name
+		 * @return
+		 */
+		public String getFullName(){
+			String name = getFirstName();
+			String last = getLastName();
+			if (last != null && last.length() > 0)
+				name += " " + last;
+			return name;
+		}
+		
+		/**
+		 * These two objects are considered equal if all fields are equal
+		 */
+		@Override
+		public boolean equals(Object o){
+			// must be correct type
+			if (!( o instanceof User) || o==null)
+				return false;
+			
+			// convert			
+			User input = ((User) o);
+			
+			// if empty, they cannot be equal
+			if (isEmpty() || input.isEmpty())
+				return false;
+			
+			// now compare each field
+			return equalsHelper(input);
+		}
+		
+		/**
+		 * compare each field in this class to be equal
+		 * @param user
+		 * @return true if all fields equal, false otherwise.
+		 */
+		private boolean equalsHelper(User user){
+			Class<? extends Object> thisClass = this.getClass();
+			Field[] fieldsArray = thisClass.getDeclaredFields();
+			for (Field field : fieldsArray){
+				if (field.getName().equalsIgnoreCase("this$0"))
+					continue;
+				try {
+					Object tmp = field.get(this);
+					if (tmp == null || !this.equals(field.get(user)))
+						return false;
+				} catch (IllegalArgumentException e) {
+					e.printStackTrace();
+				} catch (IllegalAccessException e) {
+					e.printStackTrace();
+				}
+			}
+			return true;
+		}
+		
+		@Override
+		public int hashCode(){
+			if (isEmpty())
+				return 0;
+			else
+				return ((Long)getRowId()).hashCode();
+		}
+		
+		private void setEmpty(boolean isEmpty) {
+			this.isEmpty = isEmpty;
+		}
+
+		public boolean isEmpty() {
+			return isEmpty;
+		}
+		
+		private void setUpdating(boolean isUpdating) {
+			this.isUpdating = isUpdating;
+		}
+		
+		public boolean isUpdating() {
+			// if the last time we updated is too long ago, then we are not updating any more
+			if (Date.parse(Utils.getNowTime()) - Date.parse(getLastUpdateAttemptTime()) > 1000*Utils.SECONDS_SINCE_UPDATE_RESET) 
+				return false;
+			else
+				return isUpdating;
+		}
+
+		private void setLastUpdateAttemptTime(String lastUpdateAttemptTime) {
+			this.lastUpdateAttemptTime = lastUpdateAttemptTime;
+		}
+
+		public String getLastUpdateAttemptTime() {
+			return lastUpdateAttemptTime;
+		}
+
+		private void setFirstName(String firstName) {
+			this.firstName = firstName;
+		}
+
+		public String getFirstName() {
+			return firstName;
+		}
+
+		private void setRowId(long rowId) {
+			this.rowId = rowId;
+		}
+
+		public long getRowId() {
+			return rowId;
+		}
+
+		private void setServerId(long serverId) {
+			this.serverId = serverId;
+		}
+
+		public long getServerId() {
+			return serverId;
+		}
+
+		private void setLastName(String lastName) {
+			this.lastName = lastName;
+		}
+
+		public String getLastName() {
+			return lastName;
+		}
+
+		private void setEmailsArray(ArrayList<String> emailsArray) {
+			this.emailsArray = emailsArray;
+		}
+
+		public ArrayList<String> getEmailsArray() {
+			return emailsArray;
+		}
+
+		private void setPhone(String phone) {
+			this.phone = phone;
+		}
+
+		public String getPhone() {
+			return phone;
+		}
+
+		private void setPictureId(long pictureId) {
+			this.pictureId = pictureId;
+		}
+
+		public long getPictureId() {
+			return pictureId;
+		}
+
+		private void setDateJoined(String dateJoined) {
+			this.dateJoined = dateJoined;
+		}
+
+		public String getDateJoined() {
+			return dateJoined;
+		}
+
+		private void setHasAccount(boolean hasAccount) {
+			this.hasAccount = hasAccount;
+		}
+
+		public boolean isHasAccount() {
+			return hasAccount;
+		}
+
+		private void setSynced(boolean isSynced) {
+			this.isSynced = isSynced;
+		}
+
+		public boolean isSynced() {
+			return isSynced;
+		}
+
+		private void setDefaultContactMethod(String defaultContactMethod) {
+			this.defaultContactMethod = defaultContactMethod;
+		}
+
+		public String getDefaultContactMethod() {
+			return defaultContactMethod;
+		}
+
+		private void setContactsRowId(long contactsRowId) {
+			this.contactsRowId = contactsRowId;
+		}
+
+		public long getContactsRowId() {
+			return contactsRowId;
+		}
+	}
+
+	@Override
+	protected void setColumnNumbers() throws IllegalArgumentException {
+		
 	}
 }

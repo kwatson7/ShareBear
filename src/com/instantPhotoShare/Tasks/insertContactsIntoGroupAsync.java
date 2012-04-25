@@ -1,6 +1,5 @@
 package com.instantPhotoShare.Tasks;
 
-import java.util.ArrayList;
 import java.util.Hashtable;
 
 import com.instantPhotoShare.ContactCheckedArray;
@@ -9,7 +8,6 @@ import com.tools.CustomAsyncTask;
 
 import android.app.ProgressDialog;
 import android.content.ContentValues;
-import android.os.AsyncTask;
 import android.provider.ContactsContract;
 import android.widget.Toast;
 
@@ -26,7 +24,7 @@ extends CustomAsyncTask<Void, Integer, Integer> {
 	private String groupName;								// The group name
 	
 	/**
-	 * The constructor to create a new group and insert their names into the group
+	 * The constructor to create a new group and insert their names into the group in google contacts database.
 	 * @param act
 	 * @param requestId
 	 * @param mContactChecked

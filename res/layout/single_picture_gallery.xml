@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="fill_parent"
+	android:layout_height="fill_parent">
+<com.instantPhotoShare.CustomGallery 
+    android:id="@+id/galleryView"
+    android:layout_width="fill_parent" 
+    android:layout_height="fill_parent"
+    android:gravity="center"
+    android:spacing="10dp"
+/>
+<TextView
+	android:id="@+id/groupName"
+	android:layout_width="wrap_content"
+	android:layout_height="wrap_content"
+	android:textSize="20sp"
+	android:textStyle="bold"
+	android:textColor="@android:color/white"
+	android:layout_gravity="top|center"
+	android:lines="1"
+/>
+<ImageView
+	android:id="@+id/takePictureButton"
+	android:layout_width="64dp"
+	android:layout_height="64dp"
+	android:scaleType="fitCenter"
+	android:clickable="true"
+	android:src="@drawable/cam_icon_xml"
+	android:onClick="takePictureClicked"
+	android:layout_gravity="top|right"
+	android:background="@null"
+/>
+</FrameLayout>

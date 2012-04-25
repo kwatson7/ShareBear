@@ -3,26 +3,46 @@ package com.instantPhotoShare;
 import java.util.Hashtable;
 import java.util.Set;
 
-import com.tools.TwoObjects;
+import android.content.ContentUris;
+import android.net.Uri;
+import android.provider.ContactsContract;
 
 public class ContactCheckedArray{
-	private Hashtable<Long, TwoObjects<Boolean, String>> hash;
+	private Hashtable<Long, ContactCheckedItem> hash;
 	private int nChecked = 0;
 	
 	public ContactCheckedArray() {
-		hash = new Hashtable<Long, TwoObjects<Boolean, String>>();
+		hash = new Hashtable<Long, ContactCheckedItem>();
 	}
 	
+	public void setItem(ContactCheckedItem item){
+		// see if we need to add or subtract from total contacts that are checked
+		ContactCheckedItem selection = hash.get(item.contactId);
+		boolean wasChecked = false;
+		if (selection == null || !selection.isChecked)
+			wasChecked = false;
+		else
+			wasChecked = true;
+		boolean isChecked = item.isChecked;
+		if (!wasChecked && isChecked)
+			nChecked++;
+		if (wasChecked && !isChecked)
+			nChecked--;	
+		
+		hash.put(item.contactId, item);
+	}
+			
+	
 	/**
-	 * determine if user at at userId has been checked
-	 * @param key
+	 * determine if user at the contactId has been checked
+	 * @param contactId
 	 * @return
 	 */
-	public boolean isChecked(long userId){
-		TwoObjects<Boolean, String> selection = hash.get(userId);
+	public boolean isChecked(Long contactId){
+		ContactCheckedItem selection = hash.get(contactId);
 		if (selection == null)
 			return false;
-		if (selection.mObject1 == null || !selection.mObject1)
+		if (!selection.isChecked)
 			return false;
 		else
 			return true;
@@ -30,32 +50,36 @@ public class ContactCheckedArray{
 	
 	/**
 	 * set a current users checked value
-	 * @param userId The userId to set
+	 * @param contactId The contactId to set
 	 * @param isChecked The value of true (checked) or false (not checked)
 	 */
-	public void setIsChecked(long userId, boolean isChecked){
+	public void setIsChecked(Long contactId, boolean isChecked){
 		// see if we need to add or subtract from total contacts that are checked
-		TwoObjects<Boolean, String> selection = hash.get(userId);
+		ContactCheckedItem selection = hash.get(contactId);
 		if (selection == null)
-			selection = new TwoObjects<Boolean, String>(false, "");
-		if (selection.mObject1 == null)
-			selection.mObject1 = false;
-		if (!selection.mObject1 && isChecked)
+			selection = new ContactCheckedItem(contactId);
+		if (!selection.isChecked && isChecked)
 			nChecked++;
-		if (selection.mObject1 && !isChecked)
+		if (selection.isChecked && !isChecked)
 			nChecked--;
-		selection.mObject1 = isChecked;
-		hash.put(userId, selection);
+		selection.isChecked = isChecked;
+		hash.put(contactId, selection);
 	}
 	
-	public void setDefaultContact(long userId, String defaultContact){
-		TwoObjects<Boolean, String> selection = hash.get(userId);
+	public void setDefaultContactDONTUSE(Long contactId, String defaultContact){
+		ContactCheckedItem selection = hash.get(contactId);
 		if (selection == null)
-			selection = new TwoObjects<Boolean, String>(false, "");
-		if (selection.mObject1 == null)
-			selection.mObject1 = false;
-		selection.mObject2 = defaultContact;
-		hash.put(userId, selection);
+			selection = new ContactCheckedItem(contactId);
+		selection.defaultContactMethod = defaultContact;
+		hash.put(contactId, selection);
+	}
+	
+	public void setDisplayNameDONTUSE(Long contactId, String displayName){
+		ContactCheckedItem selection = hash.get(contactId);
+		if (selection == null)
+			selection = new ContactCheckedItem(contactId);
+		selection.displayName = displayName;
+		hash.put(contactId, selection);
 	}
 	
 	public int getNChecked(){
@@ -75,10 +99,73 @@ public class ContactCheckedArray{
 		nChecked = 0;
 	}
 	
-	public String getDefaultContactMethod(long userId){
-		TwoObjects<Boolean, String> selection = hash.get(userId);
+	public String getDisplayName(Long contactId){
+		ContactCheckedItem selection = hash.get(contactId);
 		if (selection == null)
 			return null;
-		return selection.mObject2;
+		return selection.displayName;
+	}
+	
+	public String getDefaultContactMethod(Long contactId){
+		ContactCheckedItem selection = hash.get(contactId);
+		if (selection == null)
+			return null;
+		return selection.defaultContactMethod;
+	}
+	
+	public Uri getLookupUri(Long contactId){
+		ContactCheckedItem selection = hash.get(contactId);
+		if (selection == null)
+			return null;
+		return selection.getLookupUri();
+	}
+	
+	public String getLookupKey(Long contactId){
+		ContactCheckedItem selection = hash.get(contactId);
+		if (selection == null)
+			return null;
+		return selection.lookupKey;
+	}
+	
+	public static class ContactCheckedItem{
+		private boolean isChecked = false;
+		private String displayName = "";
+		private String defaultContactMethod = "";
+		private String lookupKey = "";
+		private long contactId = -1;
+		
+		private Uri getLookupUri(){
+			if ((lookupKey == null || lookupKey.length() == 0) &&
+					(contactId == -1))
+				return null;
+			if (lookupKey == null || lookupKey.length() == 0)
+				return ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, contactId);
+			else{
+				return ContactsContract.Contacts.getLookupUri(contactId, lookupKey);	
+			}
+		}
+		
+		private ContactCheckedItem(long contactId){
+			this.contactId = contactId;
+		}
+		
+		public ContactCheckedItem(
+				long contactId,
+				boolean isChecked,
+				String displayName,
+				String defaultContactMethod,
+				String lookupKey){
+			if (displayName == null)
+				displayName = "";
+			if (defaultContactMethod == null)
+				defaultContactMethod = "";
+			if (lookupKey == null)
+				lookupKey = "";
+			this.contactId = contactId;
+			this.isChecked = isChecked;
+			this.displayName = displayName;
+			this.defaultContactMethod = defaultContactMethod;
+			this.lookupKey = lookupKey;	
+		}
 	}
 }

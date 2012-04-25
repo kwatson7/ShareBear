@@ -1,10 +1,13 @@
 package com.instantPhotoShare.Adapters;
 
+import com.instantPhotoShare.Prefs;
 
+import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
 
 public class PicturesInGroupsAdapter
-extends TableAdapter{
+extends TableAdapter <PicturesInGroupsAdapter>{
 
 	/** Table name */
 	public static final String TABLE_NAME = "PicturesInGroupsInfo";
@@ -31,5 +34,107 @@ extends TableAdapter{
 	
 	public PicturesInGroupsAdapter(Context context) {
 		super(context);
+	}
+	
+	/**
+	 * Add a new picture group link
+	 * @param ctx the context needed to perform manipulations
+	 * @param pictureId The picture Id to add to group
+	 * @param groupId The group id to add to.
+	 * @return The rowId that was created/updated
+	 */
+	public long addPictureToGroup(
+			Context ctx,
+			long pictureId,
+			long groupId){
+
+		// initialize items to insert.
+		ContentValues values = new ContentValues();
+		values.put(KEY_GROUP_ID, groupId);
+		values.put(KEY_PICTURE_ID, pictureId);
+
+		// The where clause
+		String where = 
+			KEY_PICTURE_ID + " = ? AND " + KEY_GROUP_ID + " = ?";
+		
+		// The selection args
+		String[] selectionArgs = {String.valueOf(pictureId), String.valueOf(groupId)};
+		
+		// update the row, insert it if not possible
+		long newRow = -1;
+		int affected = database.update(TABLE_NAME,
+				values,
+				where,
+				selectionArgs);
+		if (affected == 0)
+			newRow = database.insert(TABLE_NAME, null, values);
+		if (affected == 1)
+			newRow = getRowId(pictureId, groupId);
+		if (affected > 1 && !Prefs.debug.allowMultipleUpdates)
+			throw new IllegalArgumentException("attempting to update more than one row. This should never happen");
+
+		// change the most recent picture number in group
+		GroupsAdapter groups = new GroupsAdapter(ctx);
+		groups.setLastPictureNumber(groupId, newRow);
+		
+		return newRow;
+	}
+	
+	/**
+	 * Get the rowId of the connection given the userId and groupId
+	 * @param userId
+	 * @param groupId
+	 * @return the rowId
+	 */
+	private long getRowId(long userId, long groupId){
+		
+		// default output
+		long output = -1;
+		
+		// the selection string
+		String selection = 
+			KEY_PICTURE_ID + " = ? AND " + KEY_GROUP_ID + " ?";
+		
+		// the selection args
+		String[] selectionArgs = {String.valueOf(userId), String.valueOf(groupId)};
+		
+		// the project
+		String[] projection = {KEY_ROW_ID};
+		
+		// the query
+		Cursor cursor = database.query(
+				TABLE_NAME,
+				projection,
+				selection,
+				selectionArgs,
+				null,
+				null,
+				null);
+		
+		// check for null
+		if (cursor == null)
+			return output;
+		
+		// error check
+		if (!Prefs.debug.allowMultipleUpdates && cursor.getCount() > 1)
+			throw new IllegalArgumentException("The user / group connection appears more than once. This should never happen");
+			
+		// move to first position in cursor
+		if (!cursor.moveToFirst()){
+			cursor.close();
+			return output;
+		}
+		
+		// grab the row id
+		output =  cursor.getLong(cursor.getColumnIndexOrThrow(KEY_ROW_ID));
+		cursor.close();
+		return output;
+	}
+
+	@Override
+	protected void setColumnNumbers() throws IllegalArgumentException {
+		// TODO Auto-generated method stub
+		throw new UnsupportedOperationException("Not supported yet.");
+		
 	}
 }

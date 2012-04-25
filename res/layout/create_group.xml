@@ -1,101 +1,76 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-	android:orientation="vertical"
+<ScrollView
+	android:id="@+id/ScrollView01"
+	android:layout_height="fill_parent"
+	android:layout_width="fill_parent"
+	android:fillViewport="true"
+	xmlns:android="http://schemas.android.com/apk/res/android">
+<LinearLayout
+	android:id="@+id/topLayout"
 	android:layout_width="fill_parent"
 	android:layout_height="fill_parent"
-	android:background="@color/listViewColor"
-	android:paddingLeft="5dp">
+	android:orientation="vertical">
 <LinearLayout
 	android:id="@+id/dummyView"
 	android:layout_width="0px"
 	android:layout_height="0px"
 	android:focusable="true"
-	android:focusableInTouchMode="true"/>
+	android:focusableInTouchMode="true"
+/>
 <EditText
 	android:id="@+id/groupName"
-	android:layout_width = "fill_parent"
-	android:layout_height = "wrap_content"
-	android:textSize="20sp"
-	android:hint = "Group Name"
+	android:layout_width="fill_parent"
+	android:layout_height="wrap_content"
+	android:hint="Group Name"
+	android:textSize="18dp" 
+	android:layout_gravity="center_horizontal"
 	android:lines="1"
-	android:scrollHorizontally="true"
-	/>
-<TextView
-android:id="@+id/whoText"
-android:layout_width="wrap_content"
-android:layout_height="wrap_content"
-android:text="Who should be in the group?"
-android:layout_gravity="center"
-android:textSize="20sp"
->
-</TextView>
-<LinearLayout
-android:id="@+id/line1"
-android:layout_width="fill_parent"
-android:layout_height="wrap_content"
-android:orientation="horizontal"
->
-<com.tools.ClearableEditText
-android:id="@+id/searchName"
-android:layout_width="fill_parent"
-android:layout_height="wrap_content"
-android:textSize="20sp"
-android:hint="Search Contacts"
-android:clickable="true"
-android:layout_weight="1"
-android:lines="1"
-android:scrollHorizontally="true"
-android:inputType="textFilter"
-android:imeOptions="actionSearch"
->
-</com.tools.ClearableEditText>
+	android:singleLine="true"
+	android:imeOptions="actionDone"
+/>
+<CheckBox
+	android:id="@+id/keepPrivate"
+	android:layout_width="fill_parent"
+	android:layout_height="wrap_content"
+	android:text="Only on Phone?"
+	android:layout_gravity="center_horizontal"
+/>
+<EditText
+	android:id="@+id/location"
+	android:layout_width="fill_parent"
+	android:layout_height="wrap_content"
+	android:hint="Location"
+	android:enabled="false"
+	android:textSize="18sp"
+	android:layout_gravity="center_horizontal"
+/>
+<CheckBox
+	android:id="@+id/publicGroup"
+	android:layout_width="fill_parent"
+	android:layout_height="wrap_content"
+	android:text="Public Group" 
+	android:enabled="false"
+	android:layout_gravity="center_horizontal"
+/>
+<CheckBox
+	android:id="@+id/allowOtherMembersToAddMembers"
+	android:layout_width="fill_parent"
+	android:layout_height="wrap_content"
+	android:text="Allow Members to Themselves Add Members" 
+	android:checked="true"
+	android:enabled="false"
+	android:layout_gravity="center_horizontal"
+/>
 <Button
-android:id="@+id/goButton1"
-android:layout_width="wrap_content"
-android:layout_height="wrap_content"
-android:textSize="15sp"
-android:width="100dp"
-android:text="Done Selecting"
-android:onClick="goClicked"
-android:layout_gravity="center"
->
-</Button>
+	android:id="@+id/goButton"
+	android:layout_width="fill_parent"
+	android:layout_height="wrap_content"
+	android:text="Make Group"
+	android:layout_gravity="center_horizontal"
+	android:textSize="18dp" 
+	android:typeface="serif"
+	android:textStyle="bold"
+	android:onClick="goClicked"
+/>
 </LinearLayout>
-<LinearLayout
-android:orientation="horizontal"
-android:layout_width="fill_parent"
-android:layout_height="wrap_content">
-<TextView
-android:id="@+id/totalContactsString"
-android:layout_width="wrap_content"
-android:layout_height="wrap_content"
-android:text="Total Selected: "
-android:layout_gravity="left"
-android:textSize="20sp"
->
-</TextView>
-<TextView
-android:id="@+id/totalContactsNumber"
-android:layout_width="wrap_content"
-android:layout_height="wrap_content"
-android:text="0 selected."
-android:layout_gravity="left"
-android:textSize="20sp"
->
-</TextView>
-</LinearLayout>
-<com.tools.NoDefaultSpinner
-android:layout_width="0px"
-android:layout_height="0px"
-android:visibility="invisible"
-android:id="@+id/spinner"
-android:prompt="@string/pickGroupString">
-</com.tools.NoDefaultSpinner>
-<ListView android:id="@+id/list"
-     android:layout_width="fill_parent"
-	android:layout_height="0dip"
-	android:layout_weight="1" 
-	android:cacheColorHint="@color/listViewColor"
-	android:choiceMode="multipleChoice"
-	android:fastScrollEnabled="true"/>
-</LinearLayout>
+</ScrollView>

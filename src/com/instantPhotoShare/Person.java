@@ -1,12 +1,8 @@
 package com.instantPhotoShare;
 
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashSet;
-import java.util.List;
-
-import org.apache.http.message.BasicNameValuePair;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -14,14 +10,12 @@ import com.instantPhotoShare.Tasks.CreateNewAccountTask;
 
 import android.app.Activity;
 import android.content.ContentUris;
-import android.content.Context;
 import android.database.Cursor;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.net.Uri;
-import android.os.Bundle;
 import android.provider.ContactsContract;
 
 /**
@@ -32,13 +26,14 @@ import android.provider.ContactsContract;
 public class Person {
 	
 	// private class variables
-	private long id = -1; 									// the id of the friend used for identification
+	private long rowId = -1; 								// the row id of the person used for identification
+	private long serverId = -1; 							// the server id of the person
+	private long contactsDatabaseId = -1; 					// the contact id from the phones address book
 	private String firstName = "";							// the first name of the friend
 	private String lastName = ""; 							// the last name of the friend
 	private Location location;  							// the location of the friend
 	private long lastUpdated; 								// The time in milliseconds of the last location update
 	private HashSet<String> emailArray; 					// the list of emails for this person
-	private HashSet<String> phoneArray;						// the list of phones for this person
 	private String mainPhone = ""; 							// main phone number that is identifying as user account
 	private String userName = ""; 							// The userName of the person
 	private String password = ""; 							// The password of the user
@@ -48,18 +43,6 @@ public class Person {
 	private static String PHOTO_SHARE_ID_COLUMN = "data1";	// The column to store in sql database for contacts
 	private static String MIME_TYPE = "'vnd.android.cursor.item/instantPhotoShareMIME_571asd87'";	// The mime type for this app
 	private static String DELIM = ",";						// delimiter(s) for phone and email strings 					
-	
-	/**
-	 * 
-	 * @param id The id of the person
-	 * @param firstName The person's first name
-	 * @param lastName The person's last name
-	 */
-	public Person(int id, String firstName, String lastName){
-		this.id = id;
-		this.firstName = firstName;
-		this.lastName = lastName;
-	}
 	
 	/**
 	 * Initialize a person, but no id yet (defaults to -1)
@@ -74,7 +57,6 @@ public class Person {
 	public Person() {
 	}
 
-	
 	
 	/**
 	 * Set the identifying main phone number
@@ -152,18 +134,33 @@ public class Person {
 	}
 	
 	/**
-	 * Set the id of the friend (the id given from the server)
+	 * Set the server id of the person (the id given from the server)
 	 * @param l
 	 */
-	public void setId(long l){
-		this.id = l;
+	public void setServerId(long l){
+		this.serverId = l;
 	}
 	/**
 	 * 
-	 * @return the id of the friend (the id given from the server)
+	 * @return the id of the person (the id given from the server)
 	 */
-	public long getId(){
-		return id;
+	public long getServerId(){
+		return serverId;
+	}
+	
+	/**
+	 * Set the row id of the person
+	 * @param l
+	 */
+	public void setRowId(long l){
+		this.rowId = l;
+	}
+	/**
+	 * 
+	 * @return the row id of the person 
+	 */
+	public long getRowId(){
+		return rowId;
 	}
 	
 	/**
@@ -188,7 +185,8 @@ public class Person {
 		String out = "";
 		for (String email : emailArray)
 			out += email + DELIM;
-		out = out.substring(0, out.length()-1);
+		if (out.length() > 1)
+			out = out.substring(0, out.length()-1);
 		
 		return out;
 	}
@@ -197,6 +195,9 @@ public class Person {
 	 * @param emailString
 	 */
 	public void setEmailArray(String emailString){
+		if (emailString == null)
+			return;
+		
 		// break up string by commas
 		String delim = DELIM;
 		String[] tokens = emailString.split(delim);
@@ -208,56 +209,6 @@ public class Person {
 		}
 		
 		emailArray = emailArrayTmp;
-	}
-
-	/**
-	 * Set the list of phone numbers
-	 * @param input
-	 */
-	public void setPhoneArray(HashSet<String> input){
-		// format phone number properly
-		phoneArray = new HashSet<String>(input.size());
-		for (String phone : input){
-			phone = com.tools.Tools.fixPhoneString(phone);
-			phoneArray.add(phone);
-		}
-	}	
-	/**
-	 * Get the list of phone numbers
-	 * @param input
-	 */
-	public HashSet<String> getPhoneArray(){
-		return phoneArray;
-	}
-	/**
-	 * Get the list of phone numbers as a string separated by commas
-	 * @return
-	 */
-	public String getPhonesAsString(){
-		String out = "";
-		for (String phone : phoneArray)
-			out += phone + DELIM;
-		out = out.substring(0, out.length()-1);
-		
-		return out;
-	}	
-	/**
-	 * Take as input to phone numbers a long string with commas separating numbers. Store them as a hashset however.
-	 * @param phoneString
-	 */
-	public void setPhoneArray(String phoneString){
-		// break up string by commas
-		String delim = DELIM;
-		String[] tokens = phoneString.split(delim);
-		HashSet<String> phoneArrayTmp = new HashSet<String>(tokens.length);
-		
-		// format string
-		for (int i = 0; i < tokens.length; i++){
-			tokens[i] = com.tools.Tools.fixPhoneString(tokens[i]);
-			phoneArrayTmp.add(tokens[i]);
-		}
-		
-		phoneArray = phoneArrayTmp;
 	}
 	
 	/**
@@ -287,11 +238,12 @@ public class Person {
 		JSONObject json = new JSONObject();
 		json.put(CreateNewAccountTask.PERSON_FIRST_NAME, getFirstName());
 		json.put(CreateNewAccountTask.PERSON_LAST_NAME, getLastName());
-		json.put(CreateNewAccountTask.PERSON_PHONE, getPhonesAsString());
 		json.put(CreateNewAccountTask.PERSON_EMAIL, getEmailsAsString());
-		json.put(CreateNewAccountTask.MAIN_PHONE, getMainPhone());
-		json.put(CreateNewAccountTask.USER_NAME, getUserName());
-		json.put(CreateNewAccountTask.PASSWORD, getPassword());
+		json.put(CreateNewAccountTask.PERSON_PHONE, getMainPhone());
+		if (getUserName().length() != 0){
+			json.put(CreateNewAccountTask.USER_NAME, getUserName());
+			json.put(CreateNewAccountTask.PASSWORD, getPassword());
+		}
 		return json;
 	}
 	
@@ -316,12 +268,12 @@ public class Person {
 	 * @param act
 	 * @return
 	 */
-	public Drawable getBmpasdfsd(Activity act){
+	public Drawable getBmpNOTFINISHED(Activity act){
 		
 		// create string for searching
 		String selection = ContactsContract.Data.MIMETYPE + " = " + MIME_TYPE + 
 			" AND " +
-			PHOTO_SHARE_ID_COLUMN + " = '" + getId() + "'";
+			PHOTO_SHARE_ID_COLUMN + " = '" + getRowId() + "'";
 		
 		String[] projection = {ContactsContract.Data.RAW_CONTACT_ID};
 
@@ -375,5 +327,13 @@ public class Person {
 		
 		// return the photo
 		return photo;
+	}
+
+	public void setContactsDatabaseId(long contactsDatabaseId) {
+		this.contactsDatabaseId = contactsDatabaseId;
+	}
+
+	public long getContactsDatabaseId() {
+		return contactsDatabaseId;
 	}
 }

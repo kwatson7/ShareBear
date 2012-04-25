@@ -1,28 +1,82 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-	android:orientation="vertical" android:layout_width="fill_parent"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="vertical"
+	android:layout_width="fill_parent"
+	android:layout_height="fill_parent">
+<ImageView
+	android:src="@drawable/main_background6"
+	android:scaleType="centerCrop"
+	android:layout_width="fill_parent"
 	android:layout_height="fill_parent"
-	android:background="@drawable/wedding_blurred">
+/>
+<LinearLayout
+	android:orientation="vertical"
+	android:layout_width="fill_parent"
+	android:layout_height="fill_parent">
 	<LinearLayout android:id="@+id/linearLayout1"
 		android:orientation="horizontal"
 		android:layout_width="fill_parent"
 		android:layout_height="0px"
-		android:layout_weight="1"
-		android:padding="5dp">
-		<ImageView android:id="@+id/createNewGroupButton"
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
+		android:layout_weight="1">
+		<LinearLayout
+			android:layout_width="fill_parent"
+			android:layout_height="fill_parent"
+			android:orientation="vertical"
 			android:layout_weight="1"
-			android:scaleType="fitCenter"
-			android:src="@drawable/create_new_group_button"
-			android:clickable="true"
-			android:onClick="createNewGroupClicked"/>
-		<ImageView android:id="@+id/button4"
-			android:layout_width="0px"
-			android:layout_height="wrap_content"
+			android:layout_gravity="center"
+			android:padding="5dp">
+			<ImageView android:id="@+id/takePictureButton"
+				android:layout_width="fill_parent"
+				android:layout_height="fill_parent"
+				android:scaleType="fitCenter"
+				android:layout_gravity="center"
+				android:clickable="true"
+				android:layout_weight="1"
+				android:src="@drawable/cam_icon_xml"
+				android:onClick="takePictureClicked"
+			/>
+			<TextView
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:lines="1"
+				android:text="Take Picture"
+				android:layout_gravity="center_horizontal|center_vertical"
+				android:gravity="center"
+				android:textColor="@android:color/primary_text_dark"
+				android:typeface="serif"
+				android:textStyle="bold"
+				android:textSize="15dp"
+			/>
+		</LinearLayout>
+		<LinearLayout
+			android:layout_width="fill_parent"
+			android:layout_height="fill_parent"
+			android:orientation="vertical"
 			android:layout_weight="1"
-			android:clickable="true"
-			android:src="@drawable/coming_soon_xml"/>
+			android:layout_gravity="center"
+			android:padding="5dp">
+			<ImageView android:id="@+id/createNewGroupButton"
+				android:layout_width="fill_parent"
+				android:layout_height="fill_parent"
+				android:layout_weight="1"
+				android:scaleType="fitCenter"
+				android:src="@drawable/create_new_group_button"
+				android:clickable="true"
+				android:onClick="createNewGroupClicked"
+			/>
+			<TextView
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:lines="1"
+				android:text="Create New Group"
+				android:layout_gravity="center_horizontal|center_vertical"
+				android:gravity="center"
+				android:textColor="@android:color/primary_text_dark"
+				android:typeface="serif"
+				android:textStyle="bold"
+				android:textSize="15dp"
+			/>
+		</LinearLayout>
 	</LinearLayout>
 	<LinearLayout android:id="@+id/linearLayout2"
 		android:orientation="horizontal"
@@ -30,36 +84,91 @@
 		android:layout_height="0px"
 		android:layout_weight="1"
 		android:padding="5dp">
-		<ImageView android:id="@+id/button4"
-			android:layout_width="0px"
-			android:layout_height="wrap_content"
+		<LinearLayout
+			android:layout_width="fill_parent"
+			android:layout_height="fill_parent"
+			android:orientation="vertical"
 			android:layout_weight="1"
-			android:clickable="true"
-			android:src="@drawable/coming_soon_xml"/>
-		<ImageView android:id="@+id/button4"
-			android:layout_width="0px"
-			android:layout_height="wrap_content"
+			android:layout_gravity="center"
+			android:padding="5dp">
+			<ImageView android:id="@+id/manageGroupsButton"
+				android:layout_width="fill_parent"
+				android:layout_height="fill_parent"
+				android:layout_weight="1"
+				android:scaleType="fitCenter"
+				android:src="@drawable/add_to_group_xml"
+				android:clickable="true"
+				android:onClick="manageGroupsClicked"
+			/>
+			<TextView
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:lines="1"
+				android:text="Manage Groups"
+				android:layout_gravity="center_horizontal|center_vertical"
+				android:gravity="center"
+				android:textColor="@android:color/primary_text_dark"
+				android:typeface="serif"
+				android:textStyle="bold"
+				android:textSize="15dp"
+			/>
+		</LinearLayout>
+		<LinearLayout
+			android:layout_width="fill_parent"
+			android:layout_height="fill_parent"
+			android:orientation="vertical"
 			android:layout_weight="1"
-			android:clickable="true"
-			android:src="@drawable/coming_soon_xml"/>
+			android:layout_gravity="center"
+			android:padding="5dp">
+			<ImageView android:id="@+id/test"
+				android:layout_width="fill_parent"
+				android:layout_height="fill_parent"
+				android:layout_weight="1"
+				android:scaleType="fitCenter"
+				android:src="@drawable/create_new_group_button"
+				android:clickable="true"
+				android:onClick="viewPicturesClicked"
+			/>
+			<TextView
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:lines="1"
+				android:text="View Pictures"
+				android:layout_gravity="center_horizontal|center_vertical"
+				android:gravity="center"
+				android:textColor="@android:color/primary_text_dark"
+				android:typeface="serif"
+				android:textStyle="bold"
+				android:textSize="15dp"
+			/>
+		</LinearLayout>
 	</LinearLayout>
 	<LinearLayout android:id="@+id/linearLayout3"
 		android:orientation="horizontal"
 		android:layout_width="fill_parent"
 		android:layout_height="0px"
-		android:layout_weight="1"
-		android:padding="5dp">
+		android:layout_weight="1">
 		<ImageView android:id="@+id/button5"
 			android:layout_width="0px"
 			android:layout_height="wrap_content"
 			android:layout_weight="1"
 			android:clickable="true"
-			android:src="@drawable/coming_soon_xml"/>
+			android:src="@drawable/coming_soon_xml"
+			android:padding="5dp"/>
 		<ImageView android:id="@+id/button6"
 			android:layout_width="0px"
 			android:layout_height="wrap_content"
 			android:layout_weight="1"
 			android:clickable="true"
-			android:src="@drawable/coming_soon_xml"/>
+			android:src="@drawable/coming_soon_xml"
+			android:padding="5dp"/>
 	</LinearLayout>
+<Gallery
+    android:id="@+id/galleryView"
+    android:layout_width="fill_parent" 
+    android:layout_height="48dp"
+    android:gravity="center|bottom"
+    android:spacing="1dp"
+/>
 </LinearLayout>
+</FrameLayout>

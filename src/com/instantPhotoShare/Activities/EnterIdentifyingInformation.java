@@ -1,16 +1,23 @@
 package com.instantPhotoShare.Activities;
 
+import com.instantPhotoShare.Person;
 import com.instantPhotoShare.R;
+import com.instantPhotoShare.Adapters.NotificationsAdapter;
+import com.instantPhotoShare.Adapters.NotificationsAdapter.NOTIFICATION_TYPES;
+import com.instantPhotoShare.Tasks.CreateNewAccountTask;
+import com.instantPhotoShare.Tasks.CreateNewAccountTask.ReturnFromCreateNewAccountTask;
+import com.tools.CustomActivity;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.Toast;
 
-public class EnterIdentifyingInformation extends Activity {
+public class EnterIdentifyingInformation
+extends CustomActivity {
 	
 	// static variables for passing in info
 	public static String YOUR_FIRST_NAME = "YOUR_FIRST_NAME";
@@ -32,10 +39,18 @@ public class EnterIdentifyingInformation extends Activity {
 	// keep track if we need username and pass
 	private boolean isAlsoEnterUserNameAndPassword = false;
 	
+	//enums for async calls
+	private enum ASYNC_CALLS {
+		CREATE_ACCOUNT;
+		private static ASYNC_CALLS convert(int value)
+		{
+			return ASYNC_CALLS.class.getEnumConstants()[value];
+		}
+	}
+	
 	/** Called when the activity is first created. */
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+    public void onCreateOverride(Bundle savedInstanceState) {
         
         // initialize the layout
         setContentView(R.layout.enter_identifying_information);
@@ -46,8 +61,7 @@ public class EnterIdentifyingInformation extends Activity {
         yourPhoneEdit = (EditText)findViewById(R.id.yourPhoneNumbers);
         yourEmailEdit = (EditText)findViewById(R.id.yourEmailAddresses);
         yourUserNameEdit = (EditText)findViewById(R.id.yourUserName);
-        yourPasswordEdit = (EditText)findViewById(R.id.yourPassword);
-        
+        yourPasswordEdit = (EditText)findViewById(R.id.yourPassword);  
            
         // load in passed info
         Bundle extras = getIntent().getExtras(); 
@@ -85,7 +99,6 @@ public class EnterIdentifyingInformation extends Activity {
         		yourPasswordEdit.setVisibility(View.GONE);
         		yourEmailEdit.setImeOptions(EditorInfo.IME_ACTION_DONE);
         	}
-        	
         }
     }
     
@@ -109,7 +122,6 @@ public class EnterIdentifyingInformation extends Activity {
     	String user = yourUserNameEdit.getText().toString();
     	String pass = yourPasswordEdit.getText().toString();
     	if (((firstName == null || firstName.length() == 0) && (lastName == null || lastName.length() == 0)) || 
-    			phone == null || phone.length() == 0 ||
     			email == null || email.length() == 0){
     		Toast.makeText(this,
     				R.string.allFieldsRequired,
@@ -124,17 +136,15 @@ public class EnterIdentifyingInformation extends Activity {
     		return;
     	}
     			
-    	
-    	// send back info to calling activity
-    	Intent resultIntent = new Intent();
-    	resultIntent.putExtra(YOUR_FIRST_NAME, firstName);
-    	resultIntent.putExtra(YOUR_LAST_NAME, lastName);
-    	resultIntent.putExtra(YOUR_PHONE, phone);
-    	resultIntent.putExtra(YOUR_EMAIL, email);
-    	resultIntent.putExtra(USER_NAME, user);
-    	resultIntent.putExtra(PASSWORD, pass);
-    	setResult(RESULT_OK, resultIntent);
-    	finish();
+    	// create the account on the server
+    	Person me = new Person();
+    	me.setFirstName(firstName);
+    	me.setLastName(lastName);
+    	me.setMainPhone(phone);
+    	me.setEmailArray(email);
+    	me.setUserName(user);
+    	me.setPassword(pass);
+    	createAccountOnServer(me);
     }
     
     /**
@@ -145,4 +155,69 @@ public class EnterIdentifyingInformation extends Activity {
     	setResult(RESULT_CANCELED);
     	finish();
     }
+
+	@Override
+	public void onAsyncExecute(
+			int requestCode,
+			AsyncTypeCall asyncTypeCall,
+			Object data) {
+		
+		// convert request to enum
+		ASYNC_CALLS request = ASYNC_CALLS.convert(requestCode);
+
+		// switch over all the request codes
+		switch (request){
+
+		// create a new account
+		case CREATE_ACCOUNT:
+
+			// switch over possible calls
+			switch (asyncTypeCall){
+			case POST:
+				// check success, important values were already saved to prefs
+				try{
+					ReturnFromCreateNewAccountTask returnVal = (ReturnFromCreateNewAccountTask) data;
+					if (returnVal.isSuccess()){
+						Intent intent = new Intent(this, InitialLaunch.class);
+						startActivity(intent);
+						setResult(RESULT_OK);
+						finish();
+					}
+				}catch(Exception e){
+					Log.e(getPackageName(), e.getMessage());
+					NotificationsAdapter notes = new NotificationsAdapter(this);
+					notes.createNotification(e.getMessage(), NOTIFICATION_TYPES.DEVICE_ERROR);
+					return;
+				}
+				break;
+			}
+			break;
+		}
+	}
+	
+	/**
+	 * Create a new account on the server with the info stored in the person object
+	 * @param me
+	 */
+	private void createAccountOnServer(Person me){
+		// launch the async task and add to array of tasks to be managed
+		CreateNewAccountTask task =  new CreateNewAccountTask(
+				this,
+				ASYNC_CALLS.CREATE_ACCOUNT.ordinal(),
+				me);
+		addTask(task);
+		task.execute();
+	}
+
+	@Override
+	protected void initializeLayout() {		
+	}
+
+	@Override
+	protected void additionalConfigurationStoring() {		
+	}
+
+	@Override
+	protected void onDestroyOverride() {		
+	}
 }

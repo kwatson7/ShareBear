@@ -22,4 +22,12 @@
 	<string name="yourPassword">Password</string>
 	<color name="listViewColor">#fff</color>
 	<string name="pickGroupString">&quot;Pick a group to add to list&quot;</string>
+	<string name="pick_a_group_to_edit">&quot;Pick a group to edit&quot;</string>
+	<color name="black50">#8000</color>
+	<color name="black25">#4000</color>
+	<color name="button_color1">#8fff</color>
+	<color name="button_color2">#FCCC</color>
+	<color name="grey05">#F555</color>
+	<color name="orange1">#F5AF0A</color>
+	<color name="orange2">#FFD732</color>
 </resources>

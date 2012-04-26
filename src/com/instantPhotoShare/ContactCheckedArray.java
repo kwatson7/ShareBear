@@ -159,6 +159,13 @@ public class ContactCheckedArray{
 		return selection.displayName;
 	}
 	
+	public long getRowId(Long contactId){
+		ContactCheckedItem selection = hash.get(contactId);
+		if (selection == null)
+			return -1;
+		return selection.usersDatabaseRowId;
+	}
+	
 	/**
 	 * 
 	 * @param contactId

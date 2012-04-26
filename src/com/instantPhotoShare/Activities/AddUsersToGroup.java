@@ -71,7 +71,8 @@ extends CustomActivity{
 	private Context mCtx = this;						// The context
 	private CustomActivity mAct = this;					// This activity
 	private ContactCheckedArray mContactChecked = null; // Object keeping track of which contacts are checked
-
+	private boolean canIDeleteMembers = false; 			// if the current user can delte members from this group					
+	
 	// for adding people from google groups
 	private ArrayList<TwoStrings> mGroupList; 			// This list of group names and column ids, but stored as strings
 	private ArrayList<TwoObjects<String, Long>> addFromGroupData;	// data for adding from group. Needs storing for orientation switching
@@ -170,6 +171,12 @@ extends CustomActivity{
 
 		// setup context menu
 		registerForContextMenu(mListView);	
+		
+		// can i delete members
+		GroupsAdapter groups = new GroupsAdapter(mCtx);
+		groups.fetchGroup(groupId);
+		canIDeleteMembers = groups.canIRemoveMembers(mCtx);
+		groups.close();
 	}
 
 	@Override
@@ -1014,6 +1021,15 @@ extends CustomActivity{
 					users.close();
 				}
 			}else{
+				// make sure we can even delelte this members
+				GroupsAdapter groups = new GroupsAdapter(mCtx);
+				groups.fetchGroup(groupId);
+				boolean canRemove = groups.canIRemoveThisMember(mCtx, mContactChecked.getRowId(contactId));
+				if (!canRemove){
+					Toast.makeText(mCtx, "You do not have permission to remove this member", Toast.LENGTH_SHORT).show();
+					return;
+				}
+				
 				// uncheck and save in hashtable
 				check.setChecked(false);
 				mContactChecked.setIsChecked(contactId, false);
@@ -1158,6 +1174,15 @@ extends CustomActivity{
 				check.setChecked(true);
 				mContactChecked.setIsChecked(contactId, true);
 			}else{
+				// make sure we can even delelte this members
+				GroupsAdapter groups = new GroupsAdapter(mCtx);
+				groups.fetchGroup(groupId);
+				boolean canRemove = groups.canIRemoveThisMember(mCtx, data.getRowId(contactId));
+				if (!canRemove){
+					Toast.makeText(mCtx, "You do not have permission to remove this member", Toast.LENGTH_SHORT).show();
+					return;
+				}
+				
 				// uncheck and save in hashtable
 				check.setChecked(false);
 				mContactChecked.setIsChecked(contactId, false);

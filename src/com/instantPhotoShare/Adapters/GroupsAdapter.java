@@ -696,6 +696,31 @@ extends TableAdapter <GroupsAdapter>{
 			return getBoolean(KEY_AM_I_MEMBER);
 	}
 	
+	public boolean didIMakeGroup(Context ctx){
+		if (!checkCursor())
+			return false;
+		else
+			return (getLong(KEY_USER_ID_CREATED) == Prefs.getUserRowId(ctx));
+	}
+	
+	public boolean canIRemoveMembers(Context ctx){
+		return didIMakeGroup(ctx);
+	}
+	
+	public boolean canIRemoveThisMember(Context ctx, long userId){
+		// see if the user is even in the group first
+		UsersAdapter users = new UsersAdapter(ctx);
+		UsersInGroupsAdapter links = new UsersInGroupsAdapter(ctx);
+		boolean isMember = links.isUserMemberOfGroup(userId, getRowId());
+		
+		// anyone can delete if not a member
+		if (!isMember)
+			return true;
+		
+		// only the creator can delete others
+		return canIRemoveMembers(ctx);
+	}
+	
 	public boolean isMarkedForDeletion(){
 		if (!checkCursor())
 			return false;

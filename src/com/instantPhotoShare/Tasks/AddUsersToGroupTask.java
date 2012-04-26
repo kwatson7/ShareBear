@@ -35,10 +35,18 @@ extends CustomAsyncTask<Void, Integer, AddUsersToGroupTask.ReturnFromAddUsersToG
 	private boolean cancelTask = false;
 	private AddUsersToGroupTask task = this;
 	private long groudRowId = -1;
+	private int usersAdded = 0;
+	private int usersRemoved = 0;
 
 	// codes to be sent to server
+	private static final String ACTION = "add_user_to_group";
 	private static final String KEY_USER_ID = "user_id";
 	private static final String KEY_SECRET_CODE = "secret_code";
+	private static final String PERSON_F_NAME = "person_fname";
+	private static final String PERSON_L_NAME = "person_lname";
+	private static final String PERSON_EMAIL = "person_email";
+	private static final String PHONE_NUMBER = "phone_number";
+	private static final String GROUP_ID = "group_id";
 
 	// server errors
 
@@ -77,6 +85,9 @@ extends CustomAsyncTask<Void, Integer, AddUsersToGroupTask.ReturnFromAddUsersToG
 			throw new IllegalArgumentException("groupRowId input into AddUsersToGroupTask does not exist");
 	}
 
+	private int getTotalEdits(){
+		return usersAdded + usersRemoved;
+	}
 	@Override
 	protected void onPreExecute() {
 
@@ -116,6 +127,23 @@ extends CustomAsyncTask<Void, Integer, AddUsersToGroupTask.ReturnFromAddUsersToG
 	private JSONObject getDataToPost()
 	throws JSONException{	
 
+		[
+{
+"person_fname":"Brennan",
+"person_lname":"Heyde",
+"person_email":"test@12ds3.com,bheyde1@gsdsdmail.com",
+"phone_number": "555-554-5555,750-809-4756,1-800-123-456",
+"group_id":"29"
+},
+{
+"person_fname":"Kyle",
+"person_lname":"Watson",
+"person_email":"kwatson7@gmail.com",
+"phone_number": "123-345-5555",
+"group_id":"7"
+}
+]
+
 		// add values to json object
 		JSONObject json = new JSONObject();
 		json.put(KEY_USER_ID, Prefs.getUserServerId(applicationCtx));
@@ -134,13 +162,20 @@ extends CustomAsyncTask<Void, Integer, AddUsersToGroupTask.ReturnFromAddUsersToG
 		if (applicationCtx == null)
 			return;
 
+		// no edits
+		if (getTotalEdits() == 0){
+			Toast.makeText(applicationCtx, "No changes", Toast.LENGTH_SHORT).show();
+			task.sendObjectToActivityFromPostExecute(result);
+			return;
+		}
+		
 		// show toast if successful and send result to activity
 		GroupsAdapter groupsAdapter = new GroupsAdapter(applicationCtx);
 		Group group = groupsAdapter.getGroup(groudRowId);
 		if (result.isSuccess())	{
 			Toast.makeText(
 					applicationCtx,
-					mContactChecked.getNChecked() + " users added to group " + group.getName(),
+					getTotalEdits() + " users updated to " + group.getName(),
 					Toast.LENGTH_SHORT)
 					.show();
 			task.sendObjectToActivityFromPostExecute(result);
@@ -159,14 +194,14 @@ extends CustomAsyncTask<Void, Integer, AddUsersToGroupTask.ReturnFromAddUsersToG
 
 			// show the toast
 			Toast.makeText(applicationCtx,
-					mContactChecked.getNChecked() + " users added to group " + group.getName()
+					getTotalEdits() + " users updated to " + group.getName()
 					+ " on device, but not added to server because:\n" + result.getMessage(),
 					Toast.LENGTH_LONG).show();
 
 			// store in notifications
 			NotificationsAdapter notes = new NotificationsAdapter(applicationCtx);
 			notes.createNotification("Group with name '" + group.getName() + "' and rowId " + groudRowId +
-					" users not added successfully on server because:\n"
+					" users not updated successfully on server because:\n"
 					+ result.getMessage() + ".\nUsers are still created on device, but not on server!", 
 					NOTIFICATION_TYPES.SERVER_ERROR);
 
@@ -213,39 +248,42 @@ extends CustomAsyncTask<Void, Integer, AddUsersToGroupTask.ReturnFromAddUsersToG
 		// keep track of new additions and deletions
 		HashSet<Long> newAdditions = new HashSet<Long>();
 		HashSet<Long> deletions = new HashSet<Long>();
+		HashSet<Long> newIds = new HashSet<Long>();
 
 		// get list of contacts already in the group
 		users.fetchUsersInGroup(groupId);
 		HashSet<Long> oldIds = new HashSet<Long>(users.size());
 		while (users.moveToNext())
-			oldIds.add(users.getContactDatabaseRowId(applicationCtx));
+			oldIds.add(users.getRowId());
 		users.close();
 		
+		// get list of new contacts to add to group
 		Set<Long> keys = mContactChecked.getCheckedKeys();
 		Iterator<Long> iterator = keys.iterator();
 		while (iterator.hasNext()){
-			Long id = mContactChecked.getiterator.next();
-			if (oldIds.contains(id))
-				updates.add(id);
-			else
-				newUsers.add(id);
+			Long id = mContactChecked.getRowId(iterator.next());
+			newIds.add(id);
+			if (!oldIds.contains(id))
+				newAdditions.add(id);
 		}
+		
+		// get list of people to remove from group
 		Iterator<Long> iterator2 = oldIds.iterator();
 		while (iterator2.hasNext()){
 			Long id = iterator2.next();
 			if (!newIds.contains(id))
-				toDelete
+				deletions.add(id);
 		}
-		users.close();
 		
-		
-		newIds.retainAll(oldIds);
+		// change progress
+		progressMax = newAdditions.size() + deletions.size();
+		dialog.setMax(progressMax);
+		usersAdded = newAdditions.size();
+		usersRemoved = deletions.size();
 
-		//TODO: we are not changing teh contact id in the users database or the contacts cursor, or the contactchecked, so we will have problems
-		
 		// loop over all contacts and adding them to database and to group
 		int i = 1;
-		for (Long id : mContactChecked.getCheckedKeys()) {
+		for (Long id : newAdditions) {
 
 			// create new user or update old one
 			long userId = users.makeNewUser(

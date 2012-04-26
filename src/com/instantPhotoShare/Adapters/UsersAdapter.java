@@ -165,9 +165,10 @@ extends TableAdapter <UsersAdapter>{
 		if (affected == 0)
 			newRow = database.insert(TABLE_NAME, null, values);
 		if (affected == 1){
-			this.fetchUserByContactsId(contactId);
-			newRow = this.getContactDatabaseRowId(ctx);
-			this.close();
+			UsersAdapter users = new UsersAdapter(ctx);
+			users.fetchUserByContactsId(contactId);
+			newRow = users.getContactDatabaseRowId(ctx);
+			users.close();
 		}
 		if (affected > 1 && !Prefs.debug.allowMultipleUpdates)
 			throw new IllegalArgumentException("attempting to update more than one row. This should never happen");

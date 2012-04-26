@@ -191,7 +191,7 @@ public class Prefs {
 		if (userRowId == -1)
 			throw new IllegalAccessError(PREEMPTIVE_ACCESS_ERROR);
 		UsersAdapter users = new UsersAdapter(ctx);
-		User user = users.fetchUser(userRowId);
+		User user = users.getUser(userRowId);
 		return user.getFirstName();
 	}
 	
@@ -229,7 +229,7 @@ public class Prefs {
 		if (userRowId == -1)
 			throw new IllegalAccessError(PREEMPTIVE_ACCESS_ERROR);
 		UsersAdapter users = new UsersAdapter(ctx);
-		User user = users.fetchUser(userRowId);
+		User user = users.getUser(userRowId);
 		return user.getLastName();
 	}
 	
@@ -267,7 +267,7 @@ public class Prefs {
 		if (userRowId == -1)
 			return -1;
 		UsersAdapter users = new UsersAdapter(ctx);
-		User user = users.fetchUser(userRowId);
+		User user = users.getUser(userRowId);
 		return user.getServerId();
 	}
 	
@@ -335,7 +335,7 @@ public class Prefs {
 		if (userRowId == -1)
 			throw new IllegalAccessError(PREEMPTIVE_ACCESS_ERROR);
 		UsersAdapter users = new UsersAdapter(ctx);
-		users.fetchUserCursor(userRowId);
+		users.fetchUser(userRowId);
 		String phones = users.getPhones();
 		users.close();
 		return phones;
@@ -360,7 +360,7 @@ public class Prefs {
 		if (userRowId == -1)
 			throw new IllegalAccessError(PREEMPTIVE_ACCESS_ERROR);
 		UsersAdapter users = new UsersAdapter(ctx);
-		User user = users.fetchUser(userRowId);
+		User user = users.getUser(userRowId);
 		return com.tools.Tools.parseArrayIntoString(user.getEmailsArray(), Utils.DELIM);
 	}
 	

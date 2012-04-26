@@ -153,6 +153,20 @@ extends TableAdapter<UsersInGroupsAdapter>{
 		cursor.close();
 		return output;
 	}
+	
+	/**
+	 * Return if the user is a member of the group
+	 * @param userId
+	 * @param groupId
+	 * @return true if member, false otherwise
+	 */
+	public boolean isUserMemberOfGroup(long userId, long groupId){
+		long rowId = getRowId(userId, groupId);
+		if (rowId == -1)
+			return false;
+		else 
+			return true;
+	}
 
 	@Override
 	protected void setColumnNumbers() throws IllegalArgumentException {

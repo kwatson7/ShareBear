@@ -70,19 +70,17 @@ extends CustomAsyncTask<Void, Integer, Integer> {
 		// fill with the selected contacts		
 		ContentValues[] allValues = new ContentValues[(int) mContactChecked.getN()];
 		int i = 0;
-		for (Long value : mContactChecked.getKeySet()) {
-			if (mContactChecked.isChecked(value)){
+		for (Long value : mContactChecked.getCheckedKeys()) {
 
-				// add all important values to the row
-				rawHash.put(value, true);
-				ContentValues values = new ContentValues();
-				values.put(ContactsContract.CommonDataKinds.GroupMembership.MIMETYPE,
-						ContactsContract.CommonDataKinds.GroupMembership.CONTENT_ITEM_TYPE);
-				values.put(ContactsContract.CommonDataKinds.GroupMembership.GROUP_ROW_ID, Long.parseLong(groupID));
-				values.put(ContactsContract.CommonDataKinds.Phone.RAW_CONTACT_ID, value);
-				allValues[i] = values;
-				i++;
-			}
+			// add all important values to the row
+			rawHash.put(value, true);
+			ContentValues values = new ContentValues();
+			values.put(ContactsContract.CommonDataKinds.GroupMembership.MIMETYPE,
+					ContactsContract.CommonDataKinds.GroupMembership.CONTENT_ITEM_TYPE);
+			values.put(ContactsContract.CommonDataKinds.GroupMembership.GROUP_ROW_ID, Long.parseLong(groupID));
+			values.put(ContactsContract.CommonDataKinds.Phone.RAW_CONTACT_ID, value);
+			allValues[i] = values;
+			i++;
 		}
 
 		// insert new contacts into group

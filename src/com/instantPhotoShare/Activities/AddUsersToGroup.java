@@ -55,6 +55,7 @@ import com.instantPhotoShare.R;
 import com.instantPhotoShare.R.drawable;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
+import com.instantPhotoShare.Adapters.UsersAdapter;
 import com.instantPhotoShare.Adapters.GroupsAdapter.Group;
 import com.instantPhotoShare.Tasks.AddUsersToGroupTask;
 import com.instantPhotoShare.Tasks.AddUsersToGroupTask.ReturnFromAddUsersToGroupTask;
@@ -70,13 +71,13 @@ extends CustomActivity{
 	private Context mCtx = this;						// The context
 	private CustomActivity mAct = this;					// This activity
 	private ContactCheckedArray mContactChecked = null; // Object keeping track of which contacts are checked
-	
+
 	// for adding people from google groups
 	private ArrayList<TwoStrings> mGroupList; 			// This list of group names and column ids, but stored as strings
 	private ArrayList<TwoObjects<String, Long>> addFromGroupData;	// data for adding from group. Needs storing for orientation switching
 	private long groupId; 								// The group id we are editing
 	private String groupName; 							// The group name
-	
+
 	// pointers to graphics objects
 	private MultipleCheckPopUp<TwoObjects <String, Long>>  popUp; // The popUp after you've selected a group of who to add
 	private AutoCompleteTextView mSearchNameObj; 		// Searching for users by name
@@ -84,7 +85,7 @@ extends CustomActivity{
 	private Button mGoButton; 							// The go button when finished
 	private TextView groupNameText; 					// the group name
 	private ListView mListView; 						// The list view showing people in group
-	
+
 	// variables for menu items
 	private final int SELECT_ALL = Menu.FIRST+0;
 	private final int UNSELECT_ALL = Menu.FIRST+1; 
@@ -101,10 +102,10 @@ extends CustomActivity{
 	private static final String GOOGLE_TITLE = "Google"; 						// String for showing that the new group will be a gogole group
 	private static final String PHONE_TITLE = "Phone"; 							// string for showing that the new group will be on the phone
 	private static final boolean onlyShowContactsFromVisibleGroup = true; 		// only show people who are inside visible groups
-	
+
 	// public strings for passing info
 	public static String GROUP_ID = "GROUP_ID";
-	
+
 	//enums for async calls
 	private enum ASYNC_CALLS {
 		ADD_FROM_GROUP, INSERT_CONTACTS_INTO_GROUP, ADD_USERS_TO_PHOTOSHARE_GROUP, LOAD_FROM_GROUP;
@@ -116,7 +117,7 @@ extends CustomActivity{
 
 	@Override
 	protected void onCreateOverride(Bundle savedInstanceState) {
-		
+
 		// load in passed info
 		Bundle extras = getIntent().getExtras(); 
 		if (extras == null)
@@ -126,7 +127,7 @@ extends CustomActivity{
 		groupId = extras.getLong(GROUP_ID, -1);
 		if (groupId == -1)
 			throw new IllegalArgumentException("AddUsersToGroup cannot be called without a groupId passed in");
-		
+
 		// check if group is private
 		GroupsAdapter groupsAdapter = new GroupsAdapter(this);
 		Group group = groupsAdapter.getGroup(groupId);
@@ -142,7 +143,7 @@ extends CustomActivity{
 		}
 		// store group name
 		groupName = group.getName();
-		
+
 		initializeLayout();
 
 		// get configuration data and copy over any old data from old configuration.
@@ -162,15 +163,15 @@ extends CustomActivity{
 
 		// load the users into the list
 		loadCurrentUsers();
-		
+
 		// update the list view
 		updateNContacts();
 		updateVisibleView();
-		
+
 		// setup context menu
 		registerForContextMenu(mListView);	
 	}
-	
+
 	@Override
 	protected void initializeLayout(){
 
@@ -193,7 +194,7 @@ extends CustomActivity{
 		mGoButton = (Button) findViewById(R.id.goButton1);
 		mListView = (ListView) findViewById(R.id.list);
 		groupNameText = (TextView) findViewById(R.id.whoText);
-		
+
 		// set adapter
 		LazyAdapter adapter = new LazyAdapter(mCtx, R.layout.person_row);
 		mSearchNameObj.setAdapter(adapter);
@@ -216,7 +217,7 @@ extends CustomActivity{
 					return false;
 			}
 		});
-		
+
 		// change text view at top
 		groupNameText.setText(Html.fromHtml("Edit people in " + "<b>"+groupName+"</b>"));
 
@@ -243,7 +244,7 @@ extends CustomActivity{
 
 		return true;//false;  // don't go ahead and show the search box
 	}
-	
+
 	/**
 	 * Load the current users into the list in an asynctask
 	 */
@@ -326,7 +327,7 @@ extends CustomActivity{
 		chooseGroup.setIcon(drawable.emo_im_happy);
 		help.setIcon(drawable.emo_im_wtf);
 		newGroup.setIcon(drawable.emo_im_winking);
-		
+
 		// make some inoperative
 		selectAll.setEnabled(false);
 		chooseGroup.setEnabled(false);
@@ -371,7 +372,7 @@ extends CustomActivity{
 			Toast.makeText(this, "No people selected to share with", Toast.LENGTH_LONG).show();
 			return;
 		}
-		
+
 		// Add members to group		
 		AddUsersToGroupTask task = new AddUsersToGroupTask(
 				mAct,
@@ -514,7 +515,7 @@ extends CustomActivity{
 
 		// grab standard android spinner
 		spinnerArrayAdapter.setDropDownViewResource( R.layout.spinner_layout );
-		
+
 		// create a spinner
 		com.tools.NoDefaultSpinner spinner = (com.tools.NoDefaultSpinner) findViewById(R.id.spinner);
 
@@ -569,12 +570,12 @@ extends CustomActivity{
 		int index = mListView.getFirstVisiblePosition();
 		View v = mListView.getChildAt(0);
 		int top = (v == null) ? 0 : v.getTop();
-		
+
 		// set adapter
 		ListAdapter adapter = new ListAdapter(mAct, mContactChecked);
 		mListView.setAdapter(adapter);
 		mListView.setOnItemClickListener(adapter);
-		
+
 		// restore
 		mListView.setSelectionFromTop(index, top);
 	}
@@ -662,7 +663,7 @@ extends CustomActivity{
 		int i = 0;
 		for (Long item : overrideDefault)
 			override[i++] = item;
-		
+
 		// store the name
 		final String displayName = contactCursorWrapper.getName();
 
@@ -699,13 +700,27 @@ extends CustomActivity{
 					return;
 
 				// store in hash set
+				UsersAdapter users = new UsersAdapter(mCtx);
+				users.fetchUserByContactsId(contactId);
 				mContactChecked.setItem(new ContactCheckedItem(
 						contactId,
 						true,
 						displayName,
 						contactMethod,
-						contactCursorWrapper.getLookupKey()));
-				ContactCursorWrapper.setDefaultContact(mCtx, (int)contactId, contactMethod);
+						contactCursorWrapper.getLookupKey(),
+						users.getRowId()));
+				
+				// check if we need to create a new user
+				if (users.getRowId() == -1){
+					users.close();
+					users.fetchUser(users.makeNewUser(
+							mCtx,
+							contactId,
+							contactCursorWrapper.getLookupKey(),
+							contactMethod,
+							-1));
+				}
+				users.setDefaultContactInfo(users.getRowId(), contactMethod);
 
 				updateNContacts();
 				updateVisibleView();
@@ -727,7 +742,7 @@ extends CustomActivity{
 		/*
 		mNamesCursor.moveToPosition(position);
 		chooseMethodFromPopup(mNamesCursor.getId());
-		*/
+		 */
 
 	}
 
@@ -869,11 +884,11 @@ extends CustomActivity{
 		private ContactCursorWrapper contactCursorWrapper;
 
 		/**
-	     * This field should be made private, so it is hidden from the SDK.
-	     * {@hide}
-	     */
-	    protected Cursor mCursor;
-	    
+		 * This field should be made private, so it is hidden from the SDK.
+		 * {@hide}
+		 */
+		protected Cursor mCursor;
+
 		public LazyAdapter(
 				Context context,
 				int layout) {
@@ -906,7 +921,7 @@ extends CustomActivity{
 				return;
 			}
 			//TODO: background query is giving the above, fix
-				
+
 			boolean isChecked = mContactChecked.isChecked(contactId);
 			CheckBox check = (CheckBox)view.findViewById(R.id.contactSelectedCheckBox);
 			if (!isChecked){
@@ -941,7 +956,7 @@ extends CustomActivity{
 
 			if (constraint == null)
 				return null;
-			
+
 			// grab cursor from search result grabbing names of interest
 			ContactCursorWrapper cursor = new ContactCursorWrapper();
 			cursor.searchDatabaseForName(
@@ -952,70 +967,74 @@ extends CustomActivity{
 			this.contactCursorWrapper = cursor;
 			return cursor.getCursor();
 		}
-		
+
 		/**
-         * Called by the AutoCompleteTextView field when a choice has been made
-         * by the user.
-         *
-         * @param listView
-         *            The ListView containing the choices that were displayed to
-         *            the user.
-         * @param view
-         *            The field representing the selected choice
-         * @param position
-         *            The position of the choice within the list (0-based)
-         * @param id
-         *            The id of the row that was chosen (as provided by the _id
-         *            column in the cursor.)
-         */
-        @Override
-        public void onItemClick(AdapterView<?> listView, View view, int position, long id) {
+		 * Called by the AutoCompleteTextView field when a choice has been made
+		 * by the user.
+		 *
+		 * @param listView
+		 *            The ListView containing the choices that were displayed to
+		 *            the user.
+		 * @param view
+		 *            The field representing the selected choice
+		 * @param position
+		 *            The position of the choice within the list (0-based)
+		 * @param id
+		 *            The id of the row that was chosen (as provided by the _id
+		 *            column in the cursor.)
+		 */
+		@Override
+		public void onItemClick(AdapterView<?> listView, View view, int position, long id) {
 
-    		// move cursor to the correct position
-    		contactCursorWrapper.moveToPosition((int)listView.getItemIdAtPosition(position));
+			// move cursor to the correct position
+			contactCursorWrapper.moveToPosition((int)listView.getItemIdAtPosition(position));
 
-    		// grab the id of the user clicked
-    		long contactId = contactCursorWrapper.getId();
+			// grab the id of the user clicked
+			long contactId = contactCursorWrapper.getId();
 
-    		// find the checkbox of interest
-    		CheckBox check = (CheckBox) view.findViewById(R.id.contactSelectedCheckBox);
+			// find the checkbox of interest
+			CheckBox check = (CheckBox) view.findViewById(R.id.contactSelectedCheckBox);
 
-    		// see if contact is checked
-    		Boolean isChecked = mContactChecked.isChecked(contactId);
-    		if (!isChecked){
-    			String defaultMethod = selectDefaultContactMethod(contactCursorWrapper, contactId);
-    			if (defaultMethod != null && defaultMethod.length() > 0){
-    				// check the box and save in hashtable
-    				check.setChecked(true);
-    				mContactChecked.setItem(new ContactCheckedItem(
-    						contactId,
-    						true,
-    						contactCursorWrapper.getName(),
-    						defaultMethod,
-    						contactCursorWrapper.getLookupKey()));
-    			}
-    		}else{
-    			// uncheck and save in hashtable
-    			check.setChecked(false);
-    			mContactChecked.setIsChecked(contactId, false);
-    		}
+			// see if contact is checked
+			Boolean isChecked = mContactChecked.isChecked(contactId);
+			UsersAdapter users = new UsersAdapter(mCtx);
+			if (!isChecked){
+				String defaultMethod = selectDefaultContactMethod(contactCursorWrapper, contactId);
+				if (defaultMethod != null && defaultMethod.length() > 0){
+					// check the box and save in hashtable
+					check.setChecked(true);
+					users.fetchUserByContactsId(contactId);
+					mContactChecked.setItem(new ContactCheckedItem(
+							contactId,
+							true,
+							contactCursorWrapper.getName(),
+							defaultMethod,
+							contactCursorWrapper.getLookupKey(),
+							users.getRowId()));
+					users.close();
+				}
+			}else{
+				// uncheck and save in hashtable
+				check.setChecked(false);
+				mContactChecked.setIsChecked(contactId, false);
+			}
 
-    		// update the adapters
-    		updateVisibleView();
-    		updateNContacts();
-    		
-    		// hide they keyboard
-    		com.tools.Tools.hideKeyboard(mCtx, mSearchNameObj);
-    		final View dummy = findViewById(R.id.dummyView);
-    		(new Handler()).post (new Runnable() { public void run() { dummy.requestFocus(); } });
-        }
-        
-        @Override
-        public CharSequence convertToString (Cursor cursor){
-        	return "";
-        }
+			// update the adapters
+			updateVisibleView();
+			updateNContacts();
+
+			// hide they keyboard
+			com.tools.Tools.hideKeyboard(mCtx, mSearchNameObj);
+			final View dummy = findViewById(R.id.dummyView);
+			(new Handler()).post (new Runnable() { public void run() { dummy.requestFocus(); } });
+		}
+
+		@Override
+		public CharSequence convertToString (Cursor cursor){
+			return "";
+		}
 	}
-	
+
 	/**
 	 * The custom class for dealing with the listView and how to show views
 	 * @author Kyle
@@ -1028,16 +1047,12 @@ extends CustomActivity{
 		private final Bitmap defaultPhoto = BitmapFactory.decodeResource(getResources(), R.drawable.icon3);
 		private ContactCheckedArray data;
 		private LayoutInflater inflater = null;
-		private List<Long> keySet;
+		private ArrayList<Long> keySet;
 
 		public ListAdapter(Activity a, ContactCheckedArray contactChecked) {
 			data = contactChecked;
 			inflater = (LayoutInflater)a.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-			// loop over all contacts and adding them to database and to group
-			keySet = new ArrayList<Long>();
-			for (long id : data.getKeySet()) 
-				if (data.isChecked(id))
-					keySet.add(id);
+			keySet = new ArrayList<Long>(data.getCheckedKeys());	
 		}
 
 		@Override
@@ -1059,13 +1074,13 @@ extends CustomActivity{
 		public View getView(int position, View convertView, ViewGroup parent){
 
 			// attempt to use recycled view
-            View view = convertView;
-            if(convertView==null)
-                view = inflater.inflate(R.layout.person_row, null);
+			View view = convertView;
+			if(convertView==null)
+				view = inflater.inflate(R.layout.person_row, null);
 
-            // move to correct location
-            long id = keySet.get(position);
-            
+			// move to correct location
+			long id = keySet.get(position);
+
 			// name text
 			TextView name = (TextView)view.findViewById(R.id.name);
 			String displayName = data.getDisplayName(id);
@@ -1095,13 +1110,13 @@ extends CustomActivity{
 
 			// the contacts picture
 			ImageView image = (ImageView)view.findViewById(R.id.contactImage);
-	    	
+
 			// try to set the image to the contact image, and if unsuccessful, then set to default.
-			Uri uri = ContactsContract.Contacts.lookupContact(mAct.getContentResolver(), data.getLookupUri(id));
+			Uri uri = data.getUri(getContentResolver(), id);
 			InputStream input = null;
 			try{
 				input = ContactsContract.Contacts.
-					openContactPhotoInputStream(mCtx.getContentResolver(), uri);
+				openContactPhotoInputStream(mCtx.getContentResolver(), uri);
 			}catch(Exception e){
 				e.printStackTrace();
 			}
@@ -1109,95 +1124,95 @@ extends CustomActivity{
 				image.setImageBitmap(BitmapFactory.decodeStream(input));
 			else
 				image.setImageBitmap(defaultPhoto);
-			
+
 			return view;
 		}
-		
+
 		/**
-         * Called by the AutoCompleteTextView field when a choice has been made
-         * by the user.
-         *
-         * @param listView
-         *            The ListView containing the choices that were displayed to
-         *            the user.
-         * @param view
-         *            The field representing the selected choice
-         * @param position
-         *            The position of the choice within the list (0-based)
-         * @param id
-         *            The id of the row that was chosen (as provided by the _id
-         *            column in the cursor.)
-         */
-        @Override
-        public void onItemClick(AdapterView<?> listView, View view, int position, long id) {
+		 * Called by the AutoCompleteTextView field when a choice has been made
+		 * by the user.
+		 *
+		 * @param listView
+		 *            The ListView containing the choices that were displayed to
+		 *            the user.
+		 * @param view
+		 *            The field representing the selected choice
+		 * @param position
+		 *            The position of the choice within the list (0-based)
+		 * @param id
+		 *            The id of the row that was chosen (as provided by the _id
+		 *            column in the cursor.)
+		 */
+		@Override
+		public void onItemClick(AdapterView<?> listView, View view, int position, long id) {
 
-        	// move to correct location
-            long contactId = keySet.get(position);
+			// move to correct location
+			long contactId = keySet.get(position);
 
-    		// find the checkbox of interest
-    		CheckBox check = (CheckBox) view.findViewById(R.id.contactSelectedCheckBox);
+			// find the checkbox of interest
+			CheckBox check = (CheckBox) view.findViewById(R.id.contactSelectedCheckBox);
 
-    		// see if contact is checked
-    		Boolean isChecked = mContactChecked.isChecked(contactId);
-    		if (!isChecked){
-    			check.setChecked(true);
-    			mContactChecked.setIsChecked(contactId, true);
-    		}else{
-    			// uncheck and save in hashtable
-    			check.setChecked(false);
-    			mContactChecked.setIsChecked(contactId, false);
-    		}
+			// see if contact is checked
+			Boolean isChecked = mContactChecked.isChecked(contactId);
+			if (!isChecked){
+				check.setChecked(true);
+				mContactChecked.setIsChecked(contactId, true);
+			}else{
+				// uncheck and save in hashtable
+				check.setChecked(false);
+				mContactChecked.setIsChecked(contactId, false);
+			}
 
-    		// update the adapters
-    		updateNContacts();
-    		
-    		// hide they keyboard
-    		com.tools.Tools.hideKeyboard(mCtx, mSearchNameObj);
-    		final View dummy = findViewById(R.id.dummyView);
-    		(new Handler()).post (new Runnable() { public void run() { dummy.requestFocus(); } });
-        }
+			// update the adapters
+			updateNContacts();
+
+			// hide they keyboard
+			com.tools.Tools.hideKeyboard(mCtx, mSearchNameObj);
+			final View dummy = findViewById(R.id.dummyView);
+			(new Handler()).post (new Runnable() { public void run() { dummy.requestFocus(); } });
+		}
 	}
-	
+
 	//TODO: put this somewhere else, and optimize
 	public static Bitmap loadContactPhoto(ContentResolver cr, long  id,long photo_id) 
 	{
 
-	    Uri uri = ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, id);
-	    InputStream input = ContactsContract.Contacts.openContactPhotoInputStream(cr, uri);
-	    if (input != null) 
-	    {
-	        return BitmapFactory.decodeStream(input);
-	    }
-	    else
-	    {
-	        Log.d("PHOTO","first try failed to load photo");
+		Uri uri = ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, id);
+		InputStream input = ContactsContract.Contacts.openContactPhotoInputStream(cr, uri);
+		if (input != null) 
+		{
+			return BitmapFactory.decodeStream(input);
+		}
+		else
+		{
+			Log.d("PHOTO","first try failed to load photo");
 
-	    }
+		}
 
-	    byte[] photoBytes = null;
+		byte[] photoBytes = null;
 
-	    Uri photoUri = ContentUris.withAppendedId(ContactsContract.Data.CONTENT_URI, photo_id);
+		Uri photoUri = ContentUris.withAppendedId(ContactsContract.Data.CONTENT_URI, photo_id);
 
-	    Cursor c = cr.query(photoUri, new String[] {ContactsContract.CommonDataKinds.Photo.PHOTO}, null, null, null);
+		Cursor c = cr.query(photoUri, new String[] {ContactsContract.CommonDataKinds.Photo.PHOTO}, null, null, null);
 
-	    try 
-	    {
-	        if (c.moveToFirst()) 
-	            photoBytes = c.getBlob(0);
+		try 
+		{
+			if (c.moveToFirst()) 
+				photoBytes = c.getBlob(0);
 
-	    } catch (Exception e) {
-	        // TODO: handle exception
-	        e.printStackTrace();
+		} catch (Exception e) {
+			// TODO: handle exception
+			e.printStackTrace();
 
-	    } finally {
+		} finally {
 
-	        c.close();
-	    }           
+			c.close();
+		}           
 
-	    if (photoBytes != null)
-	        return BitmapFactory.decodeByteArray(photoBytes,0,photoBytes.length);
-	    else
-	        Log.d("PHOTO","second try also failed");
-	    return null;
+		if (photoBytes != null)
+			return BitmapFactory.decodeByteArray(photoBytes,0,photoBytes.length);
+		else
+			Log.d("PHOTO","second try also failed");
+		return null;
 	}
 }

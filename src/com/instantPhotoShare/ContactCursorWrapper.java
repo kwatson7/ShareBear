@@ -5,6 +5,7 @@ import java.io.InputStream;
 import com.instantPhotoShare.Adapters.UsersAdapter;
 
 import android.app.Activity;
+import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
 import android.database.Cursor;
@@ -97,13 +98,33 @@ public class ContactCursorWrapper {
 		return cursor.getString(mLookupKeyColumn);
 	}
 	
-	public Uri getLookupUri(){
+	/**
+	 * 
+	 * @return the uri of the contact
+	 */
+	public Uri getUri(ContentResolver cr){
 		if (!checkCursor())
 			return null;
-		//TODO: should be a different lookup uri for contact and for photo
-		//return ContactsContract.Contacts.getLookupUri(getId(), getLookupKey());
-		//return ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, getId());
-		return Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_LOOKUP_URI, getLookupKey());
+		
+		String lookupKey = getLookupKey();
+		long contactId = getId();
+		
+		// no lookup key and contactId is -1, so there is no Uri
+		if ((lookupKey == null || lookupKey.length() == 0) &&
+				(contactId == -1))
+			return null;
+		
+		// no key, just contact
+		if (lookupKey == null || lookupKey.length() == 0)
+			return ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, contactId);
+		// no contact, just key
+		else if (contactId == -1)
+			return Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_LOOKUP_URI, lookupKey);
+		// both
+		else{
+			Uri uri = ContactsContract.Contacts.getLookupUri(contactId, lookupKey);
+			return ContactsContract.Contacts.lookupContact(cr, uri);
+		}
 	}
 	
 	/**
@@ -206,7 +227,7 @@ public class ContactCursorWrapper {
 
     		// grab the phone id of this contact and load bitmap
     		InputStream input = ContactsContract.Contacts.
-    			openContactPhotoInputStream(ctx.getContentResolver(), getLookupUri());
+    			openContactPhotoInputStream(ctx.getContentResolver(), getUri(ctx.getContentResolver()));
     		if (input != null) {
     			image.setImageBitmap(BitmapFactory.decodeStream(input));
     			return true;
@@ -223,25 +244,11 @@ public class ContactCursorWrapper {
 	public String getDefaultContact(Context ctx){
 		// the users adpater
 		UsersAdapter users = new UsersAdapter(ctx);
-		
-		// grab the default contact
-		return users.getDefaultContactInfoFromContactsDatabaseRowId((int)getId());
+		users.fetchUser(getId());
+		String out = users.getDefaultContactMethod();
+		users.close();
+		return out;
 	}
-	
-	/**
-	 * Update or create the default contact info based on the contact database id
-	 * @param ctx The context to perform this update on
-	 * @param contactId The contact id
-	 * @param defaultContactMethod The default contact method. ie "johnsmith@gmail.com"
-	 */
-	public static void setDefaultContact(Context ctx, int contactId, String defaultContactMethod){
-		// the users adpater
-		UsersAdapter users = new UsersAdapter(ctx);
-		
-		// update or create contact method
-		users.setDefaultContactInfoFromContactsDatabaseRowId(contactId, defaultContactMethod);
-	}
-	
 	
 	// Private helper methods
 	/**

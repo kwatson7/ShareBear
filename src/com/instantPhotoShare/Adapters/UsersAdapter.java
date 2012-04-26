@@ -7,6 +7,7 @@ import java.util.HashSet;
 
 import com.instantPhotoShare.Prefs;
 import com.instantPhotoShare.Utils;
+import com.instantPhotoShare.Adapters.NotificationsAdapter.NOTIFICATION_TYPES;
 import com.tools.ThreeObjects;
 import com.tools.TwoStrings;
 
@@ -44,6 +45,8 @@ extends TableAdapter <UsersAdapter>{
 	
 	private static final String LOOKUP_KEY_TYPE = "String not null default ''";
 	
+	private Context ctx;
+	
 	/** Table creation string */
 	public static String TABLE_CREATE = 
 		"create table "
@@ -68,6 +71,7 @@ extends TableAdapter <UsersAdapter>{
 	
 	public UsersAdapter(Context context) {
 		super(context);
+		ctx = context;
 	}
 	
 	/**
@@ -160,8 +164,11 @@ extends TableAdapter <UsersAdapter>{
 				selectionArgs);
 		if (affected == 0)
 			newRow = database.insert(TABLE_NAME, null, values);
-		if (affected == 1)
-			newRow = getRowIdGivenContactsDatabaseRowId(contactId);
+		if (affected == 1){
+			this.fetchUserByContactsId(contactId);
+			newRow = this.getContactDatabaseRowId(ctx);
+			this.close();
+		}
 		if (affected > 1 && !Prefs.debug.allowMultipleUpdates)
 			throw new IllegalArgumentException("attempting to update more than one row. This should never happen");
 
@@ -223,7 +230,7 @@ extends TableAdapter <UsersAdapter>{
 	 * @param rowId id of the user to retrieve
 	 * @return User object, null if none found at rowId
 	 */
-	public User fetchUser(long rowId){
+	public User getUser(long rowId){
 
 		// default
 		User output = null;
@@ -334,7 +341,7 @@ extends TableAdapter <UsersAdapter>{
 	 * @param contactId The rowId in the "user" database
 	 * @return the rowId in the contacts database on the phone, -1 if none.
 	 */
-	public int getRowIdFromContactsDatabase(long contactId){
+	public int getRowIdFromContactsDatabaseDONTUSE(long contactId){
 		
 		return getIntFrowRowId(contactId, KEY_CONTACTS_ROW_ID);
 	}
@@ -344,7 +351,7 @@ extends TableAdapter <UsersAdapter>{
 	 * @param usersRowId The row id of the "users" database this contact is located at
 	 * @param contactsRowId The row id in the contacts database
 	 */
-	public void setRowIdFromContactsDatabase(int usersRowId, int contactsRowId){
+	public void setRowIdFromContactsDatabaseDONTUSE(int usersRowId, int contactsRowId){
 		
 		// the value to update
 		ContentValues values = new ContentValues(2);
@@ -370,7 +377,7 @@ extends TableAdapter <UsersAdapter>{
 	 * @param rowId the rowId of the contact
 	 * @return a string of either an email or phone, null if none found.
 	 */
-	public String getDefaultContactInfo(int rowId){
+	public String getDefaultContactInfoDONTUSE(int rowId){
 		
 		return getStringFrowRowId(rowId, KEY_DEFAULT_CONTACT);
 	}
@@ -381,7 +388,7 @@ extends TableAdapter <UsersAdapter>{
 	 * @param rowId the rowId of the contact in the contacts databse
 	 * @return a string of either an email or phone, null if none found.
 	 */
-	public String getDefaultContactInfoFromContactsDatabaseRowId(int rowId){
+	public String getDefaultContactInfoFromContactsDatabaseRowIdDONTUSE(int rowId){
 		ArrayList<String> tmp = getStringsFrowColumnName(KEY_CONTACTS_ROW_ID, String.valueOf(rowId), new String[] {KEY_DEFAULT_CONTACT});
 		if (tmp.size() > 0)
 			return tmp.get(0);
@@ -394,12 +401,15 @@ extends TableAdapter <UsersAdapter>{
 	 * @param contactsRowId The contact Id
 	 * @param defaultContact The default contact info, ie "johnsmith@gmail.com"
 	 */
-	public void setDefaultContactInfoFromContactsDatabaseRowId(int contactsRowId, String defaultContact){
+	public void setDefaultContactInfoFromContactsDatabaseRowIdDONTUSE(int contactsRowId, String defaultContact){
 		// the value to update
 		ContentValues values = new ContentValues(2);
 		values.put(KEY_CONTACTS_ROW_ID, contactsRowId);	
 		values.put(KEY_DEFAULT_CONTACT, defaultContact);
 		values.put(KEY_IS_UPDATING, false);
+		
+		// check if we have a row that we can update
+		
 		
 		// The where clause
 		String where = 
@@ -421,11 +431,45 @@ extends TableAdapter <UsersAdapter>{
 	}
 	
 	/**
+	 * Set the default contact info based on the rowId
+	 * @param rowId The user row Id
+	 * @param defaultContact The default contact info, ie "johnsmith@gmail.com"
+	 */
+	public void setDefaultContactInfo(long rowId, String defaultContact){
+		
+		// the values to update
+		ContentValues values = new ContentValues(2);
+		values.put(KEY_DEFAULT_CONTACT, defaultContact);
+		values.put(KEY_IS_SYNCED, false);
+		
+		// check if we have a row that we can update
+		// The where clause
+		String where = 
+			KEY_ROW_ID + " = ?";
+		
+		// The selection args
+		String[] selectionArgs = {String.valueOf(rowId)};
+		
+		// update the row
+		int affected = database.update(TABLE_NAME,
+				values,
+				where,
+				selectionArgs);
+		if (affected == 0){
+			NotificationsAdapter notes = new NotificationsAdapter(ctx);
+			notes.createNotification("Contact info could not be set for rowId = "+rowId, NOTIFICATION_TYPES.DEVICE_ERROR);
+		}
+		if (affected > 1 && !Prefs.debug.allowMultipleUpdates){
+			throw new IllegalArgumentException("attempting to update more than one row. This should never happen");
+		}
+	}
+	
+	/**
 	 * Get the rowId in this database given the contacts Database row id
 	 * @param contactId The contacts Database rowId
 	 * @return the "users" database row id, -1 if not found.
 	 */
-	public int getRowIdGivenContactsDatabaseRowId(long contactId){
+	public int getRowIdGivenContactsDatabaseRowIdDONTUSE(long contactId){
 		
 		// default output
 		int output = -1;
@@ -469,7 +513,7 @@ extends TableAdapter <UsersAdapter>{
 	 * @param rowId the rowId of the user to delete
 	 * @return the number of connections deleted
 	 */
-	public int deleteUser(Context ctx, long rowId){
+	public int deleteUserForDebug(Context ctx, long rowId){
 
 		// The where clause
 		String where = 
@@ -499,7 +543,7 @@ extends TableAdapter <UsersAdapter>{
 	 * Load the user the given rowId into the cursor for this object
 	 * @param rowId
 	 */
-	public void fetchUserCursor(long rowId){
+	public void fetchUser(long rowId){
 		
 		// grab the cursor
 		Cursor cursor =
@@ -516,6 +560,38 @@ extends TableAdapter <UsersAdapter>{
 					null);
 		
 		setCursor(cursor);
+	}
+	
+	/**
+	 * Return a user for the given contacts database rowId
+	 * 
+	 * @param rowId contacts database id of the user to retrieve
+	 * @return User object, null if none found at rowId
+	 */
+	public void fetchUserByContactsId(long rowId){
+
+		// grab the cursor
+		Cursor cursor =
+
+			database.query(
+					true,
+					TABLE_NAME,
+					null,
+					KEY_CONTACTS_ROW_ID + "='" + rowId +"'",
+					null,
+					null,
+					null,
+					null,
+					null);
+
+		setCursor(cursor);
+		
+		// double check that this matches, if it doens't match, then create a new one
+		UsersAdapter users = new UsersAdapter(ctx);
+		users.fetchUser(this.getRowId());
+		if (rowId != users.getContactDatabaseRowId(ctx))
+			setCursor(null);
+		users.close();
 	}
 	
 	/**
@@ -617,10 +693,12 @@ extends TableAdapter <UsersAdapter>{
 	}
 	
 	/**
-	 * Return the contact id from the google address book
+	 * Return the contact id from the google address book. <br>
+	 * This searches the contacts database to confirm we have the correct id, so it can be slow
 	 * @return
 	 */
 	public long getContactDatabaseRowId(Context ctx){
+		//TODO: this method is slow, but currently required to make sure we don't get contact confusion. it can be fixed by outputing a uri, so it doesn't have to be done again in adduserstogroup
 		if (!checkCursor())
 			return -1;
 		
@@ -628,23 +706,33 @@ extends TableAdapter <UsersAdapter>{
 		if (getLookupKey().length() == 0)
 			return getLong(KEY_CONTACTS_ROW_ID);
 		
-		// if we have a lookup key, then use it
+		// keep track of original row id
+		long originalId = getLong(KEY_CONTACTS_ROW_ID);
+		
+		// if we have a lookup key, then use it to search database
 		Uri uri = ContactsContract.Contacts.getLookupUri(getLong(KEY_CONTACTS_ROW_ID), getLookupKey());
-		//Uri uri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_LOOKUP_URI, getLookupKey());
 		Uri uri2 = ContactsContract.Contacts.lookupContact(ctx.getContentResolver(), uri);
 		String[] projection = {ContactsContract.Contacts._ID};
 		Cursor cursor = ctx.getContentResolver().query(
 				uri2,
 				projection,
 				null, null, null);
+		
+		// read the id
 		int id = -1;
 		if (cursor != null && cursor.moveToFirst()){
 			id = getInt(0);
 		}
+		if (cursor != null)
+			cursor.close();
 		
-		int kyle = 6;
+		// if we have a changed id, then we need to update.
+		if (originalId != id){
+			setRowIdFromContactsDatabaseDONTUSE((int)getRowId(), id);
+		}
+		
+		// return the value
 		return id;
-		//return getLong(KEY_CONTACTS_ROW_ID);
 	}
 	
 	/**

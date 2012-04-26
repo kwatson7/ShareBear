@@ -1,5 +1,10 @@
 package com.instantPhotoShare.Tasks;
 
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -204,40 +209,71 @@ extends CustomAsyncTask<Void, Integer, AddUsersToGroupTask.ReturnFromAddUsersToG
 
 		// the user/group adapter
 		UsersInGroupsAdapter usersInGroupsAdapter = new UsersInGroupsAdapter(applicationCtx);
+		
+		// keep track of new additions and deletions
+		HashSet<Long> newAdditions = new HashSet<Long>();
+		HashSet<Long> deletions = new HashSet<Long>();
 
+		// get list of contacts already in the group
+		users.fetchUsersInGroup(groupId);
+		HashSet<Long> oldIds = new HashSet<Long>(users.size());
+		while (users.moveToNext())
+			oldIds.add(users.getContactDatabaseRowId(applicationCtx));
+		users.close();
+		
+		Set<Long> keys = mContactChecked.getCheckedKeys();
+		Iterator<Long> iterator = keys.iterator();
+		while (iterator.hasNext()){
+			Long id = mContactChecked.getiterator.next();
+			if (oldIds.contains(id))
+				updates.add(id);
+			else
+				newUsers.add(id);
+		}
+		Iterator<Long> iterator2 = oldIds.iterator();
+		while (iterator2.hasNext()){
+			Long id = iterator2.next();
+			if (!newIds.contains(id))
+				toDelete
+		}
+		users.close();
+		
+		
+		newIds.retainAll(oldIds);
+
+		//TODO: we are not changing teh contact id in the users database or the contacts cursor, or the contactchecked, so we will have problems
+		
 		// loop over all contacts and adding them to database and to group
 		int i = 1;
-		for (Long id : mContactChecked.getKeySet()) {
-			if (mContactChecked.isChecked(id)){
+		for (Long id : mContactChecked.getCheckedKeys()) {
 
-				// create new user or update old one
-				long userId = users.makeNewUser(
-						applicationCtx,
-						id,
-						mContactChecked.getLookupKey(id),
-						mContactChecked.getDefaultContactMethod(id),
-						-1);
+			// create new user or update old one
+			long userId = users.makeNewUser(
+					applicationCtx,
+					id,
+					mContactChecked.getLookupKey(id),
+					mContactChecked.getDefaultContactMethod(id),
+					-1);
 
-				// check we have add successfully
-				if (userId < 0)		
-					return new SuccessReason(false, "User could not be added.");
+			// check we have add successfully
+			if (userId < 0)		
+				return new SuccessReason(false, "User could not be added.");
 
-				// add to group
-				long linkId = usersInGroupsAdapter.addUserToGroup(applicationCtx, userId, groupId);
+			// add to group
+			long linkId = usersInGroupsAdapter.addUserToGroup(applicationCtx, userId, groupId);
 
-				// check we have add successfully
-				if (linkId < 0)
-					return new SuccessReason(false, "Link between users and groups could not be added");
+			// check we have add successfully
+			if (linkId < 0)
+				return new SuccessReason(false, "Link between users and groups could not be added");
 
-				// publish progress
-				publishProgress(i);
-				i++;
+			// publish progress
+			publishProgress(i);
+			i++;
 
-				if(cancelTask){
-					GroupsAdapter groups = new GroupsAdapter(applicationCtx);
-					groups.deleteGroup(groupId);
-					return new SuccessReason(false, "User cancelled action.");
-				}
+			if(cancelTask){
+				GroupsAdapter groups = new GroupsAdapter(applicationCtx);
+				groups.deleteGroup(groupId);
+				return new SuccessReason(false, "User cancelled action.");
 			}
 		}
 

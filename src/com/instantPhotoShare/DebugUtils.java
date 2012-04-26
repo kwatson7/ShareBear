@@ -15,7 +15,7 @@ public class DebugUtils {
 		users.fetchAllUsersCursor();
 		while (users.moveToNext()){
 			if ((users.getName() == null || users.getName().length() == 0) && (users.getServerId() == -1 || users.getServerId() == 0)){
-				int connections = users.deleteUser(ctx, users.getRowId());
+				users.deleteUserForDebug(ctx, users.getRowId());
 			}			
 		}
 	}

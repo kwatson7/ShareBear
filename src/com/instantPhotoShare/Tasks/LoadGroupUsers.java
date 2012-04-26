@@ -58,7 +58,8 @@ extends CustomAsyncTask<Void, Integer, ContactCheckedArray>{
 					true,
 					users.getName(),
 					users.getDefaultContactMethod(),
-					users.getLookupKey()));
+					users.getLookupKey(),
+					users.getRowId()));
 			this.publishProgress(users.getPosition()+1);
 			
 			if(cancelTask){

@@ -5,30 +5,39 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
+import android.view.View;
 import android.widget.Toast;
 
 import com.instantPhotoShare.ContactCheckedArray;
 import com.instantPhotoShare.Prefs;
 import com.instantPhotoShare.ServerJSON;
+import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.GroupsAdapter.Group;
 import com.instantPhotoShare.Adapters.NotificationsAdapter.NOTIFICATION_TYPES;
 import com.instantPhotoShare.Adapters.NotificationsAdapter;
 import com.instantPhotoShare.Adapters.UsersAdapter;
 import com.instantPhotoShare.Adapters.UsersInGroupsAdapter;
+import com.instantPhotoShare.Tasks.CreateGroupTask.ReturnFromCreateGroupTask;
 import com.tools.CustomActivity;
 import com.tools.CustomAsyncTask;
 import com.tools.SuccessReason;
+import com.tools.ThreeObjects;
 
 public class AddUsersToGroupTask 
 extends CustomAsyncTask<Void, Integer, AddUsersToGroupTask.ReturnFromAddUsersToGroupTask>{
 
+	// constants
+	private static final String LOCAL_TITLE = "Saving Users to Group";
+	private static final String SERVER_TITLE = "Uploading to Server";
+		
 	// private variables
 	private ContactCheckedArray mContactChecked;
 	private int progressMax = 1;
@@ -37,22 +46,25 @@ extends CustomAsyncTask<Void, Integer, AddUsersToGroupTask.ReturnFromAddUsersToG
 	private long groudRowId = -1;
 	private int usersAdded = 0;
 	private int usersRemoved = 0;
+	private String dialogTitle = LOCAL_TITLE;
 
 	// codes to be sent to server
 	private static final String ACTION = "add_user_to_group";
 	private static final String KEY_USER_ID = "user_id";
 	private static final String KEY_SECRET_CODE = "secret_code";
-	private static final String PERSON_F_NAME = "person_fname";
-	private static final String PERSON_L_NAME = "person_lname";
-	private static final String PERSON_EMAIL = "person_email";
-	private static final String PHONE_NUMBER = "phone_number";
-	private static final String GROUP_ID = "group_id";
+	private static final String KEY_PERSON_F_NAME = "person_fname";
+	private static final String KEY_PERSON_L_NAME = "person_lname";
+	private static final String KEY_PERSON_EMAIL = "person_email";
+	private static final String KEY_PHONE_NUMBER = "phone_number";
+	private static final String KEY_GROUP_ID = "group_id";
 
 	// server errors
 
 	// local error
 	private static final String LOCAL_CREATION_ERROR = "USER_COULD_NOT_BE_ADDED_FOR_UNKNOWN_REASON";
 	private static final String ERROR_MESSAGE = "User could not be added for unknown reason on device";
+	
+	
 
 	/**
 	 * Make a group and put it into the groups database and then add all the users to it.
@@ -78,6 +90,7 @@ extends CustomAsyncTask<Void, Integer, AddUsersToGroupTask.ReturnFromAddUsersToG
 		progressMax = mContactChecked.getNChecked();
 		dialog.setMax(progressMax); // this needs to be done here, because setupDialog is called before we've stored mContactChecked
 		
+		
 		// make sure group exists
 		GroupsAdapter groups = new GroupsAdapter(applicationCtx);
 		Group group = groups.getGroup(groudRowId);
@@ -95,13 +108,13 @@ extends CustomAsyncTask<Void, Integer, AddUsersToGroupTask.ReturnFromAddUsersToG
 
 	@Override
 	protected AddUsersToGroupTask.ReturnFromAddUsersToGroupTask doInBackground(Void... params) {
-
-		//TODO: add the functionality to remove people from groups
-		//TODO: update / add users on server
-		//TODO: add logic of who can remove users
 		
 		// make the new group
-		SuccessReason localResult = createPeople(groudRowId);
+		ThreeObjects<SuccessReason, HashSet<Long>, HashSet<Long>> out = 
+				createPeople(groudRowId);
+		SuccessReason localResult = out.mObject1;
+		HashSet<Long> newUsers = out.mObject2;
+		HashSet<Long> deletions = out.mObject3;
 
 		// if we errored, then stop
 		if (!localResult.getSuccess()){
@@ -111,12 +124,31 @@ extends CustomAsyncTask<Void, Integer, AddUsersToGroupTask.ReturnFromAddUsersToG
 			return serverResponse;
 		}
 
+		// no one to edit, so return
+		if (getTotalEdits() == 0)
+			return new ReturnFromAddUsersToGroupTask(ServerJSON.getDefaultFailure());
+				
 		// now add users to server
-		ReturnFromAddUsersToGroupTask serverResponse = 
-			new ReturnFromAddUsersToGroupTask(ServerJSON.getDefaultFailure());
+		//TODO: set the links and users to be updating
+		ReturnFromAddUsersToGroupTask serverResponse = null;
+		try {
+			serverResponse = new ReturnFromAddUsersToGroupTask(Utils.postToServer(ACTION, getDataToPost(newUsers, deletions), null));
+		} catch (JSONException e) {
+			serverResponse = new ReturnFromAddUsersToGroupTask(ServerJSON.getDefaultFailure());
+			serverResponse.setErrorMessage(e.getMessage(), "JSONException");
+		}
+		//TODO: be able to delte users, locally and on server
+		//TODO: get back serverid of user, so from now on i just send that.
+
+		// set sync and update status
+		//TODO: set sync and update status of links and users	
+		//if (serverResponse.isSuccess())
+		//	groups.setIsSynced(rowId, true, serverResponse.getGroupId());
+		//groups.setIsUpdating(rowId, false);
 
 		// return the value
 		return serverResponse;
+
 	}
 
 	/**
@@ -124,36 +156,44 @@ extends CustomAsyncTask<Void, Integer, AddUsersToGroupTask.ReturnFromAddUsersToG
 	 * @return a JSOBObject
 	 * @throws JSONException 
 	 */
-	private JSONObject getDataToPost()
+	private JSONArray getDataToPost(HashSet<Long> newAdditions, HashSet<Long> deletions)
 	throws JSONException{	
-
-		[
-{
-"person_fname":"Brennan",
-"person_lname":"Heyde",
-"person_email":"test@12ds3.com,bheyde1@gsdsdmail.com",
-"phone_number": "555-554-5555,750-809-4756,1-800-123-456",
-"group_id":"29"
-},
-{
-"person_fname":"Kyle",
-"person_lname":"Watson",
-"person_email":"kwatson7@gmail.com",
-"phone_number": "123-345-5555",
-"group_id":"7"
-}
-]
-
-		// add values to json object
-		JSONObject json = new JSONObject();
-		json.put(KEY_USER_ID, Prefs.getUserServerId(applicationCtx));
-		json.put(KEY_SECRET_CODE, Prefs.getSecretCode(applicationCtx));
-		return json;
+		
+		// initialize the array
+		JSONArray jsonArray = new JSONArray();
+		
+		// initalize the users
+		UsersAdapter users = new UsersAdapter(applicationCtx);
+		
+		// loop adding new users to json array
+		Iterator<Long> iterator = newAdditions.iterator();
+		while(iterator.hasNext()){
+			
+			// grab the user info
+			Long id = iterator.next();
+			users.fetchUser(id);
+			JSONObject json = new JSONObject();
+			json.put(KEY_PERSON_F_NAME, users.getFirstName());
+			json.put(KEY_PERSON_L_NAME, users.getLastName());
+			json.put(KEY_PHONE_NUMBER, users.getPhones());
+			json.put(KEY_PERSON_EMAIL, users.getEmails());
+			json.put(KEY_GROUP_ID, groudRowId);
+			
+			// add to array
+			jsonArray.put(json);
+		}
+		users.close();
+		
+		return jsonArray;
 	}
 
 	@Override
 	protected void onProgressUpdate(Integer... progress) {
 		dialog.setProgress(progress[0]);
+		if (progress[0] == progressMax){
+			dialogTitle = SERVER_TITLE;
+			dialog.setTitle(dialogTitle);
+		}
 	}
 
 	@Override
@@ -217,8 +257,8 @@ extends CustomAsyncTask<Void, Integer, AddUsersToGroupTask.ReturnFromAddUsersToG
 			dialog = new ProgressDialog(callingActivity);
 			dialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
 			dialog.setIndeterminate(false);
-			dialog.setMessage("Saving users to group. Please wait...");
-			dialog.setTitle("Creating Group");
+			dialog.setMessage("Please wait...");
+			dialog.setTitle(dialogTitle);
 			dialog.setCancelable(true);
 			if (mContactChecked != null){
 				dialog.setMax(progressMax);
@@ -237,7 +277,7 @@ extends CustomAsyncTask<Void, Integer, AddUsersToGroupTask.ReturnFromAddUsersToG
 	/**
 	 * Create/update all the people who are in this group and add to group.
 	 */
-	private SuccessReason createPeople(long groupId){
+	private ThreeObjects<SuccessReason, HashSet<Long>, HashSet<Long>> createPeople(long groupId){
 
 		// the users adapter
 		UsersAdapter users = new UsersAdapter(applicationCtx);
@@ -280,29 +320,29 @@ extends CustomAsyncTask<Void, Integer, AddUsersToGroupTask.ReturnFromAddUsersToG
 		dialog.setMax(progressMax);
 		usersAdded = newAdditions.size();
 		usersRemoved = deletions.size();
+		
+		// initialize ouptut
+		ThreeObjects<SuccessReason, HashSet<Long>, HashSet<Long>> output = 
+				new ThreeObjects<SuccessReason, HashSet<Long>, HashSet<Long>>(null, newAdditions, deletions);
 
 		// loop over all contacts and adding them to database and to group
 		int i = 1;
 		for (Long id : newAdditions) {
 
-			// create new user or update old one
-			long userId = users.makeNewUser(
-					applicationCtx,
-					id,
-					mContactChecked.getLookupKey(id),
-					mContactChecked.getDefaultContactMethod(id),
-					-1);
-
 			// check we have add successfully
-			if (userId < 0)		
-				return new SuccessReason(false, "User could not be added.");
+			if (id < 0){
+				output.mObject1 = new SuccessReason(false, "User could not be added.");
+				return output;
+			}
 
 			// add to group
-			long linkId = usersInGroupsAdapter.addUserToGroup(applicationCtx, userId, groupId);
+			long linkId = usersInGroupsAdapter.addUserToGroup(applicationCtx, id, groupId);
 
 			// check we have add successfully
-			if (linkId < 0)
-				return new SuccessReason(false, "Link between users and groups could not be added");
+			if (linkId < 0){
+				output.mObject1 = new SuccessReason(false, "Link between users and groups could not be added");
+				return output;
+			}
 
 			// publish progress
 			publishProgress(i);
@@ -311,18 +351,17 @@ extends CustomAsyncTask<Void, Integer, AddUsersToGroupTask.ReturnFromAddUsersToG
 			if(cancelTask){
 				GroupsAdapter groups = new GroupsAdapter(applicationCtx);
 				groups.deleteGroup(groupId);
-				return new SuccessReason(false, "User cancelled action.");
+				output.mObject1 = new SuccessReason(false, "User cancelled action.");
+				return output;
 			}
 		}
 
-		return new SuccessReason(true);
+		output.mObject1 = new SuccessReason(true);
+		return output;
 	}
 
 	public class ReturnFromAddUsersToGroupTask
 	extends ServerJSON{
-
-		// KEYS in JSON
-		private static final String KEY_GROUP_ID = "group_id";;
 
 		/**
 		 * Intiailize a ReturnFromAddUsersToGroupTask object from a ServerJSON object.
@@ -342,10 +381,10 @@ extends CustomAsyncTask<Void, Integer, AddUsersToGroupTask.ReturnFromAddUsersToG
 
 			// now check that we have userId and secretCode
 			if (isSuccess()){
-				if (getGroupId() == -1)
-					throw new IllegalArgumentException(
-							"ReturnFromCreateGroupTask " + 
-							KEY_GROUP_ID + " key required.");
+				//if (getGroupId() == -1)
+				//	throw new IllegalArgumentException(
+				//			"ReturnFromAddUsersToGroupTask " + 
+				//			KEY_GROUP_ID + " key required.");
 
 			}		
 		}

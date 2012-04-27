@@ -71,7 +71,8 @@ extends CustomActivity{
 	private Context mCtx = this;						// The context
 	private CustomActivity mAct = this;					// This activity
 	private ContactCheckedArray mContactChecked = null; // Object keeping track of which contacts are checked
-	private boolean canIDeleteMembers = false; 			// if the current user can delte members from this group					
+	private boolean canIDeleteMembers = false; 			// if the current user can delte members from this group		
+	//TODO: implement cadIDeleteMembers
 	
 	// for adding people from google groups
 	private ArrayList<TwoStrings> mGroupList; 			// This list of group names and column ids, but stored as strings
@@ -375,7 +376,7 @@ extends CustomActivity{
 	public void goClicked(View view){
 
 		// check we have a groupId and there are users
-		if (groupId == -1 || mContactChecked.getNChecked() < 1){
+		if (groupId == -1){
 			Toast.makeText(this, "No people selected to share with", Toast.LENGTH_LONG).show();
 			return;
 		}
@@ -709,6 +710,19 @@ extends CustomActivity{
 				// store in hash set
 				UsersAdapter users = new UsersAdapter(mCtx);
 				users.fetchUserByContactsId(contactId);
+				
+				// check if we need to create a new user
+				if (users.getRowId() == -1){
+					users.fetchUser(users.makeNewUser(
+							mCtx,
+							contactId,
+							contactCursorWrapper.getLookupKey(),
+							contactMethod,
+							-1));
+				}else
+					users.setDefaultContactInfo(users.getRowId(), contactMethod);
+				
+				// now store
 				mContactChecked.setItem(new ContactCheckedItem(
 						contactId,
 						true,
@@ -717,18 +731,8 @@ extends CustomActivity{
 						contactCursorWrapper.getLookupKey(),
 						users.getRowId()));
 				
-				// check if we need to create a new user
-				if (users.getRowId() == -1){
-					users.close();
-					users.fetchUser(users.makeNewUser(
-							mCtx,
-							contactId,
-							contactCursorWrapper.getLookupKey(),
-							contactMethod,
-							-1));
-				}
-				users.setDefaultContactInfo(users.getRowId(), contactMethod);
-
+				users.close();
+				
 				updateNContacts();
 				updateVisibleView();
 			}
@@ -1011,6 +1015,16 @@ extends CustomActivity{
 					// check the box and save in hashtable
 					check.setChecked(true);
 					users.fetchUserByContactsId(contactId);
+					
+					// if user doesn't exist, make a new one
+					if (users.getRowId() == -1){
+						users.fetchUser(users.makeNewUser(
+								mCtx,
+								contactId,
+								contactCursorWrapper.getLookupKey(), 
+								defaultMethod,
+								-1));
+					}
 					mContactChecked.setItem(new ContactCheckedItem(
 							contactId,
 							true,

@@ -22,6 +22,7 @@ import org.apache.http.entity.mime.content.ByteArrayBody;
 import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.params.CoreProtocolPNames;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -56,7 +57,7 @@ public class Utils {
 	public static final int PICTURE_ALPHA = 100;
 	public static final int BACKGROUND_ALPHA = 40;
 	public static final String LOG_TAG = "ShareBear";
-	
+
 	public static void clearApplicationData(Context ctx) {
 		File cache = ctx.getCacheDir();
 		File appDir = new File(cache.getParent());
@@ -159,18 +160,9 @@ public class Utils {
 		return out;
 	}
 
-	/**
-	 * Post values to the server. The json response will always have either <p>
-	 * 1. At least 2 keys, KEY_STATUS, and KEY_SUCCESS_MESSAGE or <br>
-	 * 2. At least 3 keys, KEY_STATUS, KEY_ERROR_MESSAGE, and KEY_ERROR_CODE
-	 * @param action The action to take on the server
-	 * @param data The json data to post to server
-	 * @param imageData Two objects, the full image byte[] and the thumbnail byte[]
-	 * @return The json response from server.
-	 */
-	static public ServerJSON postToServer(
+	static private ServerJSON postToServerHelper(
 			String action,
-			JSONObject data,
+			String jsonData,
 			TwoObjects<byte[], byte[]> imageData){
 
 		// keys for sending to server
@@ -188,10 +180,10 @@ public class Utils {
 		final String FILE_TYPE = "image/jpeg";
 		/** The encoding type of form data */
 		final Charset ENCODING_TYPE = Charset.forName("UTF-8");
-		
+
 		// the file "name"
 		String fileName = com.tools.Tools.randomString(64);
-		
+
 		// the default error results
 		ServerJSON defaultOutput = ServerJSON.getDefaultFailure();
 
@@ -211,7 +203,7 @@ public class Utils {
 				HttpMultipartMode.BROWSER_COMPATIBLE);
 		try{
 			multipartEntity.addPart(KEY_ACTION, new StringBody(action, ENCODING_TYPE));
-			multipartEntity.addPart(KEY_DATA, new StringBody(data.toString(), ENCODING_TYPE));
+			multipartEntity.addPart(KEY_DATA, new StringBody(jsonData, ENCODING_TYPE));
 			if (imageData != null){
 				multipartEntity.addPart(KEY_FULLSIZE, new ByteArrayBody(imageData.mObject1, FILE_TYPE, fileName));
 				multipartEntity.addPart(KEY_THUMBNAIL, new ByteArrayBody(imageData.mObject2, FILE_TYPE, fileName));
@@ -223,7 +215,7 @@ public class Utils {
 
 		// set the values to the post
 		httpPost.setEntity(multipartEntity);
-		
+
 		int statusCode= -1;
 
 		// send post
@@ -243,7 +235,7 @@ public class Utils {
 				BufferedReader reader = new BufferedReader(new InputStreamReader(content));
 				String line;
 				while ((line = reader.readLine()) != null) {
-				//	builder.append(line + "\n");
+					//	builder.append(line + "\n");
 					result = line;
 				}
 				content.close();
@@ -272,11 +264,45 @@ public class Utils {
 			defaultOutput.setErrorMessage(e.toString(), "JSONException");
 			return defaultOutput;
 		}
-		
+
 		// return the final json object
 		return output;	
 	}
+
+	/**
+	 * Post values to the server. The json response will always have either <p>
+	 * 1. At least 2 keys, KEY_STATUS, and KEY_SUCCESS_MESSAGE or <br>
+	 * 2. At least 3 keys, KEY_STATUS, KEY_ERROR_MESSAGE, and KEY_ERROR_CODE
+	 * @param action The action to take on the server
+	 * @param data The json data to post to server
+	 * @param imageData Two objects, the full image byte[] and the thumbnail byte[]
+	 * @return The json response from server.
+	 */
+	static public ServerJSON postToServer(
+			String action,
+			JSONObject data,
+			TwoObjects<byte[], byte[]> imageData){
+
+		return postToServerHelper(action, data.toString(), imageData);
+	}
 	
+	/**
+	 * Post values to the server. The json response will always have either <p>
+	 * 1. At least 2 keys, KEY_STATUS, and KEY_SUCCESS_MESSAGE or <br>
+	 * 2. At least 3 keys, KEY_STATUS, KEY_ERROR_MESSAGE, and KEY_ERROR_CODE
+	 * @param action The action to take on the server
+	 * @param data The json data to post to server
+	 * @param imageData Two objects, the full image byte[] and the thumbnail byte[]
+	 * @return The json response from server.
+	 */
+	static public ServerJSON postToServer(
+			String action,
+			JSONArray data,
+			TwoObjects<byte[], byte[]> imageData){
+
+		return postToServerHelper(action, data.toString(), imageData);
+	}
+
 	/**
 	 * Set the imageview to have the picture at the given path. <br>
 	 * Can be used for group thumbnails, like so:<br>
@@ -289,10 +315,10 @@ public class Utils {
 	public static void setBackground(final Context ctx, final String picPath, final ImageView image, final float alphaMultiplier){
 		new Thread(new Runnable() {
 			public void run() {
-				
+
 				// read the picture path of the group
 				Bitmap bmp = null;
-				
+
 				// if no file, then use the default one
 				if (picPath != null && picPath.length() != 0 && (new File(picPath)).exists())
 					bmp = BitmapFactory.decodeFile(picPath);
@@ -304,12 +330,12 @@ public class Utils {
 				int width = bmp.getWidth();
 				int[] pixels = new int[height * width];
 				bmp.getPixels(pixels, 0, width, 0, 0, width, height);
-				
+
 				// find the average darkness
 				double avg = 0;
 				int color;
 				for (int i = 0; i < pixels.length; i++){
-	
+
 					color = pixels[i];
 					int alpha = Color.alpha(color);
 					int red = Color.red(color);
@@ -325,7 +351,7 @@ public class Utils {
 
 				// post it on the ui thread
 				Activity a=(Activity)image.getContext();
-    			a.runOnUiThread(new Runnable() {
+				a.runOnUiThread(new Runnable() {
 					public void run() {
 						image.setImageDrawable(draw);
 					}

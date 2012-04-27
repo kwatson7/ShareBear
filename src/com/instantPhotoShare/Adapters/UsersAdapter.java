@@ -65,7 +65,7 @@ extends TableAdapter <UsersAdapter>{
 		+KEY_IS_SYNCED +" boolean DEFAULT 'FALSE', "
 		+KEY_DEFAULT_CONTACT + " TEXT, "
 		+KEY_CONTACTS_ROW_ID + " integer DEFAULT '-1', "
-		+KEY_LOOKUP_KEY + LOOKUP_KEY_TYPE + ", "
+		+KEY_LOOKUP_KEY + " " + LOOKUP_KEY_TYPE + ", "
 		+"foreign key(" +KEY_PICTURE_ID +") references " +PicturesAdapter.TABLE_NAME +"(" +PicturesAdapter.KEY_ROW_ID + ")" 
 		+");";
 	
@@ -561,6 +561,7 @@ extends TableAdapter <UsersAdapter>{
 					null);
 		
 		setCursor(cursor);
+		moveToFirst();
 	}
 	
 	/**
@@ -586,6 +587,7 @@ extends TableAdapter <UsersAdapter>{
 					null);
 
 		setCursor(cursor);
+		moveToFirst();
 		
 		// double check that this matches, if it doens't match, then create a new one
 		UsersAdapter users = new UsersAdapter(ctx);
@@ -722,15 +724,16 @@ extends TableAdapter <UsersAdapter>{
 		// read the id
 		int id = -1;
 		if (cursor != null && cursor.moveToFirst()){
-			id = getInt(0);
+			id = cursor.getInt(0);
 		}
 		if (cursor != null)
 			cursor.close();
 		
 		// if we have a changed id, then we need to update.
-		if (originalId != id){
-			setRowIdFromContactsDatabaseDONTUSE((int)getRowId(), id);
-		}
+		//if (originalId != id){
+			//TODO: determine if this should happen or not
+			//setRowIdFromContactsDatabaseDONTUSE((int)getRowId(), id);
+		//}
 		
 		// return the value
 		return id;
@@ -774,6 +777,16 @@ extends TableAdapter <UsersAdapter>{
 		if (!checkCursor())
 			return "";
 		return getString(KEY_PHONES);
+	}
+	
+	/**
+	 * Return the comma separated list of emails for this user.
+	 * @return
+	 */
+	public String getEmails(){
+		if (!checkCursor())
+			return "";
+		return getString(KEY_EMAILS);
 	}
 	
 	// helper functions

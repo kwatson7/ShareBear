@@ -627,6 +627,7 @@ extends TableAdapter <GroupsAdapter>{
 					null);
 
 		setCursor(cursor);
+		moveToFirst();
 	}
 	
 	/**
@@ -704,7 +705,8 @@ extends TableAdapter <GroupsAdapter>{
 	}
 	
 	public boolean canIRemoveMembers(Context ctx){
-		return didIMakeGroup(ctx);
+		return false;
+		//return didIMakeGroup(ctx);
 	}
 	
 	public boolean canIRemoveThisMember(Context ctx, long userId){

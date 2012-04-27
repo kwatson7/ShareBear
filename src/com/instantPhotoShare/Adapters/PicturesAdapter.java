@@ -340,9 +340,11 @@ extends TableAdapter<PicturesAdapter>{
 				new String[]{String.valueOf(groupId), String.valueOf(pictureId)});
 
 		// return the false if there is no good cursor, and true otherwise.
-		if (cursor == null || !cursor.moveToFirst())
+		if (cursor == null || !cursor.moveToFirst()){
+			if (cursor != null)
+				cursor.close();
 			return false;
-		else
+		}else
 			return true;
 	}
 	

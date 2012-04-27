@@ -16,8 +16,10 @@ extends CursorWrapper<TYPE>{
 	// Database protected fields
 	protected SQLiteDatabase database;
 	private DatabaseHelper dbHelper;
+	protected Context ctx;
 	
 	public TableAdapter(Context context) {
+		ctx = context;
 		dbHelper = DatabaseHelper.getHelper(context);
 		open();
 	}

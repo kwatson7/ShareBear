@@ -64,6 +64,13 @@ android:visibility="invisible"
 android:id="@+id/spinner"
 android:prompt="@string/pickGroupString">
 </com.tools.NoDefaultSpinner>
+<com.tools.NoDefaultSpinner
+android:layout_width="0px"
+android:layout_height="0px"
+android:visibility="invisible"
+android:id="@+id/chooseDefaultSpinner"
+android:prompt="@string/chooseDefaultSpinner">
+</com.tools.NoDefaultSpinner>
 <ListView android:id="@+id/list"
      android:layout_width="fill_parent"
 	android:layout_height="0dip"

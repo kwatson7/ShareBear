@@ -85,7 +85,7 @@ extends TableAdapter<UsersInGroupsAdapter>{
 	 * @param userId
 	 * @return the number of connections deleted
 	 */
-	public int deleteUser(long userId){
+	public int deleteUserDebug(long userId){
 		
 		// The where clause
 		String where = 
@@ -99,6 +99,21 @@ extends TableAdapter<UsersInGroupsAdapter>{
 				TABLE_NAME,
 				where,
 				selectionArgs);
+
+		return effected;
+	}
+	
+	/**
+	 * Delete all links. This should only be used for debugging
+	 * @return the number of links deleted
+	 */
+	public int deleteAllLinksDebug(){
+		
+		// delete the row
+		int effected = database.delete(
+				TABLE_NAME,
+				null,
+				null);
 
 		return effected;
 	}

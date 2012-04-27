@@ -71,7 +71,7 @@ extends CustomActivity{
 		getPictures();
 		fillPictures();
 		
-		//TODO: cannot use contactID but must use lookup_key
+		DebugUtils.deleteAllNonServerUsersAndGroupLinks(this);
 		
 		// move to correct position
 		if (picturesAdapater.size() > 2)

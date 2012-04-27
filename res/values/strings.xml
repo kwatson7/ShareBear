@@ -20,6 +20,7 @@
 	<string name="yourLastName">Your last name</string>
 	<string name="yourUserName">User Name</string>
 	<string name="yourPassword">Password</string>
+	<string name="chooseDefaultSpinner">Choose default contact method</string>
 	<color name="listViewColor">#fff</color>
 	<string name="pickGroupString">&quot;Pick a group to add to list&quot;</string>
 	<string name="pick_a_group_to_edit">&quot;Pick a group to edit&quot;</string>

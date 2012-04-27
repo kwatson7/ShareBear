@@ -258,12 +258,7 @@ public class Utils {
 
 		//try parse the string to a JSON object
 		ServerJSON output = null;
-		try{
-			output = new ServerJSON(result);
-		}catch(JSONException e){
-			defaultOutput.setErrorMessage(e.toString(), "JSONException");
-			return defaultOutput;
-		}
+		output = new ServerJSON(result);
 
 		// return the final json object
 		return output;	

@@ -100,8 +100,11 @@ extends CustomActivity{
 		final View dummy = findViewById(R.id.dummyView);
 		(new Handler()).post (new Runnable() { public void run() { dummy.requestFocus(); } });
 
-		// fill views with correct values
-		fillViewsWithGroupValues();
+		if (groupId == -1)
+			changeGroupClicked(groupNameEdit);
+		else
+			// fill views with correct values
+			fillViewsWithGroupValues();
 	}
 
 	@Override
@@ -223,13 +226,20 @@ extends CustomActivity{
 	public void changeGroupClicked(View v){
 
 		// grab the spinner
-		Spinner spinner = (Spinner) findViewById(R.id.spinner);
+		com.tools.NoDefaultSpinner spinner = (com.tools.NoDefaultSpinner) findViewById(R.id.spinner);
 		if (spinner.isShown())
 			return;
 
 		// grab all groups
 		GroupsAdapter groupsAdapter = new GroupsAdapter(act);
 		final ArrayList<Group> groups = groupsAdapter.getAllGroups();
+		
+		// make sure there are groups
+		if (groups == null || groups.size() == 0){
+			Toast.makeText(this, "No groups to edit. Create one First", Toast.LENGTH_LONG).show();
+			finish();
+			return;
+		}
 
 		// make array adapter to hold group names
 		GroupSpinnerAdpater spinnerArrayAdapter = new GroupSpinnerAdpater(
@@ -245,11 +255,11 @@ extends CustomActivity{
 					View selectedItemView, int position, long id) {
 
 
-				if (!isChangeGroupShowing){
-					isChangeGroupShowing = !isChangeGroupShowing;
-					return;
-				}
-				isChangeGroupShowing = !isChangeGroupShowing;
+			//	if (!isChangeGroupShowing){
+			//		isChangeGroupShowing = !isChangeGroupShowing;
+			//		return;
+			//	}
+			//	isChangeGroupShowing = !isChangeGroupShowing;
 					
 				groupId = groups.get(position).getRowId();
 				fillViewsWithGroupValues();
@@ -257,6 +267,8 @@ extends CustomActivity{
 
 			@Override
 			public void onNothingSelected(AdapterView<?> parentView) {
+				Toast.makeText(ctx, "No Group Selected. Finishing...", Toast.LENGTH_LONG).show();
+				finish();
 			}
 		});
 
@@ -264,6 +276,7 @@ extends CustomActivity{
 		spinner.setAdapter(spinnerArrayAdapter);
 		
 		// find which group is currenlty selected
+		spinner.setSelection(0);
 		for (int i = 0; i < groups.size(); i++){
 			if (groups.get(i).getRowId() == groupId){
 				spinner.setSelection(i);

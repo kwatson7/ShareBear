@@ -57,6 +57,8 @@ extends CustomAsyncTask<Void, Integer, AddUsersToGroupTask.ReturnFromAddUsersToG
 	private static final String KEY_PERSON_EMAIL = "person_email";
 	private static final String KEY_PHONE_NUMBER = "phone_number";
 	private static final String KEY_GROUP_ID = "group_id";
+	private static final String KEY_CONTACT_METHOD = "CONTACT_METHOD";
+	
 
 	// server errors
 
@@ -130,9 +132,13 @@ extends CustomAsyncTask<Void, Integer, AddUsersToGroupTask.ReturnFromAddUsersToG
 				
 		// now add users to server
 		//TODO: set the links and users to be updating
+		//TODO: convert non json server return to proper error
 		ReturnFromAddUsersToGroupTask serverResponse = null;
 		try {
-			serverResponse = new ReturnFromAddUsersToGroupTask(Utils.postToServer(ACTION, getDataToPost(newUsers, deletions), null));
+			serverResponse = new ReturnFromAddUsersToGroupTask(
+					Utils.postToServer(ACTION,
+							getDataToPost(newUsers, deletions),
+							null));
 		} catch (JSONException e) {
 			serverResponse = new ReturnFromAddUsersToGroupTask(ServerJSON.getDefaultFailure());
 			serverResponse.setErrorMessage(e.getMessage(), "JSONException");
@@ -162,6 +168,12 @@ extends CustomAsyncTask<Void, Integer, AddUsersToGroupTask.ReturnFromAddUsersToG
 		// initialize the array
 		JSONArray jsonArray = new JSONArray();
 		
+		// add top level values
+		JSONObject top = new JSONObject();
+		top.put(KEY_USER_ID, Prefs.getUserServerId(applicationCtx));
+		top.put(KEY_SECRET_CODE, Prefs.getSecretCode(applicationCtx));
+		jsonArray.put(top);
+		
 		// initalize the users
 		UsersAdapter users = new UsersAdapter(applicationCtx);
 		
@@ -177,6 +189,7 @@ extends CustomAsyncTask<Void, Integer, AddUsersToGroupTask.ReturnFromAddUsersToG
 			json.put(KEY_PERSON_L_NAME, users.getLastName());
 			json.put(KEY_PHONE_NUMBER, users.getPhones());
 			json.put(KEY_PERSON_EMAIL, users.getEmails());
+			json.put(KEY_CONTACT_METHOD, users.getDefaultContactMethod());
 			json.put(KEY_GROUP_ID, groudRowId);
 			
 			// add to array
@@ -256,9 +269,11 @@ extends CustomAsyncTask<Void, Integer, AddUsersToGroupTask.ReturnFromAddUsersToG
 		if (callingActivity != null){
 			dialog = new ProgressDialog(callingActivity);
 			dialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-			dialog.setIndeterminate(false);
-			dialog.setMessage("Please wait...");
+			if (dialogTitle == null)
+				dialogTitle = LOCAL_TITLE;
 			dialog.setTitle(dialogTitle);
+			dialog.setMessage("Please wait...");
+			dialog.setIndeterminate(false);
 			dialog.setCancelable(true);
 			if (mContactChecked != null){
 				dialog.setMax(progressMax);

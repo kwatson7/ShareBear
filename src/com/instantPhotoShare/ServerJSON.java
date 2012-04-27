@@ -29,10 +29,16 @@ public class ServerJSON{
 	private static final String FAILURE = "failed";
 	/** The value for a success status */
 	private static final String SUCCESS = "success";
+	/** The value for multiple responses. Will be treated as success */
+	private static final String MULTIPLE = "multiple";
 	/** Default error value if unknown */
 	private static final String UNKNOWN_ERROR_MESSAGE = "Unknown error";
 	/** Default error code if unknown */
 	private static final String UNKNOWN_ERROR_CODE = "UNKNOWN";
+	/** Conversion code for a json conversion error */
+	private static final String JSON_CONVERSION_CODE = "JSON_CONVERSION_CODE";
+	private static final String SERVER_MESSAGE = "Server Error";
+	private static final String SERVER_JSON_INCORRECT_FORMAT = "SERVER_JSON_INCORRECT_FORMAT";
 	
 	// other constants
 	/** This string precedes any int HTTP resposne codes */
@@ -47,9 +53,20 @@ public class ServerJSON{
 	 * 
 	 * @throws JSONException  if the parse fails or doesn't yield a JSONObject.  
 	 */
-	public ServerJSON(String json)
-	throws JSONException{
-		jsonObject = new JSONObject(json);
+	public ServerJSON(String json){
+		try {
+			jsonObject = new JSONObject(json);
+		} catch (JSONException e) {
+			try{
+				jsonObject = new JSONObject();
+				jsonObject.put(KEY_STATUS, FAILURE);
+				jsonObject.put(KEY_ERROR_MESSAGE, SERVER_MESSAGE);
+				jsonObject.put(KEY_ERROR_CODE, JSON_CONVERSION_CODE);
+				Log.e(this.getClass().getPackage().getName(), json);
+			}catch (JSONException ee) {
+				Log.e(this.getClass().getPackage().getName(), ee.getMessage());
+			}
+		}
 		checkAcceptable();
 	}
 
@@ -62,16 +79,30 @@ public class ServerJSON{
 		
 		// check required values for success
 		if (isSuccess()){
-			if (!jsonObject.has(KEY_STATUS) || !jsonObject.has(KEY_SUCCESS_MESSAGE))
-				throw new IllegalArgumentException("JSON return from server must have " + 
-						KEY_SUCCESS_MESSAGE + " key and " + 
-						KEY_STATUS + " key.");
+			if (!jsonObject.has(KEY_STATUS) || !jsonObject.has(KEY_SUCCESS_MESSAGE)){
+				try{
+					Log.e(Utils.LOG_TAG, jsonObject.toString());
+					jsonObject = new JSONObject();
+					jsonObject.put(KEY_STATUS, FAILURE);
+					jsonObject.put(KEY_ERROR_MESSAGE, SERVER_MESSAGE);
+					jsonObject.put(KEY_ERROR_CODE, SERVER_JSON_INCORRECT_FORMAT);	
+				}catch (JSONException e) {
+					Log.e(Utils.LOG_TAG, e.getMessage());
+				}
+			}	
 		// check required for failure
 		}else{
-			if (!jsonObject.has(KEY_STATUS) || !jsonObject.has(KEY_ERROR_MESSAGE) || !jsonObject.has(KEY_ERROR_CODE))
-				throw new IllegalArgumentException("JSON return from server must have " + 
-						KEY_SUCCESS_MESSAGE + " key and " + 
-						KEY_STATUS + " key.");
+			if (!jsonObject.has(KEY_STATUS) || !jsonObject.has(KEY_ERROR_MESSAGE) || !jsonObject.has(KEY_ERROR_CODE)){
+				try{
+					Log.e(Utils.LOG_TAG, jsonObject.toString());
+					jsonObject = new JSONObject();
+					jsonObject.put(KEY_STATUS, FAILURE);
+					jsonObject.put(KEY_ERROR_MESSAGE, SERVER_MESSAGE);
+					jsonObject.put(KEY_ERROR_CODE, SERVER_JSON_INCORRECT_FORMAT);	
+				}catch (JSONException e) {
+					Log.e(Utils.LOG_TAG, e.getMessage());
+				}
+			}
 		}
 		checkAcceptableSub();
 	}
@@ -205,7 +236,7 @@ public class ServerJSON{
 	 * Return the json object that this object wraps arround.
 	 * @return
 	 */
-	public JSONObject getJson(){
+	private JSONObject getJson(){
 		return jsonObject;
 	}
 }

@@ -119,7 +119,7 @@
 	android:onClick="doneClicked"
 	android:background="@drawable/rounded_corners"
 />
-<Spinner
+<com.tools.NoDefaultSpinner
 	android:layout_width="0px"
 	android:layout_height="0px"
 	android:visibility="invisible"

@@ -270,7 +270,7 @@ extends TableAdapter <UsersAdapter>{
 	 * Get an array of all users stored in database
 	 * @return
 	 */
-	public ArrayList<User> fetchAllUsers(){
+	public ArrayList<User> getAllUsers(){
 		
 		// grab the cursor over all groups
 		Cursor cursor = fetchAllCursor(TABLE_NAME);
@@ -535,7 +535,7 @@ extends TableAdapter <UsersAdapter>{
 		
 		// delte teh connections
 		UsersInGroupsAdapter connections = new UsersInGroupsAdapter(ctx);
-		return connections.deleteUser(rowId);				
+		return connections.deleteUserDebug(rowId);				
 	}
 	
 	
@@ -601,7 +601,7 @@ extends TableAdapter <UsersAdapter>{
 	 * Load all users into this cursor
 	 * @return
 	 */
-	public void fetchAllUsersCursor(){
+	public void fetchAllUsers(){
 		
 		// grab the cursor over all groups
 		Cursor cursor = fetchAllCursor(TABLE_NAME);

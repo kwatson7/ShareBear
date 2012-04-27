@@ -244,7 +244,7 @@ public class ContactCursorWrapper {
 	public String getDefaultContact(Context ctx){
 		// the users adpater
 		UsersAdapter users = new UsersAdapter(ctx);
-		users.fetchUser(getId());
+		users.fetchUserByContactsId(getId());
 		String out = users.getDefaultContactMethod();
 		users.close();
 		return out;

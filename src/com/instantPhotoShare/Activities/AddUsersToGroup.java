@@ -629,7 +629,7 @@ extends CustomActivity{
 	 * @param contactId The contactId of the user to affect
 	 * @return The string if only one is available, or null if not.
 	 */
-	private String chooseMethodFromPopup(final ContactCursorWrapper contactCursorWrapper, final long contactId){
+	private String chooseMethodFromPopupMultiple(final ContactCursorWrapper contactCursorWrapper, final long contactId){
 
 		TwoObjects<HashSet<TwoStrings>, HashSet<TwoStrings>> possibleContactMethods = 
 			com.tools.CustomCursors.getContactPhoneAndEmailArray(mCtx, contactId);
@@ -740,6 +740,138 @@ extends CustomActivity{
 
 		// show it
 		chooseContactMethodDialog.show();
+
+		return null;
+	}
+	
+	/**
+	 * Choose the users contact method from popup dialog. If only one is immediatley available, then return it, 
+	 * otherwise return null, and then in the onClick listener, the user will be updated.
+	 * @param contactId The contactId of the user to affect
+	 * @return The string if only one is available, or null if not.
+	 */
+	private String chooseMethodFromPopup(final ContactCursorWrapper contactCursorWrapper, final long contactId){
+
+		TwoObjects<HashSet<TwoStrings>, HashSet<TwoStrings>> possibleContactMethods = 
+			com.tools.CustomCursors.getContactPhoneAndEmailArray(mCtx, contactId);
+
+		// must have a way to contact, or break out
+		if (possibleContactMethods == null ||
+				((possibleContactMethods.mObject1 == null || 
+						possibleContactMethods.mObject1.size() == 0) &&
+						(possibleContactMethods.mObject2 == null || 
+								possibleContactMethods.mObject2.size() == 0))){
+			Toast.makeText(mCtx,
+					"Fail!! No method to contact user. Must have an email or phone",
+					Toast.LENGTH_LONG).show();
+			return null;
+		}
+
+		// create a list of phones and emails
+		final ArrayList<TwoStrings> contactMethodsArray = new ArrayList<TwoStrings>(possibleContactMethods.mObject1);
+		ArrayList<TwoStrings> tmp = new ArrayList<TwoStrings>(possibleContactMethods.mObject2);
+		contactMethodsArray.addAll(tmp);
+
+		// if length is one, then just return, no need to select
+		if (contactMethodsArray.size() == 1)
+			return contactMethodsArray.get(0).mObject1;
+
+		// find the current default (if any)
+		String def = contactCursorWrapper.getDefaultContact(mCtx);
+		String[] defArray = null;
+		if (def != null)
+			defArray = def.split(",");
+		ArrayList<Long> overrideDefault = new ArrayList<Long>();
+		if (defArray != null && contactMethodsArray != null && contactMethodsArray.size() != 0)
+			for (int i = 0; i < defArray.length; i++){
+				int ii = contactMethodsArray.indexOf(new TwoStrings(defArray[i].trim(), ""));
+				if (ii != -1)
+					overrideDefault.add((long) ii);
+			}
+		long[] override = new long[Math.min(overrideDefault.size(), 1)];
+		if (override.length == 1)
+			override[0] = overrideDefault.get(0);
+
+		// store the name
+		final String displayName = contactCursorWrapper.getName();
+
+		// make array adapter to hold group names
+		ArrayAdapter<TwoStrings> spinnerArrayAdapter = new ArrayAdapter<TwoStrings>(
+				this, android.R.layout.simple_spinner_item, contactMethodsArray);
+
+		// grab standard android spinner
+		spinnerArrayAdapter.setDropDownViewResource( R.layout.spinner_layout );
+
+		// create a spinner
+		com.tools.NoDefaultSpinner spinner = (com.tools.NoDefaultSpinner) findViewById(R.id.chooseDefaultSpinner);
+		spinner.setPrompt(getResources().getString(R.string.chooseDefaultSpinner) + " for " + contactCursorWrapper.getName());
+
+		if (override.length == 1)
+			spinner.setSelection((int) override[0]);
+		
+		// make listener when spinner is clicked
+		spinner.setOnItemSelectedListener(new Spinner.OnItemSelectedListener() {
+			@Override
+			public void onItemSelected(AdapterView<?> parentView, 
+					View selectedItemView, int position, long id) {
+
+				ArrayList<TwoStrings> selectedMethods = new ArrayList<TwoStrings>();
+				selectedMethods.add(contactMethodsArray.get(position));
+				
+				// empty then just return
+				if (selectedMethods == null || selectedMethods.size() == 0)
+					return;
+				
+				// store as default contact, comma separated
+				String contactMethod = "";
+				for (TwoStrings item : selectedMethods){
+					contactMethod += item.mObject1 + ", ";
+				}
+				contactMethod = contactMethod.substring(0, Math.max(contactMethod.length()-2, 0));
+
+				if (contactMethod.length() == 0)
+					return;
+
+				// store in hash set
+				UsersAdapter users = new UsersAdapter(mCtx);
+				users.fetchUserByContactsId(contactId);
+				
+				// check if we need to create a new user
+				if (users.getRowId() == -1){
+					users.fetchUser(users.makeNewUser(
+							mCtx,
+							contactId,
+							contactCursorWrapper.getLookupKey(),
+							contactMethod,
+							-1));
+				}else
+					users.setDefaultContactInfo(users.getRowId(), contactMethod);
+				
+				// now store
+				mContactChecked.setItem(new ContactCheckedItem(
+						contactId,
+						true,
+						displayName,
+						contactMethod,
+						contactCursorWrapper.getLookupKey(),
+						users.getRowId()));
+				
+				users.close();
+				
+				updateNContacts();
+				updateVisibleView();
+			}
+
+			@Override
+			public void onNothingSelected(AdapterView<?> arg0) {
+				// do nothing, just leave
+			}
+		});
+		
+
+		// set adapter and launch it
+		spinner.setAdapter(spinnerArrayAdapter);
+		spinner.performClick();			
 
 		return null;
 	}
@@ -893,6 +1025,7 @@ extends CustomActivity{
 
 		private final Bitmap defaultPhoto = BitmapFactory.decodeResource(getResources(), R.drawable.icon3);
 		private ContactCursorWrapper contactCursorWrapper;
+		private ContactCursorWrapper contactCursorWrapperTmp;
 
 		/**
 		 * This field should be made private, so it is hidden from the SDK.
@@ -975,9 +1108,16 @@ extends CustomActivity{
 					constraint.toString(),
 					onlyShowContactsFromVisibleGroup);
 
-			this.contactCursorWrapper = cursor;
+			contactCursorWrapperTmp = cursor;
 			return cursor.getCursor();
 		}
+		
+		@Override
+		public void changeCursor(Cursor c){
+			super.changeCursor(c);
+			this.contactCursorWrapper = this.contactCursorWrapperTmp;
+		}
+
 
 		/**
 		 * Called by the AutoCompleteTextView field when a choice has been made

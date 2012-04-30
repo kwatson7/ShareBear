@@ -71,7 +71,7 @@ extends CustomActivity{
 		getPictures();
 		fillPictures();
 		
-		DebugUtils.deleteAllNonServerUsersAndGroupLinks(this);
+	//	DebugUtils.deleteAllNonServerUsersAndGroupLinks(this);
 		
 		// move to correct position
 		if (picturesAdapater.size() > 2)

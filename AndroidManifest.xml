@@ -60,5 +60,7 @@
 		</activity>
 		<activity android:name=".Activities.InsideGroupGallery"/>
 		<activity android:name=".Activities.SinglePictureGallery"/>
+		<activity android:name="com.tools.MessageDialog"
+		    android:configChanges="orientation|keyboardHidden"/>
     </application>
 </manifest>

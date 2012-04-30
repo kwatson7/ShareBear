@@ -5,6 +5,9 @@ import java.util.ArrayList;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.media.ExifInterface;
 import android.widget.Toast;
 
@@ -36,20 +39,20 @@ extends CustomAsyncTask<Void, Void, SaveTakenPictureTask.ReturnFromPostPicture>{
 	private Double latitude = null;
 	//TODO: actually pass in longitude and latitude
 	//TODO: actually pass a caption to savetakenpicturetask from takepicture.java
-	
+
 	// codes to be sent to server
 	private static final String ACTION = "upload_image";
 	private static final String KEY_USER_ID = "user_id";
 	private static final String KEY_SECRET_CODE = "secret_code";
 	private static final String KEY_GROUP_ID = "group_id";
-	
+
 	// error codes
 	private static final String IMAGE_UPLOAD_ERROR = "IMAGE_UPLOAD_ERROR";
 	private static final String IMAGE_EXISTS_ERROR = "IMAGE_EXISTS_ERROR";
 	private static final String MOVE_UPLOAD_ERROR = "MOVE_UPLOAD_ERROR";
 	private static final String INVALID_IMAGE_TYPE_ERROR = "INVALID_IMAGE_TYPE_ERROR";
 	private static final String IMAGE_ID_ERROR = "IMAGE_ID_ERROR";
-	
+
 	// local error
 	private static final String LOCAL_CREATION_ERROR = "LOCAL_CREATION_ERROR";
 	private static final String ERROR_MESSAGE = "picture could not be created for unknown reason";
@@ -221,10 +224,10 @@ extends CustomAsyncTask<Void, Void, SaveTakenPictureTask.ReturnFromPostPicture>{
 
 	@Override
 	protected void onPostExectueOverride(ReturnFromPostPicture result) {
-		
+
 		if (applicationCtx == null)
 			return;
-		
+
 		// null result means we were successful local, and there was no need for server to receive anything
 		if (result == null){
 			Toast.makeText(applicationCtx, "Image Saved on Device only.", Toast.LENGTH_SHORT).show();
@@ -240,43 +243,70 @@ extends CustomAsyncTask<Void, Void, SaveTakenPictureTask.ReturnFromPostPicture>{
 		// if not successful, then see how
 		// local error
 		if (result.isLocalError()){
-			Toast.makeText(applicationCtx, result.getMessage(), Toast.LENGTH_LONG).show();
+			//Toast.makeText(applicationCtx, result.getMessage(), Toast.LENGTH_LONG).show();
+			showAlert(result.getMessage());
 			return;
 
-		// server error
+			// server error
 		}else{
 			// the 3 values we must set
 			String toastMessage = "";
 			String notesMessage = "";
 			NOTIFICATION_TYPES notesType;
-			
+
 			// default values
 			toastMessage = "Picture not saved on server because:\n" + result.getMessage() +
-				".\nPictre is still saved on device, but is not shared!";
+			".\nPictre is still saved on device, but is not shared!";
 			notesMessage = "Picture with rowId " + result.getPictureRowId() + " not created on server because:\n"
-				+ result.getMessage() + ".\nPicture is still saved on device, but is not shared!";
+			+ result.getMessage() + ".\nPicture is still saved on device, but is not shared!";
 			notesType = NOTIFICATION_TYPES.SERVER_ERROR;
-			
+
 			// show the toast
-			Toast.makeText(applicationCtx,
-					toastMessage,
-					Toast.LENGTH_LONG).show();
+			//Toast.makeText(applicationCtx,
+			//		toastMessage,
+			//		Toast.LENGTH_LONG).show();
+			showAlert(toastMessage);
 
 			// store in notifications
 			NotificationsAdapter notes = new NotificationsAdapter(applicationCtx);
 			notes.createNotification(notesMessage, notesType);		
 		}
 	}
-	
-private ReturnFromPostPicture postDataToServer(long pictureRowId, byte[] camdata, byte[] thumbnail){
-		
+
+	private void showAlert(String message){
+		try{
+			AlertDialog.Builder dlgAlert  = new AlertDialog.Builder(callingActivity);
+
+			dlgAlert.setMessage(message);
+			dlgAlert.setTitle("Message");
+			dlgAlert.setCancelable(true);
+			dlgAlert.setPositiveButton("OK",
+					new DialogInterface.OnClickListener() {
+				public void onClick(DialogInterface dialog, int which) {
+					//dismiss the dialog  
+				}
+			});
+			dlgAlert.create().show();
+		}catch(Exception e){
+			Intent intent = new Intent(applicationCtx, com.tools.MessageDialog.class);
+			intent.putExtra(com.tools.MessageDialog.TITLE_BUNDLE, "Message");
+			intent.putExtra(com.tools.MessageDialog.DEFAULT_TEXT, message);
+			intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+			applicationCtx.startActivity(intent);
+
+			//Toast.makeText(applicationCtx, message, Toast.LENGTH_LONG);
+		}
+	}
+
+	private ReturnFromPostPicture postDataToServer(long pictureRowId, byte[] camdata, byte[] thumbnail){
+
 		//TODO: can we do multiple group ids on upload
 		//TODO: is brennan making sure to check if we can actually post to a group
 		//TODO: before doign any updates, we should be checking if there is already an update goign for all update possibilities
 		//TODO: deal with updating and syncing of picture / group pairs
-		
+
 		ReturnFromPostPicture serverResponse = null;
-		
+
 		// determine the data we need to post to the server
 		TwoObjects<JSONObject, ArrayList<Long>> serverData;
 		try {
@@ -288,12 +318,12 @@ private ReturnFromPostPicture postDataToServer(long pictureRowId, byte[] camdata
 		}
 		if (serverData == null)
 			return null;
-		
+
 		// tell the database that we are updating
 		PicturesAdapter picturesAdapter = new PicturesAdapter(applicationCtx);
 		picturesAdapter.fetchPicture(pictureRowId);
 		picturesAdapter.setIsUpdating(pictureRowId, true);
-		
+
 		// post picture to server
 		serverResponse = new ReturnFromPostPicture(
 				Utils.postToServer(
@@ -309,7 +339,7 @@ private ReturnFromPostPicture postDataToServer(long pictureRowId, byte[] camdata
 		// return the value
 		return serverResponse;	
 	}
-	
+
 	/**
 	 * Return a list of parameter value pairs required to upload picture to server. If there are
 	 * no public and synced groups, then null is returned.
@@ -334,9 +364,9 @@ private ReturnFromPostPicture postDataToServer(long pictureRowId, byte[] camdata
 			ids = ids.substring(0, ids.length()-1);
 		if (ids.length() == 0)
 			return null;
-		
+
 		//ids = longIds.toString(); // wrong ids, we are mixing server and row ids.
-		
+
 		// add values to json object
 		JSONObject json = new JSONObject();
 		json.put(KEY_USER_ID, Prefs.getUserServerId(applicationCtx));
@@ -349,7 +379,7 @@ private ReturnFromPostPicture postDataToServer(long pictureRowId, byte[] camdata
 	protected void setupDialog() {
 		// do nothing, we don't want a dialog
 	}
-	
+
 	class ReturnFromPostPicture
 	extends ServerJSON{
 

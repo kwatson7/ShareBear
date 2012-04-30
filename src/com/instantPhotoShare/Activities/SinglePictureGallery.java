@@ -54,7 +54,8 @@ extends CustomActivity{
 	private long groupId; 						// the groupId that we are currently showing
 	private int initialPicturePosition; 		// The first picture to show
 	private CustomActivity act = this;
-	private String groupName; 					// The group name we are currently showing
+	private String formattedGroupName; 			// The group name we are currently showing with formatting
+	private String unformatedGroupName; 		// the unformatted group name
 	private int pictureWindowWidth; 			// the width of the area the picture fits inside
 	private int pictureWindowHeight; 			// the height of the area the picture fits inside
 	private MemoryCache oldCache = null; 		// the old imageloader cache. use this to handle screen rotations.
@@ -104,7 +105,8 @@ extends CustomActivity{
 		// grab the group name
 		GroupsAdapter groups = new GroupsAdapter(this);
 		try{
-			groupName = groups.getGroup(groupId).toString();
+			formattedGroupName = groups.getGroup(groupId).toString();
+			unformatedGroupName = groups.getGroup(groupId).getName();
 		}catch(Exception e){
 			e.printStackTrace();
 			finish();
@@ -209,7 +211,7 @@ extends CustomActivity{
 		groupNameText.setTypeface(Typeface.SANS_SERIF);
 
 		// set the name
-		groupNameText.setText(Html.fromHtml(groupName));
+		groupNameText.setText(Html.fromHtml(formattedGroupName));
 
 		// determine size of screen
 		Display display = getWindowManager().getDefaultDisplay();
@@ -318,7 +320,7 @@ extends CustomActivity{
 	private void sharePicture(){
 		// create subject, body, and prompt
 		String shareBody = "Take a look at my picture from Share Bear. To share with me, download Share Bear and we can share instantly!";
-		String shareSubject = "A Picture from my Share Bear group " + groupName;
+		String shareSubject = "A Picture from my Share Bear group " + unformatedGroupName;
 		String prompt = "Share picture";
 		
 		// grab the picture file

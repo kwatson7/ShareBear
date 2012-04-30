@@ -26,14 +26,14 @@ implements IDisposable {
 
 	public static final String			LOG_TAG				= "image";
 
-	protected Matrix						mBaseMatrix			= new Matrix();
-	protected Matrix						mSuppMatrix			= new Matrix();
-	protected Handler						mHandler				= new Handler();
+	protected Matrix					mBaseMatrix			= new Matrix();
+	protected Matrix					mSuppMatrix			= new Matrix();
+	protected Handler					mHandler			= new Handler();
 	protected Runnable					mOnLayoutRunnable	= null;
 	protected float						mMaxZoom;
 	protected final Matrix				mDisplayMatrix		= new Matrix();
 	protected final float[]				mMatrixValues		= new float[9];
-	protected int							mThisWidth			= -1, mThisHeight = -1;
+	protected int						mThisWidth			= -1, mThisHeight = -1;
 
 	final protected RotateBitmap		mBitmapDisplayed	= new RotateBitmap( null, 0 );
 	final protected float				MAX_ZOOM				= 8.0f;
@@ -116,7 +116,7 @@ implements IDisposable {
 			setImageBitmap( bitmap.getBitmap(), bitmap.getRotation() );
 		} else {
 			mBaseMatrix.reset();
-			setImageBitmap( null );
+			setImageBitmapBuiltin( null );
 		}
 
 		if ( reset ) {
@@ -150,10 +150,14 @@ implements IDisposable {
 		return mMaxZoom;
 	}
 
-	@Override
-	public void setImageBitmap( Bitmap bitmap )
+	public void setImageBitmapBuiltin( Bitmap bitmap )
 	{
 		setImageBitmap( bitmap, 0 );
+	}
+	
+	@Override
+	public void setImageBitmap(Bitmap bitmap){
+		setImageBitmapReset(bitmap, 0, true);
 	}
 
 	/**

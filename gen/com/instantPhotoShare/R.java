@@ -16,14 +16,14 @@ public final class R {
     public static final class attr {
     }
     public static final class color {
-        public static final int black25=0x7f070002;
-        public static final int black50=0x7f070001;
-        public static final int button_color1=0x7f070003;
-        public static final int button_color2=0x7f070004;
-        public static final int grey05=0x7f070005;
-        public static final int listViewColor=0x7f070000;
-        public static final int orange1=0x7f070006;
-        public static final int orange2=0x7f070007;
+        public static final int black25=0x7f080002;
+        public static final int black50=0x7f080001;
+        public static final int button_color1=0x7f080003;
+        public static final int button_color2=0x7f080004;
+        public static final int grey05=0x7f080005;
+        public static final int listViewColor=0x7f080000;
+        public static final int orange1=0x7f080006;
+        public static final int orange2=0x7f080007;
     }
     public static final class drawable {
         public static final int add_to_group=0x7f020000;
@@ -56,26 +56,27 @@ public final class R {
         public static final int expander_ic_minimized=0x7f02001b;
         public static final int home=0x7f02001c;
         public static final int html_spinner_item=0x7f02001d;
-        public static final int ic_menu_camera=0x7f02001e;
-        public static final int icon=0x7f02001f;
-        public static final int icon2=0x7f020020;
-        public static final int icon3=0x7f020021;
-        public static final int main_background=0x7f020022;
-        public static final int main_background2=0x7f020023;
-        public static final int main_background3=0x7f020024;
-        public static final int main_background4=0x7f020025;
-        public static final int main_background5=0x7f020026;
-        public static final int main_background6=0x7f020027;
-        public static final int orange_selector=0x7f020028;
-        public static final int rotate=0x7f020029;
-        public static final int rounded_corners=0x7f02002a;
-        public static final int shutter_button=0x7f02002b;
-        public static final int shutter_icon=0x7f02002c;
-        public static final int shutter_icon_inverted=0x7f02002d;
-        public static final int stub=0x7f02002e;
-        public static final int text_selector=0x7f02002f;
-        public static final int wedding_blurred=0x7f020030;
-        public static final int white_border=0x7f020031;
+        public static final int ic_launcher=0x7f02001e;
+        public static final int ic_menu_camera=0x7f02001f;
+        public static final int icon=0x7f020020;
+        public static final int icon2=0x7f020021;
+        public static final int icon3=0x7f020022;
+        public static final int main_background=0x7f020023;
+        public static final int main_background2=0x7f020024;
+        public static final int main_background3=0x7f020025;
+        public static final int main_background4=0x7f020026;
+        public static final int main_background5=0x7f020027;
+        public static final int main_background6=0x7f020028;
+        public static final int orange_selector=0x7f020029;
+        public static final int rotate=0x7f02002a;
+        public static final int rounded_corners=0x7f02002b;
+        public static final int shutter_button=0x7f02002c;
+        public static final int shutter_icon=0x7f02002d;
+        public static final int shutter_icon_inverted=0x7f02002e;
+        public static final int stub=0x7f02002f;
+        public static final int text_selector=0x7f020030;
+        public static final int wedding_blurred=0x7f020031;
+        public static final int white_border=0x7f020032;
     }
     public static final class id {
         public static final int LinearLayout01=0x7f090028;
@@ -163,41 +164,46 @@ public final class R {
         public static final int groups_viewer=0x7f030007;
         public static final int inside_group_viewer=0x7f030008;
         public static final int login=0x7f030009;
-        public static final int main_screen=0x7f03000a;
-        public static final int main_screen_photo_item=0x7f03000b;
-        public static final int manage_groups=0x7f03000c;
-        public static final int person_row=0x7f03000d;
-        public static final int photo_item=0x7f03000e;
-        public static final int single_picture_gallery=0x7f03000f;
-        public static final int single_picture_item=0x7f030010;
-        public static final int spinner_layout=0x7f030011;
-        public static final int take_picture=0x7f030012;
+        public static final int main=0x7f03000a;
+        public static final int main_screen=0x7f03000b;
+        public static final int main_screen_photo_item=0x7f03000c;
+        public static final int manage_groups=0x7f03000d;
+        public static final int person_row=0x7f03000e;
+        public static final int photo_item=0x7f03000f;
+        public static final int single_picture_gallery=0x7f030010;
+        public static final int single_picture_item=0x7f030011;
+        public static final int spinner_layout=0x7f030012;
+        public static final int take_picture=0x7f030013;
     }
     public static final class raw {
         public static final int camera_click=0x7f050000;
     }
     public static final class string {
-        public static final int allFieldsRequired=0x7f06000c;
-        public static final int app_name=0x7f060000;
-        public static final int cancel=0x7f06000a;
-        public static final int chooseDefaultSpinner=0x7f060010;
-        public static final int createAccount=0x7f060003;
-        public static final int firstUseStatement=0x7f060002;
-        public static final int identifyingInformationExplanation=0x7f060005;
-        public static final int noAccountContinue=0x7f060004;
-        public static final int ok=0x7f060009;
-        public static final int pickGroupString=0x7f060011;
-        public static final int pick_a_group_to_edit=0x7f060012;
-        public static final int registrationNotCompleted=0x7f06000b;
-        public static final int signIn=0x7f060001;
-        public static final int yourEmailAddresses=0x7f060008;
-        public static final int yourFirstName=0x7f060006;
-        public static final int yourLastName=0x7f06000d;
-        public static final int yourPassword=0x7f06000f;
-        public static final int yourPhoneNumbers=0x7f060007;
-        public static final int yourUserName=0x7f06000e;
+        public static final int allFieldsRequired=0x7f06000d;
+        public static final int app_name=0x7f060001;
+        public static final int cancel=0x7f06000b;
+        public static final int chooseDefaultSpinner=0x7f060011;
+        public static final int createAccount=0x7f060004;
+        public static final int firstUseStatement=0x7f060003;
+        public static final int hello=0x7f060000;
+        public static final int identifyingInformationExplanation=0x7f060006;
+        public static final int noAccountContinue=0x7f060005;
+        public static final int ok=0x7f06000a;
+        public static final int pickGroupString=0x7f060012;
+        public static final int pick_a_group_to_edit=0x7f060013;
+        public static final int registrationNotCompleted=0x7f06000c;
+        public static final int signIn=0x7f060002;
+        public static final int yourEmailAddresses=0x7f060009;
+        public static final int yourFirstName=0x7f060007;
+        public static final int yourLastName=0x7f06000e;
+        public static final int yourPassword=0x7f060010;
+        public static final int yourPhoneNumbers=0x7f060008;
+        public static final int yourUserName=0x7f06000f;
     }
     public static final class style {
-        public static final int BlueLabel=0x7f080000;
+        public static final int BlueLabel=0x7f070003;
+        public static final int CenteredDialog=0x7f070000;
+        public static final int CenteredDialogTitle=0x7f070001;
+        public static final int DialogWindowTitle=0x7f070002;
     }
 }

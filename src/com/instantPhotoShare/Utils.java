@@ -57,6 +57,7 @@ public class Utils {
 	public static final int PICTURE_ALPHA = 100;
 	public static final int BACKGROUND_ALPHA = 40;
 	public static final String LOG_TAG = "ShareBear";
+	public static int IMAGE_QUALITY = 90;
 
 	public static void clearApplicationData(Context ctx) {
 		File cache = ctx.getCacheDir();

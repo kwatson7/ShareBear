@@ -46,7 +46,7 @@ extends CustomActivity{
     private String groupName; 					// The name of the group we are in
     
     // variables to indicate what can be passed in through intents
-    public static String GROUP_ID = "GROUP_ID";
+    public static final String GROUP_ID = "GROUP_ID";
     
 	@Override
 	protected void onCreateOverride(Bundle savedInstanceState) {
@@ -61,7 +61,7 @@ extends CustomActivity{
         if (groupId == -1)
         	throw new IllegalArgumentException("InsideGroupGallery cannot be called without a groupId passed in");
 		
-     // get configuration data and copy over any old data from old configuration.
+        // get configuration data and copy over any old data from old configuration.
 		ConfigurationProperties config = (ConfigurationProperties) getLastNonConfigurationInstance();
 		if (config != null && config.customData != null){
 			ConfigurationData data = (ConfigurationData) config.customData;

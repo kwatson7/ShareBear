@@ -106,7 +106,7 @@ extends CustomActivity{
 	private static final boolean onlyShowContactsFromVisibleGroup = true; 		// only show people who are inside visible groups
 
 	// public strings for passing info
-	public static String GROUP_ID = "GROUP_ID";
+	public static final String GROUP_ID = "GROUP_ID";
 
 	//enums for async calls
 	private enum ASYNC_CALLS {

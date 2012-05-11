@@ -191,7 +191,8 @@ public class ImageLoaderTouch {
 				b,
 				rotation,
 				Utils.MAX_THUMBNAIL_DIMENSION,
-				Utils.FORCE_BASE2_THUMBNAIL_RESIZE);
+				Utils.FORCE_BASE2_THUMBNAIL_RESIZE,
+				Utils.IMAGE_QUALITY);
 
 		// save the thumbnail
 		SuccessReason thumbnailSave = 

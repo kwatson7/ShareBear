@@ -176,7 +176,8 @@ extends CustomActivity {
 			case POST:
 				// check success, important values were already saved to prefs
 				try{
-					ReturnFromCreateNewAccountTask returnVal = (ReturnFromCreateNewAccountTask) data;
+					CreateNewAccountTask<EnterIdentifyingInformation>.ReturnFromCreateNewAccountTask returnVal =
+						(CreateNewAccountTask<EnterIdentifyingInformation>.ReturnFromCreateNewAccountTask) data;
 					if (returnVal.isSuccess()){
 						Intent intent = new Intent(this, InitialLaunch.class);
 						startActivity(intent);
@@ -201,11 +202,10 @@ extends CustomActivity {
 	 */
 	private void createAccountOnServer(Person me){
 		// launch the async task and add to array of tasks to be managed
-		CreateNewAccountTask task =  new CreateNewAccountTask(
+		CreateNewAccountTask<EnterIdentifyingInformation> task =  new CreateNewAccountTask<EnterIdentifyingInformation>(
 				this,
 				ASYNC_CALLS.CREATE_ACCOUNT.ordinal(),
 				me);
-		addTask(task);
 		task.execute();
 	}
 

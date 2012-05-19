@@ -1,6 +1,5 @@
 package com.instantPhotoShare;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -14,14 +13,11 @@ import java.util.concurrent.Executors;
 
 import com.instantPhotoShare.images.ImageViewTouch;
 import com.tools.SuccessReason;
-import com.tools.WidthHeight;
-
 import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.media.ExifInterface;
-import android.widget.ImageView;
 
 public class ImageLoaderTouch {
     

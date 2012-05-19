@@ -10,10 +10,7 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import com.instantPhotoShare.Prefs;
 import com.instantPhotoShare.R;
-import com.instantPhotoShare.Utils;
-import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Tasks.CreateGroupTask;
 import com.tools.*;
 
@@ -75,13 +72,12 @@ extends CustomActivity{
 		boolean allowOthersAdd = allowOthersToAddMembers.isChecked();
 		
 		// launch the async task and add to array of tasks to be managed
-		CreateGroupTask task =  new CreateGroupTask(
-				act,
+		CreateGroupTask<CreateGroup> task =  new CreateGroupTask<CreateGroup>(
+				this,
 				ASYNC_CALLS.MAKE_GROUP_TASK.ordinal(),
 				groupName,
 				allowOthersAdd,
 				isPrivate);
-		addTask(task);
 		task.execute();
 	}
 
@@ -97,7 +93,8 @@ extends CustomActivity{
 		case MAKE_GROUP_TASK:
 			switch (asyncTypeCall){
 			case POST:
-				CreateGroupTask.ReturnFromCreateGroupTask value = (CreateGroupTask.ReturnFromCreateGroupTask) data;
+				CreateGroupTask<CreateGroup>.ReturnFromCreateGroupTask value = 
+					(CreateGroupTask<CreateGroup>.ReturnFromCreateGroupTask) data;
 
 				// if we successfully made the group, now add member to it
 				if (value.isLocalSuccess()){

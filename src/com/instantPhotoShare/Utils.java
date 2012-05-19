@@ -23,10 +23,8 @@ import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.params.CoreProtocolPNames;
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.instantPhotoShare.Adapters.GroupsAdapter.Group;
 import com.tools.TwoObjects;
 
 import android.app.Activity;
@@ -36,7 +34,6 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Environment;
-import android.util.Log;
 import android.widget.ImageView;
 
 public class Utils {

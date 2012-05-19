@@ -3,8 +3,6 @@ package com.instantPhotoShare.Activities;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
-
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ContentResolver;
@@ -259,9 +257,8 @@ extends CustomActivity{
 	private void loadCurrentUsers(){
 
 		if (mContactChecked == null || mContactChecked.getNChecked() == 0){
-			LoadGroupUsers task = new LoadGroupUsers(mAct, ASYNC_CALLS.LOAD_FROM_GROUP.ordinal(), groupId);
+			LoadGroupUsers<AddUsersToGroup> task = new LoadGroupUsers<AddUsersToGroup>(this, ASYNC_CALLS.LOAD_FROM_GROUP.ordinal(), groupId);
 			task.execute();
-			addTask(task);
 		}
 	}
 
@@ -382,12 +379,11 @@ extends CustomActivity{
 		}
 
 		// Add members to group		
-		AddUsersToGroupTask task = new AddUsersToGroupTask(
-				mAct,
+		AddUsersToGroupTask<AddUsersToGroup> task = new AddUsersToGroupTask<AddUsersToGroup>(
+				this,
 				ASYNC_CALLS.ADD_USERS_TO_PHOTOSHARE_GROUP.ordinal(),
 				mContactChecked,
 				groupId);
-		addTask(task);
 		task.execute();
 	}
 
@@ -489,14 +485,13 @@ extends CustomActivity{
 			String groupName){
 
 		// launch the async task and add to array of tasks to be managed
-		insertContactsIntoGroupAsync task =  new insertContactsIntoGroupAsync(
-				mAct,
+		insertContactsIntoGroupAsync<AddUsersToGroup> task =  new insertContactsIntoGroupAsync<AddUsersToGroup>(
+				this,
 				ASYNC_CALLS.INSERT_CONTACTS_INTO_GROUP.ordinal(),
 				mContactChecked,
 				accountType,
 				accountName,
 				groupName);
-		addTask(task);
 		task.execute();
 	}
 
@@ -560,13 +555,13 @@ extends CustomActivity{
 	private void fillNamesFromGroup(int position){
 
 		// launch the async task and add to array of tasks to be managed
-		fillNamesFromGroupAsync task =  new fillNamesFromGroupAsync(
-				mAct,
+		fillNamesFromGroupAsync<AddUsersToGroup> task =  new fillNamesFromGroupAsync<AddUsersToGroup>(
+				this,
 				ASYNC_CALLS.ADD_FROM_GROUP.ordinal(),
 				mGroupList,
-				mContactChecked);
-		addTask(task);
-		task.execute(position);
+				mContactChecked,
+				position);
+		task.execute();
 	}
 
 	/**
@@ -911,7 +906,8 @@ extends CustomActivity{
 		case ADD_USERS_TO_PHOTOSHARE_GROUP:
 			switch (asyncTypeCall){
 			case POST:
-				ReturnFromAddUsersToGroupTask value = (ReturnFromAddUsersToGroupTask) data;
+				AddUsersToGroupTask<AddUsersToGroup>.ReturnFromAddUsersToGroupTask value =
+					(AddUsersToGroupTask<AddUsersToGroup>.ReturnFromAddUsersToGroupTask) data;
 
 				// if we are successful, just quit
 				if (value.isLocalSuccess())

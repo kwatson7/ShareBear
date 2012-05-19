@@ -3,14 +3,12 @@ package com.instantPhotoShare;
 import com.instantPhotoShare.images.ImageViewTouch;
 
 import android.content.Context;
-import android.graphics.PointF;
 import android.os.SystemClock;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Gallery;
-import android.widget.ImageView;
 
 public class CustomGallery
 extends Gallery{

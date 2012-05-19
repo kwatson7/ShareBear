@@ -25,8 +25,8 @@ import com.tools.SuccessReason;
 import com.tools.TwoObjects;
 import com.tools.TwoStrings;
 
-public class SaveTakenPictureTask 
-extends CustomAsyncTask<Void, Void, SaveTakenPictureTask.ReturnFromPostPicture>{
+public class SaveTakenPictureTask <ACTIVITY_TYPE extends CustomActivity>
+extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask<ACTIVITY_TYPE>.ReturnFromPostPicture>{
 
 	// private task variables
 	private byte[] camData; 			// The byte data for the picture 
@@ -66,7 +66,7 @@ extends CustomAsyncTask<Void, Void, SaveTakenPictureTask.ReturnFromPostPicture>{
 	 * @param camRotation Rotation value specifying what rotation angle the picture was taken at.
 	 */ 
 	public SaveTakenPictureTask(
-			CustomActivity act,
+			ACTIVITY_TYPE act,
 			int requestId,
 			byte[] camData,
 			int camRotation,

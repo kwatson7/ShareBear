@@ -6,7 +6,6 @@ import java.util.Set;
 
 import android.content.ContentResolver;
 import android.content.ContentUris;
-import android.content.Context;
 import android.net.Uri;
 import android.provider.ContactsContract;
 

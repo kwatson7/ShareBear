@@ -15,14 +15,14 @@ import com.instantPhotoShare.Adapters.NotificationsAdapter.NOTIFICATION_TYPES;
 import com.tools.CustomActivity;
 import com.tools.CustomAsyncTask;
 
-public class CreateGroupTask 
-extends CustomAsyncTask<Void, Integer, CreateGroupTask.ReturnFromCreateGroupTask>{
+public class CreateGroupTask <ACTIVITY_TYPE extends CustomActivity>  
+extends CustomAsyncTask<ACTIVITY_TYPE, Integer, CreateGroupTask<ACTIVITY_TYPE>.ReturnFromCreateGroupTask>{
 
 	// private variables
 	private String groupName;
 	private boolean allowOthersToAddMembers;
 	private boolean isLocal;
-	private CreateGroupTask task = this;
+	private CreateGroupTask<ACTIVITY_TYPE> task = this;
 	private long rowId = -1;
 	private boolean isCreateGroupLocally = true;
 
@@ -53,7 +53,7 @@ extends CustomAsyncTask<Void, Integer, CreateGroupTask.ReturnFromCreateGroupTask
 	 * @param isLocal boolean if this is a local to device group
 	 */
 	public CreateGroupTask(
-			CustomActivity act,
+			ACTIVITY_TYPE act,
 			int requestId,
 			String groupName,
 			boolean allowOthersToAddMembers,
@@ -78,7 +78,7 @@ extends CustomAsyncTask<Void, Integer, CreateGroupTask.ReturnFromCreateGroupTask
 	 * @param rowId The rowId of an already created group
 	 */
 	public CreateGroupTask(
-			CustomActivity act,
+			ACTIVITY_TYPE act,
 			int requestId,
 			long rowId) {
 		super(act,

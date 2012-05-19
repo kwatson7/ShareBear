@@ -4,7 +4,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.util.Log;
-import android.widget.Checkable;
 
 /**
  * The json response from the server will always have either <p>

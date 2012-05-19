@@ -12,12 +12,13 @@ import com.tools.CustomAsyncTask;
 import com.tools.TwoObjects;
 import com.tools.TwoStrings;
 
-public class fillNamesFromGroupAsync extends 
-CustomAsyncTask<Object, Integer, ArrayList <TwoObjects<String, Long>>> {
+public class fillNamesFromGroupAsync <ACTIVITY_TYPE extends CustomActivity>
+	extends CustomAsyncTask<ACTIVITY_TYPE, Integer, ArrayList <TwoObjects<String, Long>>> {
 
 	// private variables
 	private ArrayList<TwoStrings> mGroupList; 			// The list of groups
-	private ContactCheckedArray mContactChecked; 				// The array of people that are already checked
+	private ContactCheckedArray mContactChecked; 		// The array of people that are already checked
+	private int position; 								// the position in the group that was selected
 	
 	/**
 	 * Constructor for filling names into CreateGroup.java from contacts database.
@@ -27,12 +28,14 @@ CustomAsyncTask<Object, Integer, ArrayList <TwoObjects<String, Long>>> {
 	 * @param isCancelOnActivityDestroy
 	 * @param progressBars
 	 * @param mGroupList
+	 * @param position the position int he groupslist that was selected
 	 */
 	public fillNamesFromGroupAsync(
-			CustomActivity act,
+			ACTIVITY_TYPE act,
 			int requestId,
 			ArrayList<TwoStrings> mGroupList,
-			ContactCheckedArray mContactChecked) {
+			ContactCheckedArray mContactChecked,
+			int position) {
 		
 		// super call
 		super(act, requestId, true, true, null);
@@ -40,10 +43,11 @@ CustomAsyncTask<Object, Integer, ArrayList <TwoObjects<String, Long>>> {
 		// store variables
 		this.mGroupList = mGroupList;
 		this.mContactChecked = mContactChecked;
+		this.position = position;
 	}
 
 	@Override
-	protected ArrayList <TwoObjects<String, Long>> doInBackground(Object... params) {
+	protected ArrayList <TwoObjects<String, Long>> doInBackground(Void... params) {
 		
 		// check we dont' have a null activity.
 		if (applicationCtx == null){
@@ -52,7 +56,6 @@ CustomAsyncTask<Object, Integer, ArrayList <TwoObjects<String, Long>>> {
 		}
 		
 		// grab which group was selected
-		int position = (Integer)params[0];
 		String groupId = mGroupList.get(position).mObject2;
 		if (groupId == null)
 			return null;

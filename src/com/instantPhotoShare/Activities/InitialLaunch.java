@@ -3,20 +3,13 @@
  */
 package com.instantPhotoShare.Activities;
 
-import java.util.List;
-
 import com.instantPhotoShare.Prefs;
 import com.instantPhotoShare.R;
 
 import android.app.Activity;
-import android.app.ActivityManager;
-import android.app.ActivityManager.RunningAppProcessInfo;
-import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Parcelable;
-import android.widget.Toast;
 
 /**
  * @author Kyle

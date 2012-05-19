@@ -7,7 +7,6 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.DialogInterface.OnClickListener;
 import android.database.DataSetObserver;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
@@ -32,7 +31,6 @@ import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.GroupsAdapter.Group;
 import com.instantPhotoShare.Adapters.PicturesAdapter;
-import com.instantPhotoShare.Adapters.UsersAdapter;
 import com.instantPhotoShare.Tasks.CreateGroupTask;
 import com.tools.*;
 
@@ -118,7 +116,8 @@ extends CustomActivity{
 		case MAKE_GROUP_ON_SERVER:
 			switch (asyncTypeCall){
 			case POST:
-				CreateGroupTask.ReturnFromCreateGroupTask value = (CreateGroupTask.ReturnFromCreateGroupTask) data;
+				CreateGroupTask<ManageGroups>.ReturnFromCreateGroupTask value = 
+					(CreateGroupTask<ManageGroups>.ReturnFromCreateGroupTask) data;
 				fillViewsWithGroupValues();
 				break;
 			}
@@ -200,7 +199,7 @@ extends CustomActivity{
 		
 		// update locally
 		GroupsAdapter groups = new GroupsAdapter(this);
-		CreateGroupTask task = groups.setKeepLocal(act, ASYNC_CALLS.MAKE_GROUP_ON_SERVER.ordinal(), groupId, keepLocal);
+		CreateGroupTask<CustomActivity> task = groups.setKeepLocal(act, ASYNC_CALLS.MAKE_GROUP_ON_SERVER.ordinal(), groupId, keepLocal);
 
 		//  check what it should be
 		Group group = groups.getGroup(groupId);
@@ -208,7 +207,6 @@ extends CustomActivity{
 
 		// update on server
 		if (task != null){
-			addTask(task); 
 			task.execute();
 		}
 		

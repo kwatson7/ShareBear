@@ -1,10 +1,6 @@
 package com.instantPhotoShare.Adapters;
 
-import java.io.File;
-
 import com.instantPhotoShare.Prefs;
-import com.instantPhotoShare.Adapters.GroupsAdapter.Group;
-
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;

@@ -59,12 +59,11 @@ extends CustomActivity {
     	}
 
 		// launch the async task and add to array of tasks to be managed
-		LoginTask task =  new LoginTask(
+		LoginTask<LoginScreen> task =  new LoginTask<LoginScreen>(
 				this,
 				ASYNC_CALLS.LOGIN.ordinal(),
 				user,
 				pass);
-		addTask(task);
 		task.execute();
     }
     
@@ -96,7 +95,8 @@ extends CustomActivity {
 
 				// check success, important values were already saved to prefs
 				try{
-					LoginTask.ReturnFromLoginTask returnVal = (LoginTask.ReturnFromLoginTask) data;
+					LoginTask<LoginScreen>.ReturnFromLoginTask returnVal =
+						(LoginTask<LoginScreen>.ReturnFromLoginTask) data;
 					if (returnVal.isSuccess()){
 						setResult(RESULT_OK);
 				    	finish();

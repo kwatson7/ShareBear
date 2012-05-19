@@ -5,13 +5,10 @@ import java.io.File;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Color;
 import android.graphics.Typeface;
-import android.net.Uri;
 import android.os.Bundle;
 import android.text.Html;
 import android.view.Display;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -25,15 +22,12 @@ import android.view.animation.RotateAnimation;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.BaseAdapter;
-import android.widget.FrameLayout;
 import android.widget.Gallery;
-import android.widget.Gallery.LayoutParams;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.instantPhotoShare.CustomGallery;
-import com.instantPhotoShare.ImageLoader;
 import com.instantPhotoShare.ImageLoaderTouch;
 import com.instantPhotoShare.MemoryCache;
 import com.instantPhotoShare.Prefs;
@@ -42,7 +36,6 @@ import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.PicturesAdapter;
 import com.instantPhotoShare.images.ImageViewTouch;
-import com.instantPhotoShare.R.drawable;
 import com.tools.CustomActivity;
 
 public class SinglePictureGallery 
@@ -53,7 +46,6 @@ extends CustomActivity{
 	private PicturesAdapter picturesAdapater;	// An array of all the pictures
 	private long groupId; 						// the groupId that we are currently showing
 	private int initialPicturePosition; 		// The first picture to show
-	private CustomActivity act = this;
 	private String formattedGroupName; 			// The group name we are currently showing with formatting
 	private String unformatedGroupName; 		// the unformatted group name
 	private int pictureWindowWidth; 			// the width of the area the picture fits inside

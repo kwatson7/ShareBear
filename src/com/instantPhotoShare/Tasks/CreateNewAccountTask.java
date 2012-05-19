@@ -11,8 +11,8 @@ import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.UsersAdapter;
 import com.tools.CustomActivity;
 
-public class CreateNewAccountTask extends com.tools.CustomAsyncTask
-<Void, Integer, CreateNewAccountTask.ReturnFromCreateNewAccountTask>{
+public class CreateNewAccountTask<ACTIVITY_TYPE extends CustomActivity>
+	extends com.tools.CustomAsyncTask <ACTIVITY_TYPE, Integer, CreateNewAccountTask<ACTIVITY_TYPE>.ReturnFromCreateNewAccountTask>{
 
 	// different error codes
 	private static final String USERNAME_EXISTS_ERROR = "USERNAME_EXISTS_ERROR";
@@ -41,7 +41,8 @@ public class CreateNewAccountTask extends com.tools.CustomAsyncTask
 	 * @param progressbars an array list of strings for the progress bar ids to be shown/hidden when started/finished
 	 * the subclassed task, make sure to call isCanceled() periodically in doInBackground, to break.
 	 */
-	public CreateNewAccountTask(CustomActivity act,
+	public CreateNewAccountTask(
+			ACTIVITY_TYPE act,
 			int requestId,
 			Person person) {
 		super(act, requestId, true, false, null);

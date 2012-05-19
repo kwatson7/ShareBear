@@ -7,7 +7,6 @@ import java.util.Iterator;
 
 import com.instantPhotoShare.Prefs;
 import com.instantPhotoShare.Utils;
-import com.instantPhotoShare.Adapters.GroupsAdapter.Group;
 import com.instantPhotoShare.Adapters.NotificationsAdapter.NOTIFICATION_TYPES;
 import com.tools.ThreeObjects;
 import com.tools.TwoObjects;

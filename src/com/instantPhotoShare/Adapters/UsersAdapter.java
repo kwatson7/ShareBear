@@ -16,7 +16,6 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.ContactsContract;
-import android.provider.ContactsContract.CommonDataKinds;
 
 public class UsersAdapter
 extends TableAdapter <UsersAdapter>{

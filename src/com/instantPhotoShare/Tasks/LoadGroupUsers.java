@@ -9,15 +9,15 @@ import com.instantPhotoShare.Adapters.UsersAdapter;
 import com.tools.CustomActivity;
 import com.tools.CustomAsyncTask;
 
-public class LoadGroupUsers
-extends CustomAsyncTask<Void, Integer, ContactCheckedArray>{
+public class LoadGroupUsers <ACTIVITY_TYPE extends CustomActivity>
+extends CustomAsyncTask<ACTIVITY_TYPE, Integer, ContactCheckedArray>{
 
 	// member variables
 	private long groupId; 					// the group id we are loading
 	private boolean cancelTask = false;
 	
 	public LoadGroupUsers(
-			CustomActivity act,
+			ACTIVITY_TYPE act,
 			int requestId,
 			long groupId) {
 		super(

@@ -3,7 +3,6 @@ package com.instantPhotoShare.Activities;
 import java.util.ArrayList;
 import com.instantPhotoShare.Prefs;
 import com.instantPhotoShare.R;
-import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.GroupsAdapter.Group;
 import com.instantPhotoShare.Adapters.PicturesAdapter;
@@ -23,7 +22,6 @@ import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.Parcelable;
 import android.text.Html;
 import android.util.Log;
@@ -46,7 +44,6 @@ import android.widget.Toast;
 import com.tools.CameraHelper;
 import com.tools.CustomActivity;
 import com.tools.MultipleCheckPopUp;
-import com.tools.MultipleCheckPopUp2;
 
 public class TakePicture 
 extends CustomActivity
@@ -636,14 +633,13 @@ implements SurfaceHolder.Callback{
 	 */
 	private void savePicture(){
 		// launch the async task to save picture
-		SaveTakenPictureTask task =  new SaveTakenPictureTask(
-				act,
+		SaveTakenPictureTask<TakePicture> task =  new SaveTakenPictureTask<TakePicture>(
+				this,
 				ASYNC_CALLS.SAVE_PICTURE.ordinal(),
 				camBytes,
 				camRotation,
 				this.selectedGroups,
 				"");
-		addTask(task);
 		task.execute();
 		
 		camBytes = null;

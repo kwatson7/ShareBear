@@ -1,6 +1,5 @@
 package com.instantPhotoShare.Tasks;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -12,7 +11,6 @@ import org.json.JSONObject;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
-import android.view.View;
 import android.widget.Toast;
 
 import com.instantPhotoShare.ContactCheckedArray;
@@ -25,14 +23,13 @@ import com.instantPhotoShare.Adapters.NotificationsAdapter.NOTIFICATION_TYPES;
 import com.instantPhotoShare.Adapters.NotificationsAdapter;
 import com.instantPhotoShare.Adapters.UsersAdapter;
 import com.instantPhotoShare.Adapters.UsersInGroupsAdapter;
-import com.instantPhotoShare.Tasks.CreateGroupTask.ReturnFromCreateGroupTask;
 import com.tools.CustomActivity;
 import com.tools.CustomAsyncTask;
 import com.tools.SuccessReason;
 import com.tools.ThreeObjects;
 
-public class AddUsersToGroupTask 
-extends CustomAsyncTask<Void, Integer, AddUsersToGroupTask.ReturnFromAddUsersToGroupTask>{
+public class AddUsersToGroupTask <ACTIVITY_TYPE extends CustomActivity>
+extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask<ACTIVITY_TYPE>.ReturnFromAddUsersToGroupTask>{
 
 	// constants
 	private static final String LOCAL_TITLE = "Saving Users to Group";
@@ -42,7 +39,7 @@ extends CustomAsyncTask<Void, Integer, AddUsersToGroupTask.ReturnFromAddUsersToG
 	private ContactCheckedArray mContactChecked;
 	private int progressMax = 1;
 	private boolean cancelTask = false;
-	private AddUsersToGroupTask task = this;
+	private AddUsersToGroupTask<ACTIVITY_TYPE> task = this;
 	private long groudRowId = -1;
 	private int usersAdded = 0;
 	private int usersRemoved = 0;
@@ -76,7 +73,7 @@ extends CustomAsyncTask<Void, Integer, AddUsersToGroupTask.ReturnFromAddUsersToG
 	 * @param groudRowId the group id from the device sql database to add users to
 	 */
 	public AddUsersToGroupTask(
-			CustomActivity act,
+			ACTIVITY_TYPE act,
 			int requestId,
 			ContactCheckedArray mContactChecked,
 			long groudRowId) {
@@ -109,7 +106,7 @@ extends CustomAsyncTask<Void, Integer, AddUsersToGroupTask.ReturnFromAddUsersToG
 	}
 
 	@Override
-	protected AddUsersToGroupTask.ReturnFromAddUsersToGroupTask doInBackground(Void... params) {
+	protected AddUsersToGroupTask<ACTIVITY_TYPE>.ReturnFromAddUsersToGroupTask doInBackground(Void... params) {
 		
 		// make the new group
 		ThreeObjects<SuccessReason, HashSet<Long>, HashSet<Long>> out = 
@@ -210,7 +207,7 @@ extends CustomAsyncTask<Void, Integer, AddUsersToGroupTask.ReturnFromAddUsersToG
 	}
 
 	@Override
-	protected void onPostExectueOverride(AddUsersToGroupTask.ReturnFromAddUsersToGroupTask result) {
+	protected void onPostExectueOverride(AddUsersToGroupTask<ACTIVITY_TYPE>.ReturnFromAddUsersToGroupTask result) {
 
 		if (applicationCtx == null)
 			return;

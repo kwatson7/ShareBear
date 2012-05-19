@@ -3,7 +3,6 @@
  */
 package com.instantPhotoShare.Activities;
 
-import com.instantPhotoShare.DebugUtils;
 import com.instantPhotoShare.ImageLoader;
 import com.instantPhotoShare.MemoryCache;
 import com.instantPhotoShare.R;
@@ -16,7 +15,6 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.provider.ContactsContract;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -49,6 +47,7 @@ extends CustomActivity{
 	// enums for menu items
 	private enum MENU_ITEMS { 										
 		CLEAR_APP_DATA;
+		@SuppressWarnings("unused")
 		private static MENU_ITEMS convert(int value)
 		{
 			return MENU_ITEMS.class.getEnumConstants()[value];
@@ -58,6 +57,7 @@ extends CustomActivity{
 	// enums for tasks
 	private enum ASYNC_TASKS { 										
 		MAKE_PRIVATE_GROUP;
+		@SuppressWarnings("unused")
 		private static MENU_ITEMS convert(int value)
 		{
 			return MENU_ITEMS.class.getEnumConstants()[value];
@@ -78,8 +78,7 @@ extends CustomActivity{
 			gallery.setSelection(picturesAdapater.size()/2, false);
 		
 		// check for private group and make it if need be
-		CreatePrivateGroup task = new CreatePrivateGroup(this, ASYNC_TASKS.MAKE_PRIVATE_GROUP.ordinal());
-		addTask(task);
+		CreatePrivateGroup<MainScreen> task = new CreatePrivateGroup<MainScreen>(this, ASYNC_TASKS.MAKE_PRIVATE_GROUP.ordinal());
 		task.execute();
 	}
 	

@@ -258,7 +258,7 @@ extends TableAdapter <GroupsAdapter>{
 	 * this.asyncArray.add(task); <br>
 	 * task.execute();
 	 */
-	public CreateGroupTask setKeepLocal(
+	public CreateGroupTask<CustomActivity> setKeepLocal(
 			CustomActivity act,
 			int asyncId,
 			long rowId,
@@ -283,7 +283,7 @@ extends TableAdapter <GroupsAdapter>{
 		// update to server if we previouisly weren't local, but now are and no serverId
 		if (group.isKeepLocal() && !keepLocal && (group.getServerId() == -1 || group.getServerId() == 0)){
 			// launch the async task and add to array of tasks to be managed
-			CreateGroupTask task =  new CreateGroupTask(
+			CreateGroupTask<CustomActivity> task =  new CreateGroupTask<CustomActivity>(
 					act,
 					asyncId,
 					rowId);

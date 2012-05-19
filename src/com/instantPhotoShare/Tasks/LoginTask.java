@@ -12,8 +12,8 @@ import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.UsersAdapter;
 import com.tools.CustomActivity;
 
-public class LoginTask
-	extends com.tools.CustomAsyncTask<Void, Integer, LoginTask.ReturnFromLoginTask>{
+public class LoginTask <ACTIVITY_TYPE extends CustomActivity>
+	extends com.tools.CustomAsyncTask<ACTIVITY_TYPE, Integer, LoginTask<ACTIVITY_TYPE>.ReturnFromLoginTask>{
 
 	// codes to be sent to server
 	private static final String USER_LOGIN = "user_login";
@@ -34,7 +34,7 @@ public class LoginTask
 	 * @param pass password
 	 */
 	public LoginTask(
-			CustomActivity act,
+			ACTIVITY_TYPE act,
 			int requestId,
 			String user,
 			String pass) {
@@ -50,7 +50,7 @@ public class LoginTask
 	protected ReturnFromLoginTask doInBackground(Void... params) {
 		
 		// post data to server and get response
-		LoginTask.ReturnFromLoginTask serverResponse = null;
+		LoginTask<ACTIVITY_TYPE>.ReturnFromLoginTask serverResponse = null;
 		try {
 			serverResponse = new ReturnFromLoginTask(Utils.postToServer(USER_LOGIN, getDataToPost(), null));
 		} catch (JSONException e) {
@@ -94,7 +94,7 @@ public class LoginTask
 	 * Save values returned from login Task into preferences. Shows a toast if not successful
 	 * @param returnVal
 	 */
-	private boolean saveValuesFromServer(LoginTask.ReturnFromLoginTask returnVal){
+	private boolean saveValuesFromServer(LoginTask<ACTIVITY_TYPE>.ReturnFromLoginTask returnVal){
 		// create new user for ourselves
 		UsersAdapter adapter = new UsersAdapter(applicationCtx);
 		long rowId = adapter.makeNewUser(

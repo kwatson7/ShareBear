@@ -14,8 +14,8 @@ import android.widget.Toast;
 /**
  * AsyncTask for inserting contacts into new group
  */
-public class insertContactsIntoGroupAsync
-extends CustomAsyncTask<Void, Integer, Integer> {
+public class insertContactsIntoGroupAsync <ACTIVITY_TYPE extends CustomActivity>
+extends CustomAsyncTask<ACTIVITY_TYPE, Integer, Integer> {
 
 	// private variables
 	private ContactCheckedArray mContactChecked = null;		// The array of contacts that are checked
@@ -30,7 +30,7 @@ extends CustomAsyncTask<Void, Integer, Integer> {
 	 * @param mContactChecked
 	 */
 	public insertContactsIntoGroupAsync(
-			CustomActivity act,
+			ACTIVITY_TYPE act,
 			int requestId,
 			ContactCheckedArray mContactChecked,
 			String accountType,

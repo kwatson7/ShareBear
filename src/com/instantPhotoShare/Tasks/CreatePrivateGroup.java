@@ -12,8 +12,8 @@ import com.instantPhotoShare.Adapters.NotificationsAdapter.NOTIFICATION_TYPES;
 import com.tools.CustomActivity;
 import com.tools.CustomAsyncTask;
 
-public class CreatePrivateGroup
-extends CustomAsyncTask<Void, Void, String>{
+public class CreatePrivateGroup<ACTIVITY_TYPE extends CustomActivity>
+extends CustomAsyncTask<ACTIVITY_TYPE, Void, String>{
 
 	private static boolean isRunning = false;
 	/**
@@ -22,7 +22,7 @@ extends CustomAsyncTask<Void, Void, String>{
 	 * @param requestId The request Id
 	 */
 	public CreatePrivateGroup(
-			CustomActivity act,
+			ACTIVITY_TYPE act,
 			int requestId) {
 		super(
 				act,

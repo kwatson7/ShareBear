@@ -3,6 +3,7 @@ package com.instantPhotoShare.Activities;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.text.Html;
@@ -18,8 +19,6 @@ import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.instantPhotoShare.ImageLoader;
-import com.instantPhotoShare.MemoryCache;
 import com.instantPhotoShare.Prefs;
 import com.instantPhotoShare.R;
 import com.instantPhotoShare.Utils;
@@ -27,6 +26,7 @@ import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.GroupsAdapter.Group;
 import com.instantPhotoShare.Adapters.PicturesAdapter;
 import com.tools.CustomActivity;
+import com.tools.images.ImageLoader.LoadImage;
 
 public class InsideGroupGallery 
 extends CustomActivity{
@@ -228,16 +228,61 @@ extends CustomActivity{
 
         private PicturesAdapter data;
         private LayoutInflater inflater = null;
-        private ImageLoader imageLoader; 
+        private com.tools.images.ImageLoader<Long, Long, Long> imageLoader; 
         
         public PicturesGridAdapter(Activity a, PicturesAdapter pictures) {
             data = pictures;
             inflater = (LayoutInflater)a.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-            imageLoader=new ImageLoader(
-            		R.drawable.stub,
-            		0,
-            		0,
-            		false);
+            imageLoader = new com.tools.images.ImageLoader<Long, Long, Long>(
+					R.drawable.stub,
+					0,
+					0,
+					false,
+					new LoadImage<Long, Long>() {
+
+						@Override
+						public Bitmap onThumbnailLocal(Long thumbnailData) {
+							if (thumbnailData == null)
+								return null;
+							PicturesAdapter pics = new PicturesAdapter(act);
+							pics.fetchPicture(thumbnailData);
+							Bitmap bmp = pics.getThumbnail();
+							pics.close();
+							return bmp;
+						}
+
+						@Override
+						public Bitmap onThumbnailWeb(Long thumbnailData) {
+							return null;
+						}
+
+						@Override
+						public Bitmap onFullSizeLocal(Long fullSizeData,
+								int desiredWidth, int desiredHeight) {
+							return null;
+						}
+
+						@Override
+						public Bitmap onFullSizeWeb(Long fullSizeData,
+								int desiredWidth, int desiredHeight) {
+							return null;
+						}
+
+						@Override
+						public void createThumbnailFromFull(
+								Long thumbnailData, Long fullSizeData) {
+							PicturesAdapter pics = new PicturesAdapter(act);
+							pics.fetchPicture(thumbnailData);
+							
+							com.tools.images.ImageLoader.createThumbnailFromFull(
+									pics.getThumbnailPath(),
+									pics.getFullPicturePath(),
+									Utils.MAX_THUMBNAIL_DIMENSION,
+									Utils.FORCE_BASE2_THUMBNAIL_RESIZE,
+									Utils.IMAGE_QUALITY);
+							pics.close();
+						}
+					});
         }
 
         public int getCount() {
@@ -264,7 +309,7 @@ extends CustomActivity{
 	     * for example on orientation changes *****
 	     * @return
 	     */
-		public MemoryCache getMemoryCache(){
+		public com.tools.images.MemoryCache<Long> getMemoryCache(){
 			return imageLoader.getMemoryCache();
 		}
         
@@ -282,7 +327,7 @@ extends CustomActivity{
             // fill the views
             text.setText("");
             if (data.moveToPosition(position))
-            	imageLoader.DisplayImage(data.getRowId(), data.getThumbnailPath(), null, image);
+            	imageLoader.DisplayImage(data.getRowId(), data.getRowId(), data.getRowId(), image);
 
             return vi;
         }

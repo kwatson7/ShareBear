@@ -19,6 +19,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
@@ -140,6 +141,13 @@ extends CustomActivity{
 
 	@Override
 	protected void onDestroyOverride() {
+		com.tools.NoDefaultSpinner spinner = (com.tools.NoDefaultSpinner) findViewById(R.id.spinner);
+		LinearLayout enclosingFrame = (LinearLayout) findViewById(R.id.enclosingFrame);
+		enclosingFrame.removeView(spinner);
+	//	if (isChangeGroupShowing){
+	//		spinner.setAdapter(null);
+	//		spinner.performClick();
+	//	}
 	}
 
 	/**
@@ -252,12 +260,12 @@ extends CustomActivity{
 			public void onItemSelected(AdapterView<?> parentView, 
 					View selectedItemView, int position, long id) {
 
-
-			//	if (!isChangeGroupShowing){
-			//		isChangeGroupShowing = !isChangeGroupShowing;
-			//		return;
-			//	}
-			//	isChangeGroupShowing = !isChangeGroupShowing;
+				if (!isChangeGroupShowing){
+					isChangeGroupShowing = !isChangeGroupShowing;
+					if (groupId != -1)
+						return;
+				}else
+					isChangeGroupShowing = !isChangeGroupShowing;
 					
 				groupId = groups.get(position).getRowId();
 				fillViewsWithGroupValues();

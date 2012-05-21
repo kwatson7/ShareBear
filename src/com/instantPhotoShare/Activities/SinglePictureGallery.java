@@ -5,6 +5,7 @@ import java.io.File;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.text.Html;
@@ -28,8 +29,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.instantPhotoShare.CustomGallery;
-import com.instantPhotoShare.ImageLoaderTouch;
-import com.instantPhotoShare.MemoryCache;
 import com.instantPhotoShare.Prefs;
 import com.instantPhotoShare.R;
 import com.instantPhotoShare.Utils;
@@ -37,6 +36,7 @@ import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.PicturesAdapter;
 import com.instantPhotoShare.images.ImageViewTouch;
 import com.tools.CustomActivity;
+import com.tools.images.ImageLoader.LoadImage;
 
 public class SinglePictureGallery 
 extends CustomActivity{
@@ -50,7 +50,7 @@ extends CustomActivity{
 	private String unformatedGroupName; 		// the unformatted group name
 	private int pictureWindowWidth; 			// the width of the area the picture fits inside
 	private int pictureWindowHeight; 			// the height of the area the picture fits inside
-	private MemoryCache oldCache = null; 		// the old imageloader cache. use this to handle screen rotations.
+	private com.tools.images.MemoryCache<Long> oldCache = null; 		// the old imageloader cache. use this to handle screen rotations.
 	
 	// graphics
 	private CustomGallery gallery; 				// the gallery to show pictures
@@ -61,7 +61,7 @@ extends CustomActivity{
 	/** Static variable for passing in MemoryCache <br>
 	 * only should be used from InsidePictureGallery, right before calling startActivity.
 	 */
-	public static MemoryCache passedCache = null;
+	public static com.tools.images.MemoryCache<Long> passedCache = null;
 	
 	// variables to indicate what can be passed in through intents
 	public static final String GROUP_ID = "GROUP_ID";
@@ -333,7 +333,7 @@ extends CustomActivity{
 	 *
 	 */
 	private class ConfigurationPropertiesCustom{
-		MemoryCache cache = null;	
+		com.tools.images.MemoryCache<Long> cache = null;	
 	}
 
 	@Override
@@ -347,16 +347,69 @@ extends CustomActivity{
 
 		private PicturesAdapter data;
 		private LayoutInflater inflater = null;
-		private ImageLoaderTouch imageLoader; 
+		private com.tools.images.ImageLoader<Long, Long, Long> imageLoader; 
 
 		public PicturesGridAdapter(Activity a, PicturesAdapter pictures) {
 			data = pictures;
 			inflater = (LayoutInflater)a.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-			imageLoader=new ImageLoaderTouch(
+			imageLoader = new com.tools.images.ImageLoader<Long, Long, Long>(
 					android.R.color.transparent,
 					pictureWindowWidth,
 					pictureWindowHeight,
-					true);
+					true,
+					new LoadImage<Long, Long>() {
+
+						@Override
+						public Bitmap onThumbnailLocal(Long thumbnailData) {
+							if (thumbnailData == null)
+								return null;
+							PicturesAdapter pics = new PicturesAdapter(ctx);
+							pics.fetchPicture(thumbnailData);
+							Bitmap bmp = pics.getThumbnail();
+							pics.close();
+							return bmp;
+						}
+
+						@Override
+						public Bitmap onThumbnailWeb(Long thumbnailData) {
+							return null;
+						}
+
+						@Override
+						public Bitmap onFullSizeLocal(
+								Long fullSizeData,
+								int desiredWidth,
+								int desiredHeight) {
+							if (fullSizeData == null)
+								return null;
+							PicturesAdapter pics = new PicturesAdapter(ctx);
+							pics.fetchPicture(fullSizeData);
+							String path = pics.getFullPicturePath();
+							pics.close();
+							return com.tools.images.ImageLoader.getFullImage(path, desiredWidth, desiredHeight);
+						}
+
+						@Override
+						public Bitmap onFullSizeWeb(Long fullSizeData,
+								int desiredWidth, int desiredHeight) {
+							return null;
+						}
+
+						@Override
+						public void createThumbnailFromFull(
+								Long thumbnailData, Long fullSizeData) {
+							PicturesAdapter pics = new PicturesAdapter(ctx);
+							pics.fetchPicture(thumbnailData);
+							
+							com.tools.images.ImageLoader.createThumbnailFromFull(
+									pics.getThumbnailPath(),
+									pics.getFullPicturePath(),
+									Utils.MAX_THUMBNAIL_DIMENSION,
+									Utils.FORCE_BASE2_THUMBNAIL_RESIZE,
+									Utils.IMAGE_QUALITY);
+							pics.close();
+						}
+					});
 		}
 
 		public int getCount() {
@@ -383,7 +436,7 @@ extends CustomActivity{
 	     * for example on orientation changes *****
 	     * @return
 	     */
-		public MemoryCache getMemoryCache(){
+		public com.tools.images.MemoryCache<Long> getMemoryCache(){
 			return imageLoader.getMemoryCache();
 		}
 		
@@ -400,7 +453,7 @@ extends CustomActivity{
 	     * @see getMemoryCache.
 	     * @param mem
 	     */
-		public void restoreMemoryCache(MemoryCache mem){
+		public void restoreMemoryCache(com.tools.images.MemoryCache<Long> mem){
 			imageLoader.restoreMemoryCache(mem);
 		}
 
@@ -427,30 +480,10 @@ extends CustomActivity{
 	        
 	        // move to correct location and fill views
 			if (data.moveToPosition(position))
-				imageLoader.DisplayImage(data.getRowId(), data.getThumbnailPath(), data.getFullPicturePath(), image);
+				imageLoader.DisplayImage(data.getRowId(), data.getRowId(), data.getRowId(), image);
 	        
 	        // return the view
 	        return vi;
-            
-            /*
-			ImageViewTouch imageView;
-			if(convertView==null){
-				imageView = new ImageViewTouch(act);
-				imageView.setLayoutParams(new Gallery.LayoutParams(
-						WindowManager.LayoutParams.FILL_PARENT,
-						WindowManager.LayoutParams.FILL_PARENT));
-				imageView.setScaleType(ImageView.ScaleType.FIT_XY);
-				imageView.setAdjustViewBounds(true);
-				imageView.setBackgroundColor(Color.BLACK);
-			}else
-				imageView = (ImageViewTouch) convertView;
-
-			// move to correct location and fill views
-			if (data.moveToPosition(position))
-				imageLoader.DisplayImage(data.getRowId(), data.getThumbnailPath(), data.getFullPicturePath(), imageView);
-
-			return imageView;
-			*/
 		}
 	}
 }

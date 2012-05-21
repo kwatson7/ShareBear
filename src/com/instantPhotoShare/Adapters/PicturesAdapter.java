@@ -486,6 +486,8 @@ extends TableAdapter<PicturesAdapter>{
 	 * @return
 	 */
 	public Bitmap getThumbnail(){
+		if (!checkCursor())
+			return null;
 		
 		// read the path
 		Bitmap out = null;

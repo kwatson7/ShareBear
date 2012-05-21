@@ -28,15 +28,15 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.instantPhotoShare.CustomGallery;
 import com.instantPhotoShare.Prefs;
 import com.instantPhotoShare.R;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.PicturesAdapter;
-import com.instantPhotoShare.images.ImageViewTouch;
 import com.tools.CustomActivity;
+import com.tools.images.CustomGallery;
 import com.tools.images.ImageLoader.LoadImage;
+import com.tools.images.ImageViewTouch;
 
 public class SinglePictureGallery 
 extends CustomActivity{

@@ -3,6 +3,9 @@ package com.instantPhotoShare;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.tools.ServerPost;
+import com.tools.ServerPost.ServerReturn;
+
 import android.util.Log;
 
 /**
@@ -66,6 +69,31 @@ public class ServerJSON{
 				Log.e(this.getClass().getPackage().getName(), ee.getMessage());
 			}
 		}
+		checkAcceptable();
+	}
+	
+	public ServerJSON(ServerReturn serverReturn){
+		// the default error results
+		ServerJSON output = ServerJSON.getDefaultFailure();
+		
+		// check there were no errors
+		switch(serverReturn.getReturnType()){
+		case BAD_CODE:
+			output.setErrorMessage(serverReturn.getDetailMessage(), "BAD_CODE");
+			break;
+		case CLIENT_PROTOCOL_ERROR:
+			output.setErrorMessage(serverReturn.getDetailMessage(), "CLIENT_PROTOCOL_ERROR");
+			break;
+		case IO_EXCEPTION:
+			output.setErrorMessage(serverReturn.getDetailMessage(), "IO_EXCEPTION");
+			break;
+		case COMPLETED:
+			output = new ServerJSON(serverReturn.getServerReturnLastLine());
+			break;
+		}
+		
+		// copy json data
+		jsonObject = output.jsonObject;
 		checkAcceptable();
 	}
 

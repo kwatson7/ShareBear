@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -25,6 +26,10 @@ import org.apache.http.params.CoreProtocolPNames;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import com.tools.CustomActivity;
+import com.tools.ServerPost;
+import com.tools.ServerPost.FileType;
+import com.tools.ServerPost.ServerReturn;
 import com.tools.TwoObjects;
 
 import android.app.Activity;
@@ -34,6 +39,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Environment;
+import android.util.Log;
 import android.widget.ImageView;
 
 public class Utils {
@@ -56,6 +62,22 @@ public class Utils {
 	public static final String LOG_TAG = "ShareBear";
 	public static int IMAGE_QUALITY = 90;
 
+	// keys for sending to server
+	/** The key for the data to post to server */
+	private static final String KEY_DATA = "data";
+	/** The key for the action to take on server */
+	private static final String KEY_ACTION = "action";
+	/** The return code for a successful sync with server */
+	private static final int GOOD_RETURN_CODE = 200;
+	/** The key for posting the image data */
+	private static final String KEY_FULLSIZE = "fullsize";
+	/** key for the thumbnail */
+	private static final String KEY_THUMBNAIL = "thumbnail";
+	/** The image type */
+	private static final String FILE_TYPE = "image/jpeg";
+	/** The encoding type of form data */
+	private static final Charset ENCODING_TYPE = Charset.forName("UTF-8");
+			
 	public static void clearApplicationData(Context ctx) {
 		File cache = ctx.getCacheDir();
 		File appDir = new File(cache.getParent());
@@ -158,26 +180,99 @@ public class Utils {
 		return out;
 	}
 
+	/**
+	 * Post data to server on a background thread
+	 * @param action The action to take
+	 * @param jsonData the "data" json data to post
+	 * @param imageData thumbnail, full picture data, null if none
+	 * @param act The activity that calls the background task
+	 * @param callback
+	 */
+	public static <ACTIVITY_TYPE extends CustomActivity> void postToServer(
+			String action,
+			String jsonData,
+			TwoObjects<byte[], byte[]> imageData,
+			ACTIVITY_TYPE act,
+			com.tools.ServerPost.PostCallback<ACTIVITY_TYPE> callback){
+
+		// make the post
+		com.tools.ServerPost post = new ServerPost(Prefs.BASE_URL + Prefs.REQUEST_PAGE);
+
+		// set values
+		post.addData(KEY_ACTION, action);
+		post.addData(KEY_DATA, jsonData);
+		if (imageData != null){
+			post.addFile(KEY_FULLSIZE, imageData.mObject1, FileType.JPEG);
+			post.addFile(KEY_THUMBNAIL, imageData.mObject2, FileType.JPEG);
+		}
+		
+		// post to server
+		post.postInBackground(act, callback);
+	}
+	
+	/**
+	 * Post data to the server
+	 * @param action the action to take
+	 * @param jsonData the data to post
+	 * @param imageData the thumbnail, and picture data, null if there is no data
+	 * @return the result of the post
+	 */
 	static private ServerJSON postToServerHelper(
 			String action,
 			String jsonData,
 			TwoObjects<byte[], byte[]> imageData){
+		
+		// the default error results
+		ServerJSON defaultOutput = ServerJSON.getDefaultFailure();
+				
+		// make the post
+		com.tools.ServerPost post = new ServerPost(Prefs.BASE_URL + Prefs.REQUEST_PAGE);
+		
+		// set values
+		post.addData(KEY_ACTION, action);
+		post.addData(KEY_DATA, jsonData);
+		if (imageData != null){
+			post.addFile(KEY_FULLSIZE, imageData.mObject1, FileType.JPEG);
+			post.addFile(KEY_THUMBNAIL, imageData.mObject2, FileType.JPEG);
+		}
+		
+		// post to server
+		ServerReturn result = post.post();
+		
+		// the output
+		ServerJSON output = null;
+		
+		// check there were no errors
+		switch(result.getReturnType()){
+		case BAD_CODE:
+			defaultOutput.setErrorMessage(result.getDetailMessage(), "BAD_CODE");
+			return defaultOutput;
+		case CLIENT_PROTOCOL_ERROR:
+			defaultOutput.setErrorMessage(result.getDetailMessage(), "CLIENT_PROTOCOL_ERROR");
+			return defaultOutput;
+		case IO_EXCEPTION:
+			defaultOutput.setErrorMessage(result.getDetailMessage(), "IO_EXCEPTION");
+			return defaultOutput;
+		case COMPLETED:
+			output = new ServerJSON(result.getServerReturnLastLine());
+			break;
+		}
 
-		// keys for sending to server
-		/** The key for the data to post to server */
-		final String KEY_DATA = "data";
-		/** The key for the action to take on server */
-		final String KEY_ACTION = "action";
-		/** The return code for a successful sync with server */
-		final int GOOD_RETURN_CODE = 200;
-		/** The key for posting the image data */
-		final String KEY_FULLSIZE = "fullsize";
-		/** key for the thumbnail */
-		final String KEY_THUMBNAIL = "thumbnail";
-		/** The image type */
-		final String FILE_TYPE = "image/jpeg";
-		/** The encoding type of form data */
-		final Charset ENCODING_TYPE = Charset.forName("UTF-8");
+		// return the final json object
+		return output;
+	}
+	
+	/**
+	 * Post data to the server
+	 * @param action the action to take
+	 * @param jsonData the data to post
+	 * @param imageData the thumbnail, and picture data, null if there is no data
+	 * @return the result of the post
+	 */
+	static private ServerJSON postToServerHelperOld(
+			String action,
+			String jsonData,
+			TwoObjects<byte[], byte[]> imageData){
 
 		// the file "name"
 		String fileName = com.tools.Tools.randomString(64);

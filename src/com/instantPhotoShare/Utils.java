@@ -65,16 +65,10 @@ public class Utils {
 	private static final String KEY_DATA = "data";
 	/** The key for the action to take on server */
 	private static final String KEY_ACTION = "action";
-	/** The return code for a successful sync with server */
-	private static final int GOOD_RETURN_CODE = 200;
 	/** The key for posting the image data */
 	private static final String KEY_FULLSIZE = "fullsize";
 	/** key for the thumbnail */
 	private static final String KEY_THUMBNAIL = "thumbnail";
-	/** The image type */
-	private static final String FILE_TYPE = "image/jpeg";
-	/** The encoding type of form data */
-	private static final Charset ENCODING_TYPE = Charset.forName("UTF-8");
 			
 	public static void clearApplicationData(Context ctx) {
 		File cache = ctx.getCacheDir();
@@ -216,13 +210,10 @@ public class Utils {
 	 * @param imageData the thumbnail, and picture data, null if there is no data
 	 * @return the result of the post
 	 */
-	static private ServerJSON postToServerHelper(
+	static private ShareBearServerReturn postToServerHelper(
 			String action,
 			String jsonData,
 			TwoObjects<byte[], byte[]> imageData){
-		
-		// the default error results
-		ServerJSON defaultOutput = ServerJSON.getDefaultFailure();
 				
 		// make the post
 		com.tools.ServerPost post = new ServerPost(Prefs.BASE_URL + Prefs.REQUEST_PAGE);
@@ -239,102 +230,7 @@ public class Utils {
 		ServerReturn result = post.post();
 		
 		// convert to ServerJSON
-		return new ServerJSON(result);
-	}
-	
-	/**
-	 * Post data to the server
-	 * @param action the action to take
-	 * @param jsonData the data to post
-	 * @param imageData the thumbnail, and picture data, null if there is no data
-	 * @return the result of the post
-	 */
-	static private ServerJSON postToServerHelperOld(
-			String action,
-			String jsonData,
-			TwoObjects<byte[], byte[]> imageData){
-
-		// the file "name"
-		String fileName = com.tools.Tools.randomString(64);
-
-		// the default error results
-		ServerJSON defaultOutput = ServerJSON.getDefaultFailure();
-
-		// initialize result string
-		String result = "";
-
-		// initialize http client and post to correct page
-		HttpClient client = new DefaultHttpClient();
-		HttpPost httpPost = new HttpPost(
-				Prefs.BASE_URL + Prefs.REQUEST_PAGE);
-
-		// set to not open tcp connection
-		httpPost.getParams().setBooleanParameter(CoreProtocolPNames.USE_EXPECT_CONTINUE, false);
-
-		// build the values to post, the action and the form data, and file data (if any)
-		MultipartEntity multipartEntity = new MultipartEntity(
-				HttpMultipartMode.BROWSER_COMPATIBLE);
-		try{
-			multipartEntity.addPart(KEY_ACTION, new StringBody(action, ENCODING_TYPE));
-			multipartEntity.addPart(KEY_DATA, new StringBody(jsonData, ENCODING_TYPE));
-			if (imageData != null){
-				multipartEntity.addPart(KEY_FULLSIZE, new ByteArrayBody(imageData.mObject1, FILE_TYPE, fileName));
-				multipartEntity.addPart(KEY_THUMBNAIL, new ByteArrayBody(imageData.mObject2, FILE_TYPE, fileName));
-			}
-		}catch (Exception e){
-			defaultOutput.setErrorMessage(e.toString(), null);
-			return defaultOutput;
-		}
-
-		// set the values to the post
-		httpPost.setEntity(multipartEntity);
-
-		int statusCode= -1;
-
-		// send post
-		try {
-			// actual send
-			HttpResponse response = client.execute(httpPost);
-
-			// check what kind of return
-			StatusLine statusLine = response.getStatusLine();
-			statusCode = statusLine.getStatusCode();
-
-			// good return
-			if (statusCode == GOOD_RETURN_CODE) {
-				// read return
-				HttpEntity entity = response.getEntity();
-				InputStream content = entity.getContent();
-				BufferedReader reader = new BufferedReader(new InputStreamReader(content));
-				String line;
-				while ((line = reader.readLine()) != null) {
-					//	builder.append(line + "\n");
-					result = line;
-				}
-				content.close();
-				//result = builder.toString();
-
-				// bad return	
-			} else {
-				defaultOutput.setErrorMessage(statusLine.getReasonPhrase(), statusCode);
-				return defaultOutput;
-			}
-
-			// different failures	
-		} catch (ClientProtocolException e) {
-			defaultOutput.setErrorMessage(e.toString(), "ClientProtocolException");
-			return defaultOutput;
-		} catch (IOException e) {
-			defaultOutput.setErrorMessage(e.toString(), "IOException");
-			return defaultOutput;
-		}
-
-		//try parse the string to a JSON object
-		ServerJSON output = null;
-		output = new ServerJSON(result);
-
-		// return the final json object
-		return output;	
+		return new ShareBearServerReturn(result);
 	}
 
 	/**
@@ -346,7 +242,7 @@ public class Utils {
 	 * @param imageData Two objects, the full image byte[] and the thumbnail byte[]
 	 * @return The json response from server.
 	 */
-	static public ServerJSON postToServer(
+	static public ShareBearServerReturn postToServer(
 			String action,
 			JSONObject data,
 			TwoObjects<byte[], byte[]> imageData){
@@ -363,7 +259,7 @@ public class Utils {
 	 * @param imageData Two objects, the full image byte[] and the thumbnail byte[]
 	 * @return The json response from server.
 	 */
-	static public ServerJSON postToServer(
+	static public ShareBearServerReturn postToServer(
 			String action,
 			JSONArray data,
 			TwoObjects<byte[], byte[]> imageData){

@@ -11,11 +11,12 @@ import org.json.JSONObject;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.instantPhotoShare.ContactCheckedArray;
 import com.instantPhotoShare.Prefs;
-import com.instantPhotoShare.ServerJSON;
+import com.instantPhotoShare.ShareBearServerReturn;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.GroupsAdapter.Group;
@@ -25,11 +26,12 @@ import com.instantPhotoShare.Adapters.UsersAdapter;
 import com.instantPhotoShare.Adapters.UsersInGroupsAdapter;
 import com.tools.CustomActivity;
 import com.tools.CustomAsyncTask;
+import com.tools.ServerPost.ServerReturn;
 import com.tools.SuccessReason;
 import com.tools.ThreeObjects;
 
 public class AddUsersToGroupTask <ACTIVITY_TYPE extends CustomActivity>
-extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask<ACTIVITY_TYPE>.ReturnFromAddUsersToGroupTask>{
+extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAddUsersToGroupTask>{
 
 	// constants
 	private static final String LOCAL_TITLE = "Saving Users to Group";
@@ -39,7 +41,6 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask<ACTIVITY_TYP
 	private ContactCheckedArray mContactChecked;
 	private int progressMax = 1;
 	private boolean cancelTask = false;
-	private AddUsersToGroupTask<ACTIVITY_TYPE> task = this;
 	private long groudRowId = -1;
 	private int usersAdded = 0;
 	private int usersRemoved = 0;
@@ -54,7 +55,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask<ACTIVITY_TYP
 	private static final String KEY_PERSON_EMAIL = "person_email";
 	private static final String KEY_PHONE_NUMBER = "phone_number";
 	private static final String KEY_GROUP_ID = "group_id";
-	private static final String KEY_CONTACT_METHOD = "CONTACT_METHOD";
+	private static final String KEY_CONTACT_METHOD = "contact_method";
 	
 
 	// server errors
@@ -63,8 +64,6 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask<ACTIVITY_TYP
 	private static final String LOCAL_CREATION_ERROR = "USER_COULD_NOT_BE_ADDED_FOR_UNKNOWN_REASON";
 	private static final String ERROR_MESSAGE = "User could not be added for unknown reason on device";
 	
-	
-
 	/**
 	 * Make a group and put it into the groups database and then add all the users to it.
 	 * @param act The calling activity
@@ -106,7 +105,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask<ACTIVITY_TYP
 	}
 
 	@Override
-	protected AddUsersToGroupTask<ACTIVITY_TYPE>.ReturnFromAddUsersToGroupTask doInBackground(Void... params) {
+	protected AddUsersToGroupTask.ReturnFromAddUsersToGroupTask doInBackground(Void... params) {
 		
 		// make the new group
 		ThreeObjects<SuccessReason, HashSet<Long>, HashSet<Long>> out = 
@@ -114,44 +113,48 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask<ACTIVITY_TYP
 		SuccessReason localResult = out.mObject1;
 		HashSet<Long> newUsers = out.mObject2;
 		HashSet<Long> deletions = out.mObject3;
-
+		
 		// if we errored, then stop
 		if (!localResult.getSuccess()){
 			ReturnFromAddUsersToGroupTask serverResponse = 
-				new ReturnFromAddUsersToGroupTask(ServerJSON.getDefaultFailure());
-			serverResponse.setErrorMessage(ERROR_MESSAGE, LOCAL_CREATION_ERROR);
+					new ReturnFromAddUsersToGroupTask();
+			serverResponse.setError(LOCAL_CREATION_ERROR, ERROR_MESSAGE);
 			return serverResponse;
 		}
 
 		// no one to edit, so return
 		if (getTotalEdits() == 0)
-			return new ReturnFromAddUsersToGroupTask(ServerJSON.getDefaultFailure());
+			return new ReturnFromAddUsersToGroupTask();
 				
 		// now add users to server
 		//TODO: set the links and users to be updating
 		//TODO: convert non json server return to proper error
-		ReturnFromAddUsersToGroupTask serverResponse = null;
+		ReturnFromAddUsersToGroupTask serverResponse = new ReturnFromAddUsersToGroupTask();
 		try {
-			serverResponse = new ReturnFromAddUsersToGroupTask(
-					Utils.postToServer(ACTION,
-							getDataToPost(newUsers, deletions),
-							null));
+			serverResponse = new ReturnFromAddUsersToGroupTask(Utils.postToServer(ACTION, getDataToPost(newUsers, deletions), null));
 		} catch (JSONException e) {
-			serverResponse = new ReturnFromAddUsersToGroupTask(ServerJSON.getDefaultFailure());
-			serverResponse.setErrorMessage(e.getMessage(), "JSONException");
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			serverResponse.setError(e);
 		}
+		
+		// set serverids of the users
+		//TODO: set sync and update status of links
 		//TODO: be able to delte users, locally and on server
-		//TODO: get back serverid of user, so from now on i just send that.
-
-		// set sync and update status
-		//TODO: set sync and update status of links and users	
-		//if (serverResponse.isSuccess())
-		//	groups.setIsSynced(rowId, true, serverResponse.getGroupId());
-		//groups.setIsUpdating(rowId, false);
+		if (serverResponse.isSuccess()){
+			UsersAdapter users = new UsersAdapter(applicationCtx);
+			JSONArray array = serverResponse.getMessageArray();
+			Iterator<Long> iterator = newUsers.iterator();
+			for (int i = 0; i < array.length(); i++){
+				long id = array.optLong(i, 0);
+				if (id != 0){
+					users.setIsSynced(iterator.next(), true, id);
+				}else
+					users.setIsUpdating(iterator.next(), false);
+			}
+		}
 
 		// return the value
 		return serverResponse;
-
 	}
 
 	/**
@@ -207,7 +210,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask<ACTIVITY_TYP
 	}
 
 	@Override
-	protected void onPostExectueOverride(AddUsersToGroupTask<ACTIVITY_TYPE>.ReturnFromAddUsersToGroupTask result) {
+	protected void onPostExectueOverride(AddUsersToGroupTask.ReturnFromAddUsersToGroupTask result) {
 
 		if (applicationCtx == null)
 			return;
@@ -215,7 +218,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask<ACTIVITY_TYP
 		// no edits
 		if (getTotalEdits() == 0){
 			Toast.makeText(applicationCtx, "No changes", Toast.LENGTH_SHORT).show();
-			task.sendObjectToActivityFromPostExecute(result);
+			sendObjectToActivityFromPostExecute(result);
 			return;
 		}
 		
@@ -228,7 +231,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask<ACTIVITY_TYP
 					getTotalEdits() + " users updated to " + group.getName(),
 					Toast.LENGTH_SHORT)
 					.show();
-			task.sendObjectToActivityFromPostExecute(result);
+			sendObjectToActivityFromPostExecute(result);
 			return;
 		}
 
@@ -256,7 +259,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask<ACTIVITY_TYP
 					NOTIFICATION_TYPES.SERVER_ERROR);
 
 			// send the result back to calling activity
-			task.sendObjectToActivityFromPostExecute(result);
+			sendObjectToActivityFromPostExecute(result);
 		}
 	}
 
@@ -372,49 +375,26 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask<ACTIVITY_TYP
 		return output;
 	}
 
-	public class ReturnFromAddUsersToGroupTask
-	extends ServerJSON{
+	public static class ReturnFromAddUsersToGroupTask
+	extends ShareBearServerReturn{
 
-		/**
-		 * Intiailize a ReturnFromAddUsersToGroupTask object from a ServerJSON object.
-		 * @param toCopy
-		 */
-		protected ReturnFromAddUsersToGroupTask(ServerJSON toCopy) {
+		public ReturnFromAddUsersToGroupTask(ServerReturn toCopy) {
 			super(toCopy);
 		}
 
-		/**
-		 * The json must have either <br>
-		 * 1. At least 2 keys, KEY_STATUS, and KEY_SUCCESS_MESSAGE or <br>
-		 * 2. At least 3 keys, KEY_STATUS, KEY_ERROR_MESSAGE, and KEY_ERROR_CODE <br>
-		 * Also if successfull must have KEY_GROUP_ID
-		 */
-		protected void checkAcceptableSub(){
-
-			// now check that we have userId and secretCode
-			if (isSuccess()){
-				//if (getGroupId() == -1)
-				//	throw new IllegalArgumentException(
-				//			"ReturnFromAddUsersToGroupTask " + 
-				//			KEY_GROUP_ID + " key required.");
-
-			}		
+		public ReturnFromAddUsersToGroupTask() {
+			super();
 		}
 
-		/**
-		 * Gets the group ID stored in this object returned from the server. Returns -1 if there isn't one. <br>
-		 * That should never happen, because an illegal argument exceptions should have been
-		 * thrown if this were the case, when object was created.
-		 * @return
-		 */
-		public long getGroupId() {
-			try {
-				return jsonObject.getLong(KEY_GROUP_ID);
-			} catch (JSONException e) {
-				return -1;
-			}
+		@Override
+		protected boolean isSuccessCustom2() {
+			JSONArray array = getMessageArray();
+			if (array == null)
+				return false;
+			else
+				return true;
 		}
-
+		
 		/**
 		 * If we had a local error (we couldn't add users locally) then return true, else false
 		 * @return
@@ -425,7 +405,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask<ACTIVITY_TYP
 			else
 				return getErrorCode().equalsIgnoreCase(LOCAL_CREATION_ERROR);
 		}
-
+		
 		/**
 		 * Boolean if we had a local group creation success.
 		 * @return
@@ -436,5 +416,6 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask<ACTIVITY_TYP
 			else
 				return false;
 		}
+		
 	}
 }

@@ -5,20 +5,15 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Iterator;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.instantPhotoShare.Prefs;
-import com.instantPhotoShare.ServerJSON;
 import com.instantPhotoShare.ShareBearServerReturn;
-import com.instantPhotoShare.ThumbnailServerReturn;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Tasks.CreateGroupTask;
 import com.tools.CustomActivity;
-import com.tools.ServerPost;
 import com.tools.ServerPost.PostCallback;
 import com.tools.ServerPost.ServerReturn;
 import com.tools.ThreeObjects;
@@ -28,7 +23,6 @@ import com.tools.TwoStrings;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
-import android.util.Base64;
 import android.util.Log;
 
 public class GroupsAdapter
@@ -205,10 +199,10 @@ extends TableAdapter <GroupsAdapter>{
 	 * @param groupServerId the server id of the group in question
 	 * @param callback The callback to be called when we are done. Can be null
 	 */
-	public synchronized <ACTIVITY_TYPE extends CustomActivity>void
-	fetchPictureIdsFromServer(
+	public synchronized <ACTIVITY_TYPE extends CustomActivity>
+		void fetchPictureIdsFromServer(
 			ACTIVITY_TYPE act,
-			long groupServerId,
+			final long groupServerId,
 			final PostCallback<ACTIVITY_TYPE> callback){
 		
 		// make json data to post
@@ -250,15 +244,23 @@ extends TableAdapter <GroupsAdapter>{
 
 						// loop checking the pictures and creating in database if we don't have
 						PicturesAdapter pics = new PicturesAdapter(ctx);
+						GroupsAdapter adapter = new GroupsAdapter(ctx);
+						Group group = adapter.getGroupByServerId(groupServerId);
+						int counter = 0;
 						for (int i = 0; i < array.length(); i++){
 							
 							// create a new picture in database
+							TwoStrings picNames = group.getNextPictureName();
+							counter++;
+							
 							try {
+								// determine the path to store files
+								
 								if(!pics.isPicturePresent(array.getLong(i))){
 									pics.createPicture(
 											ctx,
-											null,
-											null,
+											picNames.mObject1,
+											picNames.mObject2,
 											"",
 											-1l,
 											null,
@@ -271,36 +273,13 @@ extends TableAdapter <GroupsAdapter>{
 							}
 						}	
 						
-						// testing
-						JSONObject json2 = new JSONObject();
-						try{
-							json2.put("user_id", Prefs.getUserServerId(ctx));
-							json2.put("secret_code", Prefs.getSecretCode(ctx));
-							JSONArray a = new JSONArray();
-							a.put(255);
-							json2.put("thumbnail_ids", a);
-						}catch (JSONException e) {
-							Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
-							return;
+						// notification for new pictures
+						if (counter > 0){
+							NotificationsAdapter notes = new NotificationsAdapter(ctx);
+							notes.createNotification(
+									counter + " new pictures for " + group.getName(),
+									NotificationsAdapter.NOTIFICATION_TYPES.NEW_PICTURE_IN_GROUP);
 						}
-						Utils.postToServer("get_thumbnails", json2.toString(), null, act, new PostCallback<ACTIVITY_TYPE>() {
-
-							@Override
-							public void onPostFinished(
-									ACTIVITY_TYPE act,
-									ServerReturn result) {
-								ThumbnailServerReturn data = new ThumbnailServerReturn(result);
-								Long id = 255l;
-								byte[] data2 = data.getThumbnailBytes(id);
-								com.tools.Tools.saveByteDataToFile(act, data2, "ahhh", false, null, 0, true);
-							}
-
-							@Override
-							public void onPostFinishedUiThread(
-									ACTIVITY_TYPE act, ServerReturn result) {
-								
-							}
-						});
 						
 						// send callback back to activity
 						if (callback != null)
@@ -629,6 +608,47 @@ extends TableAdapter <GroupsAdapter>{
 					null,
 					KEY_ROW_ID + "='" + rowId +"'" + ADDITIONAL_QUERY,
 					null,
+					null,
+					null,
+					SORT_ORDER,
+					null);
+		
+		// check null
+		if (cursor == null || !cursor.moveToFirst())
+			return output;
+		
+		// check if we are accessing more than one row, this shouuldn't happen
+		if (cursor.getCount() > 1 && !Prefs.debug.allowMultipleUpdates)
+			throw new IllegalArgumentException("attempting to access more than one row. This should never happen");
+		
+		// make the group from cursor
+		output = new Group(cursor);
+		
+		// close and return
+		cursor.close();
+		return output;
+	}
+	
+	/**
+	 * Return a group for the given serverId
+	 * 
+	 * @param serverId id of group to retrieve
+	 * @return Group object, null if none found at serverId
+	 */
+	public Group getGroupByServerId(long serverId){
+
+		// default
+		Group output = null;
+		
+		// grab the cursor
+		Cursor cursor =
+
+			database.query(
+					true,
+					TABLE_NAME,
+					null,
+					KEY_ROW_ID + "=?" + ADDITIONAL_QUERY,
+					new String[] {String.valueOf(serverId)},
 					null,
 					null,
 					SORT_ORDER,

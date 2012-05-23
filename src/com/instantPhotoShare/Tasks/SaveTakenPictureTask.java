@@ -9,10 +9,11 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.media.ExifInterface;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.instantPhotoShare.Prefs;
-import com.instantPhotoShare.ServerJSON;
+import com.instantPhotoShare.ShareBearServerReturn;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter.Group;
 import com.instantPhotoShare.Adapters.NotificationsAdapter.NOTIFICATION_TYPES;
@@ -21,6 +22,7 @@ import com.instantPhotoShare.Adapters.PicturesAdapter;
 import com.instantPhotoShare.Adapters.PicturesInGroupsAdapter;
 import com.tools.CustomActivity;
 import com.tools.CustomAsyncTask;
+import com.tools.ServerPost.ServerReturn;
 import com.tools.SuccessReason;
 import com.tools.TwoObjects;
 import com.tools.TwoStrings;
@@ -138,8 +140,8 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask<ACTIVITY_TYPE>
 		if (!pictureSave.getSuccess()){
 			NotificationsAdapter not = new NotificationsAdapter(applicationCtx);
 			not.createNotification(pictureSave.getReason(), NOTIFICATION_TYPES.DEVICE_ERROR);
-			ReturnFromPostPicture result = new ReturnFromPostPicture(ReturnFromPostPicture.getDefaultFailure());
-			result.setErrorMessage(pictureSave.getReason(), LOCAL_CREATION_ERROR);
+			ReturnFromPostPicture result = new ReturnFromPostPicture();
+			result.setError(LOCAL_CREATION_ERROR, pictureSave.getReason());
 			result.setPictureRowId(-1);
 			return result;
 		}
@@ -167,8 +169,8 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask<ACTIVITY_TYPE>
 		if (!thumbnailSave.getSuccess()){
 			NotificationsAdapter not = new NotificationsAdapter(applicationCtx);
 			not.createNotification(thumbnailSave.getReason(), NOTIFICATION_TYPES.DEVICE_ERROR);
-			ReturnFromPostPicture result = new ReturnFromPostPicture(ReturnFromPostPicture.getDefaultFailure());
-			result.setErrorMessage(thumbnailSave.getReason(), LOCAL_CREATION_ERROR);
+			ReturnFromPostPicture result = new ReturnFromPostPicture();
+			result.setError(LOCAL_CREATION_ERROR, thumbnailSave.getReason());
 			result.setPictureRowId(-1);
 			return result;
 		}
@@ -190,8 +192,8 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask<ACTIVITY_TYPE>
 			String msg = "Saving picture into database could not be completed for unknown reason";
 			NotificationsAdapter not = new NotificationsAdapter(applicationCtx);
 			not.createNotification(msg, NOTIFICATION_TYPES.DEVICE_ERROR);
-			ReturnFromPostPicture result = new ReturnFromPostPicture(ReturnFromPostPicture.getDefaultFailure());
-			result.setErrorMessage(msg, LOCAL_CREATION_ERROR);
+			ReturnFromPostPicture result = new ReturnFromPostPicture();
+			result.setError(LOCAL_CREATION_ERROR, msg);
 			result.setPictureRowId(-1);
 			return result;
 		}
@@ -204,8 +206,8 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask<ACTIVITY_TYPE>
 				String msg = "link between picture and group could be made for unknown reason";
 				NotificationsAdapter not = new NotificationsAdapter(applicationCtx);
 				not.createNotification(msg, NOTIFICATION_TYPES.DEVICE_ERROR);
-				ReturnFromPostPicture result = new ReturnFromPostPicture(ReturnFromPostPicture.getDefaultFailure());
-				result.setErrorMessage(msg, LOCAL_CREATION_ERROR);
+				ReturnFromPostPicture result = new ReturnFromPostPicture();
+				result.setError(LOCAL_CREATION_ERROR, msg);
 				result.setPictureRowId(-1);
 				return result;
 			}
@@ -313,8 +315,9 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask<ACTIVITY_TYPE>
 		try {
 			serverData = getDataToPost();
 		} catch (JSONException e) {
-			serverResponse = new ReturnFromPostPicture(ServerJSON.getDefaultFailure());
-			serverResponse.setErrorMessage(e.getMessage(), "JSONException");
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			serverResponse = new ReturnFromPostPicture();
+			serverResponse.setError(e);
 			return serverResponse;
 		}
 		if (serverData == null)
@@ -322,7 +325,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask<ACTIVITY_TYPE>
 
 		// tell the database that we are updating
 		PicturesAdapter picturesAdapter = new PicturesAdapter(applicationCtx);
-		picturesAdapter.fetchPicture(pictureRowId);
+		//picturesAdapter.fetchPicture(pictureRowId);
 		picturesAdapter.setIsUpdating(pictureRowId, true);
 
 		// post picture to server
@@ -382,7 +385,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask<ACTIVITY_TYPE>
 	}
 
 	class ReturnFromPostPicture
-	extends ServerJSON{
+	extends ShareBearServerReturn{
 
 		// other private variables
 		private long pictureRowId = -1;
@@ -394,8 +397,12 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask<ACTIVITY_TYPE>
 		 * Intiailize a ReturnFromCreateGroupTask object from a ServerJSON object.
 		 * @param toCopy
 		 */
-		protected ReturnFromPostPicture(ServerJSON toCopy) {
+		protected ReturnFromPostPicture(ServerReturn toCopy) {
 			super(toCopy);
+		}
+		
+		protected ReturnFromPostPicture(){
+			super();
 		}
 
 		/**
@@ -404,16 +411,18 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask<ACTIVITY_TYPE>
 		 * 2. At least 3 keys, KEY_STATUS, KEY_ERROR_MESSAGE, and KEY_ERROR_CODE <br>
 		 * Also if successfull must have KEY_GROUP_ID
 		 */
-		protected void checkAcceptableSub(){
+		@Override
+		protected boolean isSuccessCustom2(){
 
 			// now check that we have userId and secretCode
 			if (isSuccess()){
-				if (getPictureServerId() == -1)
-					throw new IllegalArgumentException(
-							"ReturnFromPostPicture " + 
-							KEY_IMAGE_ID + " key required.");
-
-			}		
+				if (getPictureServerId() == -1){
+					Log.e(Utils.LOG_TAG, "Incorrect SaveTakenPictureServerReturn");
+					return false;
+				}
+			}	
+			
+			return true;
 		}
 
 		/**
@@ -424,7 +433,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask<ACTIVITY_TYPE>
 		 */
 		public long getPictureServerId() {
 			try {
-				return jsonObject.getLong(KEY_IMAGE_ID);
+				return getMessageObject().getLong(KEY_IMAGE_ID);
 			} catch (JSONException e) {
 				return -1;
 			}

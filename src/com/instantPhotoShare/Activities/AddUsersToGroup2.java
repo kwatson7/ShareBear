@@ -906,8 +906,8 @@ extends CustomActivity{
 		case ADD_USERS_TO_PHOTOSHARE_GROUP:
 			switch (asyncTypeCall){
 			case POST:
-				AddUsersToGroupTask<AddUsersToGroup2>.ReturnFromAddUsersToGroupTask value = 
-					(AddUsersToGroupTask<AddUsersToGroup2>.ReturnFromAddUsersToGroupTask) data;
+				AddUsersToGroupTask.ReturnFromAddUsersToGroupTask value = 
+					(AddUsersToGroupTask.ReturnFromAddUsersToGroupTask) data;
 
 				// if we are successful, just quit
 				if (value.isLocalSuccess())

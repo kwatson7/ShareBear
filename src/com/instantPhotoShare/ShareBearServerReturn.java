@@ -39,6 +39,15 @@ extends ServerPost.ServerReturn{
 		super(toCopy);
 	}
 	
+	public ShareBearServerReturn(){
+		super();
+	}
+	
+	public ShareBearServerReturn(String errorCode, String errorMessage){
+		super();
+		setError(errorCode, errorMessage);
+	}
+	
 	/**
 	 * Requires that we have KEY_STATUS, and KEY_STATUS must be SUCCESS
 	 */

@@ -2,14 +2,16 @@ package com.instantPhotoShare.Tasks;
 
 import org.json.JSONException;
 import android.app.ProgressDialog;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.instantPhotoShare.Person;
 import com.instantPhotoShare.Prefs;
-import com.instantPhotoShare.ServerJSON;
+import com.instantPhotoShare.ShareBearServerReturn;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.UsersAdapter;
 import com.tools.CustomActivity;
+import com.tools.ServerPost.ServerReturn;
 
 public class CreateNewAccountTask<ACTIVITY_TYPE extends CustomActivity>
 	extends com.tools.CustomAsyncTask <ACTIVITY_TYPE, Integer, CreateNewAccountTask<ACTIVITY_TYPE>.ReturnFromCreateNewAccountTask>{
@@ -60,13 +62,13 @@ public class CreateNewAccountTask<ACTIVITY_TYPE extends CustomActivity>
 		try {
 			serverResponse = new ReturnFromCreateNewAccountTask(Utils.postToServer(CREATE_USER, person.getNewUserInfo(), null));
 		} catch (JSONException e) {
-			serverResponse = new ReturnFromCreateNewAccountTask(ServerJSON.getDefaultFailure());
-			serverResponse.setErrorMessage(e.getMessage(), "JSONException");
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			serverResponse.setError(e);
 		}
 
 		// SAVE to users database
 		if(serverResponse.isSuccess() && !saveValuesFromServer(serverResponse))
-			serverResponse.setErrorMessage("Could not save user into database", COULD_NOT_STORE_LOCALLY);
+			serverResponse.setError(COULD_NOT_STORE_LOCALLY, "Could not save user into database");
 		return serverResponse;
 	}
 
@@ -148,7 +150,7 @@ public class CreateNewAccountTask<ACTIVITY_TYPE extends CustomActivity>
 	}
 
 	public class ReturnFromCreateNewAccountTask
-	extends ServerJSON{
+	extends ShareBearServerReturn{
 
 		// KEYS in JSON
 		private static final String KEY_UNIQUE_KEY = "secret_code";
@@ -158,7 +160,7 @@ public class CreateNewAccountTask<ACTIVITY_TYPE extends CustomActivity>
 		 * Intiailize a ReturnFromLoginTask object from a ServerJSON object.
 		 * @param toCopy
 		 */
-		protected ReturnFromCreateNewAccountTask(ServerJSON toCopy) {
+		protected ReturnFromCreateNewAccountTask(ServerReturn toCopy) {
 			super(toCopy);
 		}
 
@@ -168,16 +170,17 @@ public class CreateNewAccountTask<ACTIVITY_TYPE extends CustomActivity>
 		 * 2. At least 3 keys, KEY_STATUS, KEY_ERROR_MESSAGE, and KEY_ERROR_CODE <br>
 		 * Also if successfull must have KEY_USER_ID and KEY_UNIQUE_KEY
 		 */
-		protected void checkAcceptableSub(){
+		@Override
+		protected boolean isSuccessCustom2(){
 
 			// now check that we have userId and secretCode
 			if (isSuccess()){
 				if (getUserId() == -1 || getSecretCode().length() == 0)
-					throw new IllegalArgumentException("ReturnFromLoginTask " + 
-							KEY_USER_ID + " key and " + 
-							KEY_UNIQUE_KEY + " key.");
-
+					Log.e(Utils.LOG_TAG, "not correct info back from server in CreateNewAccountTask");
+					return false;
 			}		
+			
+			return true;
 		}
 
 		/**
@@ -188,7 +191,7 @@ public class CreateNewAccountTask<ACTIVITY_TYPE extends CustomActivity>
 		 */
 		public long getUserId() {
 			try {
-				return jsonObject.getLong(KEY_USER_ID);
+				return getMessageObject().getLong(KEY_USER_ID);
 			} catch (JSONException e) {
 				return -1;
 			}
@@ -202,7 +205,7 @@ public class CreateNewAccountTask<ACTIVITY_TYPE extends CustomActivity>
 		 */
 		public String getSecretCode() {
 			try {
-				return jsonObject.getString(KEY_UNIQUE_KEY);
+				return getMessageObject().getString(KEY_UNIQUE_KEY);
 			} catch (JSONException e) {
 				return "";
 			}

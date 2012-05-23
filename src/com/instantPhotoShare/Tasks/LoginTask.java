@@ -4,13 +4,15 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.app.ProgressDialog;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.instantPhotoShare.Prefs;
-import com.instantPhotoShare.ServerJSON;
+import com.instantPhotoShare.ShareBearServerReturn;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.UsersAdapter;
 import com.tools.CustomActivity;
+import com.tools.ServerPost.ServerReturn;
 
 public class LoginTask <ACTIVITY_TYPE extends CustomActivity>
 	extends com.tools.CustomAsyncTask<ACTIVITY_TYPE, Integer, LoginTask<ACTIVITY_TYPE>.ReturnFromLoginTask>{
@@ -50,17 +52,17 @@ public class LoginTask <ACTIVITY_TYPE extends CustomActivity>
 	protected ReturnFromLoginTask doInBackground(Void... params) {
 		
 		// post data to server and get response
-		LoginTask<ACTIVITY_TYPE>.ReturnFromLoginTask serverResponse = null;
+		LoginTask<ACTIVITY_TYPE>.ReturnFromLoginTask serverResponse = new ReturnFromLoginTask();
 		try {
 			serverResponse = new ReturnFromLoginTask(Utils.postToServer(USER_LOGIN, getDataToPost(), null));
 		} catch (JSONException e) {
-			serverResponse = new ReturnFromLoginTask(ServerJSON.getDefaultFailure());
-			serverResponse.setErrorMessage(e.getMessage(), "JSONException");
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			serverResponse.setError(e);
 		}
 		
 		// SAVE to users database
 		if(serverResponse.isSuccess() && !saveValuesFromServer(serverResponse))
-			serverResponse.setErrorMessage("Could not save user into database", COULD_NOT_STORE_LOCALLY);
+			serverResponse.setError(COULD_NOT_STORE_LOCALLY, "Could not save user into database");
 		
 		return serverResponse;
 	}
@@ -149,7 +151,7 @@ public class LoginTask <ACTIVITY_TYPE extends CustomActivity>
 	}
 
 	public class ReturnFromLoginTask
-	extends ServerJSON{
+	extends ShareBearServerReturn{
 
 		/** The userName that we used to login simply taken from enclosing class */
 		private String userName = user;
@@ -164,8 +166,12 @@ public class LoginTask <ACTIVITY_TYPE extends CustomActivity>
 		 * Intiailize a ReturnFromLoginTask object from a ServerJSON object.
 		 * @param toCopy
 		 */
-		protected ReturnFromLoginTask(ServerJSON toCopy) {
+		protected ReturnFromLoginTask(ServerReturn toCopy) {
 			super(toCopy);
+		}
+		
+		protected ReturnFromLoginTask(){
+			super();
 		}
 		
 		/**
@@ -174,16 +180,16 @@ public class LoginTask <ACTIVITY_TYPE extends CustomActivity>
 		 * 2. At least 3 keys, KEY_STATUS, KEY_ERROR_MESSAGE, and KEY_ERROR_CODE <br>
 		 * Also if successfull must have KEY_USER_ID and KEY_UNIQUE_KEY
 		 */
-		protected void checkAcceptableSub(){
+		@Override
+		protected boolean isSuccessCustom2(){
 			
 			// now check that we have userId and secretCode
 			if (isSuccess()){
 				if (getUserId() == -1 || getSecretCode().length() == 0)
-					throw new IllegalArgumentException("ReturnFromLoginTask " + 
-							KEY_USER_ID + " key and " + 
-							KEY_UNIQUE_KEY + " key.");
-					
+					Log.e(Utils.LOG_TAG, "Incorrect format return from LoginTask");
+					return false;
 			}		
+			return true;
 		}
 
 		/**
@@ -194,7 +200,7 @@ public class LoginTask <ACTIVITY_TYPE extends CustomActivity>
 		 */
 		public long getUserId() {
 			try {
-				return jsonObject.getLong(KEY_USER_ID);
+				return getMessageObject().getLong(KEY_USER_ID);
 			} catch (JSONException e) {
 				return -1;
 			}
@@ -208,7 +214,7 @@ public class LoginTask <ACTIVITY_TYPE extends CustomActivity>
 		 */
 		public String getSecretCode() {
 			try {
-				return jsonObject.getString(KEY_UNIQUE_KEY);
+				return getMessageObject().getString(KEY_UNIQUE_KEY);
 			} catch (JSONException e) {
 				return "";
 			}
@@ -231,207 +237,3 @@ public class LoginTask <ACTIVITY_TYPE extends CustomActivity>
 		}
 	}
 }
-
-//public class ReturnFromLoginTaskOld {
-//
-//	// static constants
-//	public static final String SUCCESS = LoginTask.SUCCESS;
-//	
-//	/** The status of the return from server */
-//	private String status;
-//	/** If there was an error, the reason for the error, "" otherwise*/
-//	protected String reason = "";
-//	/** If there was a return, the status code, -1 otherwise */
-//	private int code = -1;
-//	/** The userId returned from server */
-//	private long userId;
-//	/** the sercetCode returned from server */
-//	private String secretCode;
-//	
-//	private String userName = user;
-//	private String password = pass;
-//	
-//	protected ReturnFromLoginTaskOld
-//	(String status,
-//			String reason,
-//			int code){
-//		
-//		this.status = status;
-//		this.reason = reason;
-//		this.code = code;
-//
-//	}
-//	
-//	public ReturnFromLoginTaskOld
-//	(String status,
-//			String reason){
-//		
-//		this.status = status;
-//		this.reason = reason;
-//	}
-//	
-//	public ReturnFromLoginTaskOld(
-//			String status,
-//			int code){
-//		this.status = status;
-//		this.code = code;
-//		this.reason = "StatusCode = " + code;
-//	}
-//	
-//	public ReturnFromLoginTaskOld(
-//			String status,
-//			String reason,
-//			int code,
-//			long userId,
-//			String secretCode){
-//		this.status = status;
-//		this.code = code;
-//		this.setUserId(userId);
-//		this.setSecretCode(secretCode);
-//		this.reason = reason;
-//	}
-//			
-//	/**
-//	 * If the return from the server is "success"
-//	 * @return
-//	 */
-//	public boolean isSuccess(){
-//		if (status.equals(SUCCESS))
-//			return true;
-//		else
-//			return false;
-//	}
-//
-//	private void setUserId(long userId) {
-//		this.userId = userId;
-//	}
-//
-//	public long getUserId() {
-//		return userId;
-//	}
-//
-//	private void setSecretCode(String secretCode) {
-//		this.secretCode = secretCode;
-//	}
-//
-//	public String getSecretCode() {
-//		return secretCode;
-//	}
-//
-//	private void setUserName(String userName) {
-//		this.userName = userName;
-//	}
-//
-//	public String getUserName() {
-//		return userName;
-//	}
-//
-//	private void setPassword(String password) {
-//		this.password = password;
-//	}
-//
-//	public String getPassword() {
-//		return password;
-//	}
-//}
-
-//private LoginTask.ReturnFromLoginTaskOld postValue(String action, String user, String pass) throws JSONException{
-//
-//	// output
-//	LoginTask.ReturnFromLoginTaskOld output;
-//
-//	// initialize result string
-//	String result = "";
-//	StringBuilder builder = new StringBuilder();
-//
-//	// initialize http client and post to correct page
-//	HttpClient client = new DefaultHttpClient();
-//	HttpPost httpPost = new HttpPost(
-//			BASE_URL + REQUEST_PAGE);
-//
-//	// set to not open tcp connection
-//	httpPost.getParams().setBooleanParameter(CoreProtocolPNames.USE_EXPECT_CONTINUE, false);
-//
-//	// the particular action and all the user info
-//	ArrayList<BasicNameValuePair> nameValuePairs = new ArrayList<BasicNameValuePair>();
-//	nameValuePairs.add(new BasicNameValuePair(ACTION, action));
-//	nameValuePairs.add(new BasicNameValuePair(DATA, getDataToPost().toString()));
-//
-//	// set the values to the post
-//	try {
-//		httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
-//	} catch (UnsupportedEncodingException e1) {
-//		output =  new LoginTask.ReturnFromLoginTaskOld(
-//				FAILURE,
-//				e1.toString());
-//		return output;
-//	}
-//
-//	int statusCode= -1;
-//
-//	// send post
-//	try {
-//		// actual send
-//		HttpResponse response = client.execute(httpPost);
-//
-//		// check what kind of return
-//		StatusLine statusLine = response.getStatusLine();
-//		statusCode = statusLine.getStatusCode();
-//
-//		// good return
-//		if (statusCode == GOOD_RETURN_CODE) {
-//			// read return
-//			HttpEntity entity = response.getEntity();
-//			InputStream content = entity.getContent();
-//			BufferedReader reader = new BufferedReader(new InputStreamReader(content));
-//			String line;
-//			while ((line = reader.readLine()) != null) {
-//				builder.append(line + "\n");
-//			}
-//			content.close();
-//			result = builder.toString();
-//
-//			// bad return	
-//		} else {
-//			output =  new LoginTask.ReturnFromLoginTaskOld(
-//					FAILURE,
-//					statusCode);
-//			return output;
-//		}
-//
-//		// different failures	
-//	} catch (ClientProtocolException e) {
-//		output =  new LoginTask.ReturnFromLoginTaskOld(
-//				FAILURE,
-//				e.toString(),
-//				statusCode);
-//		return output;
-//	} catch (IOException e) {
-//		output =  new LoginTask.ReturnFromLoginTaskOld(
-//				FAILURE,
-//				e.toString(),
-//				statusCode);
-//		return output;
-//	}
-//
-//	//try parse the string to a JSON object
-//	try{
-//		JSONObject json = new JSONObject(result);
-//		output = new LoginTask.ReturnFromLoginTaskOld(
-//				json.optString(STATUS),
-//				json.optString(ERROR_MESSAGE),
-//				statusCode,
-//				json.optLong(USER_ID),
-//				json.optString(UNIQUE_KEY));
-//
-//	}catch(JSONException e){
-//		output =  new LoginTask.ReturnFromLoginTaskOld(
-//				FAILURE,
-//				"Error parsing data "+e.toString(),
-//				statusCode);
-//		return output;
-//	}
-//
-//	// return the final json object
-//	return output;	
-//}

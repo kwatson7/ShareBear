@@ -4,16 +4,18 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.app.ProgressDialog;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.instantPhotoShare.Prefs;
-import com.instantPhotoShare.ServerJSON;
+import com.instantPhotoShare.ShareBearServerReturn;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.NotificationsAdapter;
 import com.instantPhotoShare.Adapters.NotificationsAdapter.NOTIFICATION_TYPES;
 import com.tools.CustomActivity;
 import com.tools.CustomAsyncTask;
+import com.tools.ServerPost.ServerReturn;
 
 public class CreateGroupTask <ACTIVITY_TYPE extends CustomActivity>  
 extends CustomAsyncTask<ACTIVITY_TYPE, Integer, CreateGroupTask<ACTIVITY_TYPE>.ReturnFromCreateGroupTask>{
@@ -118,16 +120,16 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, CreateGroupTask<ACTIVITY_TYPE>.R
 
 			// if we were not successful
 			if (rowId == - 1){
-				ReturnFromCreateGroupTask result = new ReturnFromCreateGroupTask(ReturnFromCreateGroupTask.getDefaultFailure());
-				result.setErrorMessage(ERROR_MESSAGE, LOCAL_CREATION_ERROR);
+				ReturnFromCreateGroupTask result = new ReturnFromCreateGroupTask();
+				result.setError(LOCAL_CREATION_ERROR, ERROR_MESSAGE);
 				result.setRowId(rowId);
 				return result;
 			}
 
 			// no need to add to server if local
 			if (isLocal){
-				ReturnFromCreateGroupTask result = new ReturnFromCreateGroupTask(ReturnFromCreateGroupTask.getDefaultFailure());
-				result.setErrorMessage(LOCAL_ONLY, LOCAL_ONLY);
+				ReturnFromCreateGroupTask result = new ReturnFromCreateGroupTask();
+				result.setError(LOCAL_ONLY, LOCAL_ONLY);
 				result.setRowId(rowId);
 				return result;
 			}
@@ -137,7 +139,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, CreateGroupTask<ACTIVITY_TYPE>.R
 		if (!isCreateGroupLocally){
 			GroupsAdapter.Group tmpGroup = groups.getGroup(rowId);
 			if(tmpGroup.isKeepLocal()){
-				ReturnFromCreateGroupTask result = new ReturnFromCreateGroupTask(ReturnFromCreateGroupTask.getDefaultFailure());
+				ReturnFromCreateGroupTask result = new ReturnFromCreateGroupTask();
 				return result;
 			}
 			
@@ -147,12 +149,12 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, CreateGroupTask<ACTIVITY_TYPE>.R
 		
 		// now add group to server
 		groups.setIsUpdating(rowId, true);
-		ReturnFromCreateGroupTask serverResponse = null;
+		ReturnFromCreateGroupTask serverResponse = new ReturnFromCreateGroupTask();
 		try {
 			serverResponse = new ReturnFromCreateGroupTask(Utils.postToServer(CREATE_GROUP, getDataToPost(groupName), null));
 		} catch (JSONException e) {
-			serverResponse = new ReturnFromCreateGroupTask(ServerJSON.getDefaultFailure());
-			serverResponse.setErrorMessage(e.getMessage(), "JSONException");
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			serverResponse.setError(e);
 		}
 		serverResponse.setRowId(rowId);
 
@@ -288,7 +290,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, CreateGroupTask<ACTIVITY_TYPE>.R
 	}
 
 	public class ReturnFromCreateGroupTask
-	extends ServerJSON{
+	extends ShareBearServerReturn{
 
 		// other private variables
 		private long rowId = -1;
@@ -300,8 +302,12 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, CreateGroupTask<ACTIVITY_TYPE>.R
 		 * Intiailize a ReturnFromCreateGroupTask object from a ServerJSON object.
 		 * @param toCopy
 		 */
-		protected ReturnFromCreateGroupTask(ServerJSON toCopy) {
+		protected ReturnFromCreateGroupTask(ServerReturn toCopy) {
 			super(toCopy);
+		}
+		
+		protected ReturnFromCreateGroupTask(){
+			super();
 		}
 
 		/**
@@ -330,7 +336,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, CreateGroupTask<ACTIVITY_TYPE>.R
 		 */
 		public long getGroupId() {
 			try {
-				return jsonObject.getLong(KEY_GROUP_ID);
+				return getMessageObject().getLong(KEY_GROUP_ID);
 			} catch (JSONException e) {
 				return -1;
 			}

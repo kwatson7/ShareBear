@@ -25,9 +25,9 @@ extends ShareBearServerReturn{
 		String base64 = json.optString(String.valueOf(serverId));
 		
 		// strip off useless data in front
-		if (base64 == null || base64.length() < 24)
+		if (base64 == null || base64.length() < 23)
 			return null;
-		base64 = base64.substring(24);
+		base64 = base64.substring(23);
 		
 		return base64;
 	}
@@ -40,8 +40,6 @@ extends ShareBearServerReturn{
 	public byte[] getThumbnailBytes(long serverId){
 		// grab the base64
 		String base64 = getThumbailData(serverId);
-		if (base64 == null)
-			return null;
 		
 		// now convert to byte
 		try{

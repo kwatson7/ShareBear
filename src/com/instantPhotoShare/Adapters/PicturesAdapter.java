@@ -3,15 +3,22 @@ package com.instantPhotoShare.Adapters;
 import java.util.ArrayList;
 import java.util.Date;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import com.instantPhotoShare.FullSizeServerReturn;
 import com.instantPhotoShare.Prefs;
+import com.instantPhotoShare.ThumbnailServerReturn;
 import com.instantPhotoShare.Utils;
 import com.tools.TwoObjects;
-
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.media.ExifInterface;
+import android.util.Log;
 import android.widget.ImageView;
 
 public class PicturesAdapter 
@@ -122,6 +129,112 @@ extends TableAdapter<PicturesAdapter>{
 
 		// insert the values
 		return database.insert(TABLE_NAME, null, values);
+	}
+	
+	/**
+	 * Grab the thumbnail data from the server and save it to file. <br>
+	 * *** This is slow, so perform on background thread ***
+	 * @return The thumbnail data
+	 */
+	public byte[] getThumbnailServer(){
+
+		// grab the server Id
+		long serverId = getServerId();
+		if (serverId == -1){
+			Log.e(Utils.LOG_TAG, "tried to get thumbnail from server for picture with no serverId");
+			return null;
+		}
+		
+		// create the data required to post to server
+		JSONObject json = new JSONObject();
+		try{
+			json.put("user_id", Prefs.getUserServerId(ctx));
+			json.put("secret_code", Prefs.getSecretCode(ctx));
+			JSONArray a = new JSONArray();
+			a.put(serverId);
+			json.put("thumbnail_ids", a);
+		}catch (JSONException e) {
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			return null;
+		}
+		
+		// post to the server
+		ThumbnailServerReturn result = new ThumbnailServerReturn(Utils.postToServer("get_thumbnails", json, null));
+		
+		// grab the thumbnail data
+		byte[] data = result.getThumbnailBytes(serverId);
+		
+		// no data, return
+		if (data == null || data.length == 0)
+			return null;
+		
+		// determine wehre to save it
+		String thumbPath = getThumbnailPath();
+		
+		// write to file
+		com.tools.Tools.saveByteDataToFile(
+				ctx,
+				data,
+				"",
+				false,
+				thumbPath,
+				ExifInterface.ORIENTATION_NORMAL,
+				false);
+		
+		// return the data
+		return data;
+	}
+	
+	/**
+	 * Grab the full image data from the server and save it to file. <br>
+	 * *** This is slow, so perform on background thread ***
+	 * @return The image data
+	 */
+	public byte[] getFullImageServer(){
+
+		// grab the server Id
+		long serverId = getServerId();
+		if (serverId == -1){
+			Log.e(Utils.LOG_TAG, "tried to get image from server for picture with no serverId");
+			return null;
+		}
+		
+		// create the data required to post to server
+		JSONObject json = new JSONObject();
+		try{
+			json.put("user_id", Prefs.getUserServerId(ctx));
+			json.put("secret_code", Prefs.getSecretCode(ctx));
+			json.put("image_id", serverId);
+		}catch (JSONException e) {
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			return null;
+		}
+		
+		// post to the server
+		FullSizeServerReturn result = new FullSizeServerReturn(Utils.postToServer("get_fullsize", json, null));
+		
+		// grab the image data
+		byte[] data = result.getImageBytes();
+		
+		// no data, return
+		if (data == null || data.length == 0)
+			return null;
+		
+		// determine where to save it
+		String fullPath = getFullPicturePath();
+		
+		// write to file
+		com.tools.Tools.saveByteDataToFile(
+				ctx,
+				data,
+				"",
+				false,
+				fullPath,
+				ExifInterface.ORIENTATION_NORMAL,
+				false);
+		
+		// return the data
+		return data;
 	}
 	
 	/**
@@ -581,6 +694,17 @@ extends TableAdapter<PicturesAdapter>{
 			return -1;
 		else
 			return getLong(rowIdCol);
+	}
+	
+	/**
+	 * Get the server Id of this picture, -1 if none.
+	 * @return
+	 */
+	public long getServerId(){
+		if (!checkCursor())
+			return -1;
+		else
+			return getLong(KEY_SERVER_ID);
 	}
 	
 	/**

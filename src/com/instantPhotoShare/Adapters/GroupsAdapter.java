@@ -5,11 +5,22 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Iterator;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import com.instantPhotoShare.Prefs;
+import com.instantPhotoShare.ServerJSON;
+import com.instantPhotoShare.ShareBearServerReturn;
+import com.instantPhotoShare.ThumbnailServerReturn;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Tasks.CreateGroupTask;
 import com.tools.CustomActivity;
+import com.tools.ServerPost;
+import com.tools.ServerPost.PostCallback;
+import com.tools.ServerPost.ServerReturn;
 import com.tools.ThreeObjects;
 import com.tools.TwoObjects;
 import com.tools.TwoStrings;
@@ -17,6 +28,8 @@ import com.tools.TwoStrings;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.util.Base64;
+import android.util.Log;
 
 public class GroupsAdapter
 extends TableAdapter <GroupsAdapter>{
@@ -183,6 +196,127 @@ extends TableAdapter <GroupsAdapter>{
 		
 		return newRow;
 	}	
+	
+	/**
+	 * Fetch all the pictures from the server for a given groupID and then create holding pictures
+	 * for any pictures not present in database. Done a a background thread
+	 * @param <ACTIVITY_TYPE>
+	 * @param act The activity that will be attached to callback on return.
+	 * @param groupServerId the server id of the group in question
+	 * @param callback The callback to be called when we are done. Can be null
+	 */
+	public synchronized <ACTIVITY_TYPE extends CustomActivity>void
+	fetchPictureIdsFromServer(
+			ACTIVITY_TYPE act,
+			long groupServerId,
+			final PostCallback<ACTIVITY_TYPE> callback){
+		
+		// make json data to post
+		JSONObject json = new JSONObject();
+		try{
+			json.put("user_id", Prefs.getUserServerId(ctx));
+			json.put("secret_code", Prefs.getSecretCode(ctx));
+			json.put("group_id", groupServerId);
+		}catch (JSONException e) {
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			return;
+		}
+		
+		Utils.postToServer(
+				"get_thumbnail_ids",
+				json.toString(),
+				null,
+				act,
+				new PostCallback<ACTIVITY_TYPE>() {
+
+					@Override
+					public void onPostFinished(
+							ACTIVITY_TYPE act,
+							ServerReturn result) {
+						
+						// convert to thumbnail data
+						ShareBearServerReturn data = new ShareBearServerReturn(result);
+						
+						// not a good return
+						if (!data.isSuccess()){
+							Log.e(Utils.LOG_TAG, result.getDetailErrorMessage());
+							return;
+						}
+						
+						// parse returned data and check if we have these pictures
+						JSONArray array;
+						array = data.getJSONArray();
+						if (array == null)
+							return;
+
+						// loop checking the pictures and creating in database if we don't have
+						PicturesAdapter pics = new PicturesAdapter(ctx);
+						for (int i = 0; i < array.length(); i++){
+							
+							// create a new picture in database
+							try {
+								if(!pics.isPicturePresent(array.getLong(i))){
+									pics.createPicture(
+											ctx,
+											null,
+											null,
+											"",
+											-1l,
+											null,
+											null);
+								}
+							} catch (NumberFormatException e) {
+								Log.e("TAG", Log.getStackTraceString(e));
+							} catch (JSONException e) {
+								Log.e("TAG", Log.getStackTraceString(e));
+							}
+						}	
+						
+						// testing
+						JSONObject json2 = new JSONObject();
+						try{
+							json2.put("user_id", Prefs.getUserServerId(ctx));
+							json2.put("secret_code", Prefs.getSecretCode(ctx));
+							JSONArray a = new JSONArray();
+							a.put(255);
+							json2.put("thumbnail_ids", a);
+						}catch (JSONException e) {
+							Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+							return;
+						}
+						Utils.postToServer("get_thumbnails", json2.toString(), null, act, new PostCallback<ACTIVITY_TYPE>() {
+
+							@Override
+							public void onPostFinished(
+									ACTIVITY_TYPE act,
+									ServerReturn result) {
+								ThumbnailServerReturn data = new ThumbnailServerReturn(result);
+								Long id = 255l;
+								byte[] data2 = data.getThumbnailBytes(id);
+								com.tools.Tools.saveByteDataToFile(act, data2, "ahhh", false, null, 0, true);
+							}
+
+							@Override
+							public void onPostFinishedUiThread(
+									ACTIVITY_TYPE act, ServerReturn result) {
+								
+							}
+						});
+						
+						// send callback back to activity
+						if (callback != null)
+							callback.onPostFinished(act, result);
+					}
+
+					@Override
+					public void onPostFinishedUiThread(
+							ACTIVITY_TYPE act,
+							ServerReturn result) {
+						if (callback != null)
+							callback.onPostFinishedUiThread(act, result);
+					}
+		});
+	}
 	
 	/**
 	 * If we are synced to the server, then set this field to true.

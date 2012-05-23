@@ -77,19 +77,11 @@ public class ServerJSON{
 		ServerJSON output = ServerJSON.getDefaultFailure();
 		
 		// check there were no errors
-		switch(serverReturn.getReturnType()){
-		case BAD_CODE:
-			output.setErrorMessage(serverReturn.getDetailMessage(), "BAD_CODE");
-			break;
-		case CLIENT_PROTOCOL_ERROR:
-			output.setErrorMessage(serverReturn.getDetailMessage(), "CLIENT_PROTOCOL_ERROR");
-			break;
-		case IO_EXCEPTION:
-			output.setErrorMessage(serverReturn.getDetailMessage(), "IO_EXCEPTION");
-			break;
-		case COMPLETED:
+		// check there were no errors
+		if (!serverReturn.isSuccess()){
+			output.setErrorMessage(serverReturn.getDetailErrorMessage(), serverReturn.getErrorCode());
+		}else{
 			output = new ServerJSON(serverReturn.getServerReturnLastLine());
-			break;
 		}
 		
 		// copy json data

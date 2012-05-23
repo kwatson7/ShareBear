@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -39,7 +38,6 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Environment;
-import android.util.Log;
 import android.widget.ImageView;
 
 public class Utils {
@@ -185,10 +183,11 @@ public class Utils {
 	 * @param action The action to take
 	 * @param jsonData the "data" json data to post
 	 * @param imageData thumbnail, full picture data, null if none
-	 * @param act The activity that calls the background task
-	 * @param callback
+	 * @param act The activity that calls the background task, can be null
+	 * @param callback callback to run when return from server
 	 */
-	public static <ACTIVITY_TYPE extends CustomActivity> void postToServer(
+	public static <ACTIVITY_TYPE extends CustomActivity>
+	void postToServer(
 			String action,
 			String jsonData,
 			TwoObjects<byte[], byte[]> imageData,
@@ -239,27 +238,8 @@ public class Utils {
 		// post to server
 		ServerReturn result = post.post();
 		
-		// the output
-		ServerJSON output = null;
-		
-		// check there were no errors
-		switch(result.getReturnType()){
-		case BAD_CODE:
-			defaultOutput.setErrorMessage(result.getDetailMessage(), "BAD_CODE");
-			return defaultOutput;
-		case CLIENT_PROTOCOL_ERROR:
-			defaultOutput.setErrorMessage(result.getDetailMessage(), "CLIENT_PROTOCOL_ERROR");
-			return defaultOutput;
-		case IO_EXCEPTION:
-			defaultOutput.setErrorMessage(result.getDetailMessage(), "IO_EXCEPTION");
-			return defaultOutput;
-		case COMPLETED:
-			output = new ServerJSON(result.getServerReturnLastLine());
-			break;
-		}
-
-		// return the final json object
-		return output;
+		// convert to ServerJSON
+		return new ServerJSON(result);
 	}
 	
 	/**

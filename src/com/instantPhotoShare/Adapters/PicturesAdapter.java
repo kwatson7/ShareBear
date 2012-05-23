@@ -108,7 +108,7 @@ extends TableAdapter<PicturesAdapter>{
 		// override some values and/or check
 		if (dateTaken == null || dateTaken.length() == 0)
 			dateTaken = Utils.getNowTime();
-		if (idWhoTook == null || idWhoTook == -1)
+		if (idWhoTook == null)
 			idWhoTook = Prefs.getUserRowId(ctx);
 		
 		// all the values
@@ -379,6 +379,52 @@ extends TableAdapter<PicturesAdapter>{
 	public void fetchPicture(long rowId){
 		setCursor(fetchPicturePrivate(rowId));
 		moveToFirst();
+	}
+	
+	/**
+	 * Fetch the picture with the given serverId. <br>
+	 * *** Make sure to close cursor when finished with closeCursor ***
+	 * @param serverId The serverId of the picture
+	 */
+	public void fetchPictureFromServerId(long serverId){
+		Cursor cursor =
+
+			database.query(
+					true,
+					TABLE_NAME,
+					null,
+					KEY_SERVER_ID + "=?",
+					new String[] {String.valueOf(serverId)},
+					null,
+					null,
+					SORT_ORDER,
+					null);
+
+		setCursor(cursor);
+		moveToFirst();
+	}
+	
+	/**
+	 * Is the given picture based on the serverId present in the database
+	 * @param serverId is the picture present
+	 * @return
+	 */
+	public boolean isPicturePresent(long serverId){
+		Cursor cursor =
+
+			database.query(
+					true,
+					TABLE_NAME,
+					new String[] {KEY_ROW_ID},
+					KEY_SERVER_ID + "=?",
+					new String[] {String.valueOf(serverId)},
+					null,
+					null,
+					SORT_ORDER,
+					null);
+		boolean value = cursor.moveToFirst();
+		cursor.close();
+		return value;
 	}
 	
 	/**

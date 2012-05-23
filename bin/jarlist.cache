@@ -1,15 +1,15 @@
 # cache for current jar dependecy. DO NOT EDIT.
 # format is <lastModified> <length> <SHA-1> <path>
 # Encoding is UTF-8
-1335382521234 181409 592ffbd778cbcc2e2dc5d162b35c16d6a538fea2 C:\Documents and Settings\kwatson\My Documents\Java\Tools\libs\httpcore-4.1.4.jar
-1335382521234 181409 592ffbd778cbcc2e2dc5d162b35c16d6a538fea2 C:\Documents and Settings\kwatson\My Documents\Java\ShareBear\libs\httpcore-4.1.4.jar
-1335382521234 26938 e70d34d98f7f7f3b2b92105b9f2fe2a7a7184461 C:\Documents and Settings\kwatson\My Documents\Java\ShareBear\libs\httpmime-4.1.3.jar
-1335382521234 26938 e70d34d98f7f7f3b2b92105b9f2fe2a7a7184461 C:\Documents and Settings\kwatson\My Documents\Java\Tools\libs\httpmime-4.1.3.jar
-1335382521218 352585 a260d242a42d8ccaec0c410084f9b62d47a7c2c5 C:\Documents and Settings\kwatson\My Documents\Java\Tools\libs\httpclient-4.1.3.jar
-1335382521218 352585 a260d242a42d8ccaec0c410084f9b62d47a7c2c5 C:\Documents and Settings\kwatson\My Documents\Java\ShareBear\libs\httpclient-4.1.3.jar
-1335382521187 58160 4216af16d38465bbab0f3dff8efa14204f7a399a C:\Documents and Settings\kwatson\My Documents\Java\ShareBear\libs\commons-codec-1.4.jar
-1335382521187 58160 4216af16d38465bbab0f3dff8efa14204f7a399a C:\Documents and Settings\kwatson\My Documents\Java\Tools\libs\commons-codec-1.4.jar
-1335382521203 60686 5043bfebc3db072ed80fbd362e7caf00e885d8ae C:\Documents and Settings\kwatson\My Documents\Java\ShareBear\libs\commons-logging-1.1.1.jar
-1335382521203 60686 5043bfebc3db072ed80fbd362e7caf00e885d8ae C:\Documents and Settings\kwatson\My Documents\Java\Tools\libs\commons-logging-1.1.1.jar
-1335382521218 107498 855f951e63b010a4b3e5486f73676d1c7f200c6d C:\Documents and Settings\kwatson\My Documents\Java\Tools\libs\httpclient-cache-4.1.3.jar
-1335382521218 107498 855f951e63b010a4b3e5486f73676d1c7f200c6d C:\Documents and Settings\kwatson\My Documents\Java\ShareBear\libs\httpclient-cache-4.1.3.jar
+1337663954698 181409 592ffbd778cbcc2e2dc5d162b35c16d6a538fea2 C:\Users\Kyle\Documents\java\Tools\libs\httpcore-4.1.4.jar
+1324353966000 181409 592ffbd778cbcc2e2dc5d162b35c16d6a538fea2 C:\Users\Kyle\Documents\java\InstantPhotoShare\libs\httpcore-4.1.4.jar
+1328213970000 26938 e70d34d98f7f7f3b2b92105b9f2fe2a7a7184461 C:\Users\Kyle\Documents\java\InstantPhotoShare\libs\httpmime-4.1.3.jar
+1337663954698 26938 e70d34d98f7f7f3b2b92105b9f2fe2a7a7184461 C:\Users\Kyle\Documents\java\Tools\libs\httpmime-4.1.3.jar
+1328213970000 352585 a260d242a42d8ccaec0c410084f9b62d47a7c2c5 C:\Users\Kyle\Documents\java\InstantPhotoShare\libs\httpclient-4.1.3.jar
+1337663954608 352585 a260d242a42d8ccaec0c410084f9b62d47a7c2c5 C:\Users\Kyle\Documents\java\Tools\libs\httpclient-4.1.3.jar
+1323050872000 58160 4216af16d38465bbab0f3dff8efa14204f7a399a C:\Users\Kyle\Documents\java\InstantPhotoShare\libs\commons-codec-1.4.jar
+1337663954543 58160 4216af16d38465bbab0f3dff8efa14204f7a399a C:\Users\Kyle\Documents\java\Tools\libs\commons-codec-1.4.jar
+1337663954608 107498 855f951e63b010a4b3e5486f73676d1c7f200c6d C:\Users\Kyle\Documents\java\Tools\libs\httpclient-cache-4.1.3.jar
+1328213966000 107498 855f951e63b010a4b3e5486f73676d1c7f200c6d C:\Users\Kyle\Documents\java\InstantPhotoShare\libs\httpclient-cache-4.1.3.jar
+1323044950000 60686 5043bfebc3db072ed80fbd362e7caf00e885d8ae C:\Users\Kyle\Documents\java\InstantPhotoShare\libs\commons-logging-1.1.1.jar
+1337663954543 60686 5043bfebc3db072ed80fbd362e7caf00e885d8ae C:\Users\Kyle\Documents\java\Tools\libs\commons-logging-1.1.1.jar

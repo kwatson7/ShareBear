@@ -26,6 +26,8 @@ import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.GroupsAdapter.Group;
 import com.instantPhotoShare.Adapters.PicturesAdapter;
 import com.tools.CustomActivity;
+import com.tools.ServerPost.PostCallback;
+import com.tools.ServerPost.ServerReturn;
 import com.tools.images.ImageLoader.LoadImage;
 
 public class InsideGroupGallery 
@@ -148,7 +150,33 @@ extends CustomActivity{
         	backgroundDrawable = null;
         }else
         	Utils.setBackground(this, group.getPictureThumbnailPath(this), screen, 0.5f);
+        
+        // fetch the list of pictures from server
+        long serverId = group.getServerId();
+        if (serverId != -1)
+        	groups.fetchPictureIdsFromServer(this, serverId, fetchPictureIdsCallback);
 	}
+	
+	/**
+	 * The callback to run when we are done grabbing the pictures from the server
+	 */
+	private PostCallback<InsideGroupGallery> fetchPictureIdsCallback = 
+		new PostCallback<InsideGroupGallery>() {
+			
+			@Override
+			public void onPostFinishedUiThread(
+					InsideGroupGallery act,
+					ServerReturn result) {
+				act.getPictures();
+				act.fillPictures();
+				
+			}
+			
+			@Override
+			public void onPostFinished(InsideGroupGallery act, ServerReturn result) {
+				
+			}
+		};
 	
 	@Override
 	public void onPause(){

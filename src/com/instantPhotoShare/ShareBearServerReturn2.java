@@ -1,0 +1,111 @@
+package com.instantPhotoShare;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import com.tools.ServerPost;
+import com.tools.ServerPost.ServerReturn;
+
+import android.util.Log;
+
+/**
+ * The json response from the server will always have either <p>
+ * 1. At least 2 keys, KEY_STATUS, and KEY_SUCCESS_MESSAGE or <br>
+ * 2. At least 3 keys, KEY_STATUS, KEY_ERROR_MESSAGE, and KEY_ERROR_CODE <p>
+ * The json functionality is enclosed inside this class and only accessible through custom methods.
+ */
+public class ShareBearServerReturn2
+extends ServerPost.ServerReturn{
+
+	// keys returned from server
+	private static final String KEY_STATUS = "response_status";				// The key for the message indicating success or failure
+	private static final String KEY_RESPONSE_MESSAGE = "response_message"; 	// The key with the returned data
+	private static final String RESPONSE_CODE = "response_code"; 			// The key indicating the type of response
+
+	// values for the server
+	private static final String FAILURE = "failed"; 						// The value for a failed status
+	private static final String SUCCESS = "success"; 						// The value for a success status/
+	
+	// different error codes
+	private static final String NO_JSON_DATA_CODE = "NO_JSON_DATA";
+	private static final String NO_JSON_DATA_MESSAGE = "No return from the server";
+	
+	/**
+	 * Initialize a ShareBearServerReturn object with a generic ServerReturn object.
+	 * @param toCopy
+	 */
+	public ShareBearServerReturn2(ServerReturn toCopy){
+		super(toCopy);
+	}
+	
+	/**
+	 * Requires that we have KEY_STATUS, and KEY_STATUS must be SUCCESS
+	 */
+	@Override
+	final protected boolean isSuccessCustom(){
+		JSONObject json = getJSONObject();
+		
+		// make sure there is json data
+		if (json == null){
+			setError(NO_JSON_DATA_CODE, NO_JSON_DATA_MESSAGE);
+			Log.e(Utils.LOG_TAG, "no json data. This should not happen");
+			return false;
+		}
+		
+		// check that 3 important fields are present
+		if (!json.has(KEY_STATUS) || !json.has(KEY_RESPONSE_MESSAGE) || !json.has(RESPONSE_CODE))
+			return false;
+		if (!json.optString(KEY_STATUS).equalsIgnoreCase(SUCCESS))
+				return false;
+		
+		// if we made it here, then we're good
+		return isSuccessCustom2();
+	}
+	
+	/**
+	 * This method always returns true. Override it to add further constraints to isSuccess();
+	 * @return
+	 */
+	protected boolean isSuccessCustom2(){
+		return true;
+	}
+	
+	/**
+	 * Get the response_message of this object
+	 * @return
+	 */
+	public String getMessage(){
+		return getJSONObject().optString(KEY_RESPONSE_MESSAGE);
+	}
+	
+	/**
+	 * Return the mssage as a json object. Will be null if we could not convert
+	 * @return
+	 */
+	public JSONObject getMessageObject(){
+		JSONObject json;
+		try {
+			json = new JSONObject(getMessage());
+		} catch (JSONException e) {
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			return null;
+		}
+		return json;
+	}
+	
+	/**
+	 * Return the message as a json array. Will be null if we could not convert
+	 * @return
+	 */
+	public JSONArray getMessageArray(){
+		JSONArray json;
+		try {
+			json = new JSONArray(getMessage());
+		} catch (JSONException e) {
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			return null;
+		}
+		return json;
+	}
+}

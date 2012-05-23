@@ -3,6 +3,7 @@ package com.instantPhotoShare;
 import org.json.JSONObject;
 
 import android.util.Base64;
+import android.util.Log;
 
 import com.tools.ServerPost.ServerReturn;
 
@@ -43,6 +44,11 @@ extends ShareBearServerReturn{
 			return null;
 		
 		// now convert to byte
-		return Base64.decode(base64, Base64.DEFAULT);
+		try{
+			return Base64.decode(base64, Base64.DEFAULT);
+		}catch (RuntimeException e){
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			return null;
+		}
 	}
 }

@@ -244,8 +244,7 @@ extends TableAdapter <GroupsAdapter>{
 						}
 						
 						// parse returned data and check if we have these pictures
-						JSONArray array;
-						array = data.getJSONArray();
+						JSONArray array = data.getMessageArray();
 						if (array == null)
 							return;
 

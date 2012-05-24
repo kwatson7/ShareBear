@@ -21,7 +21,7 @@ extends ServerPost.ServerReturn{
 	// keys returned from server
 	private static final String KEY_STATUS = "response_status";				// The key for the message indicating success or failure
 	private static final String KEY_RESPONSE_MESSAGE = "response_message"; 	// The key with the returned data
-	private static final String RESPONSE_CODE = "response_code"; 			// The key indicating the type of response
+	private static final String KEY_RESPONSE_CODE = "response_code"; 			// The key indicating the type of response
 
 	// values for the server
 	private static final String FAILURE = "failed"; 						// The value for a failed status
@@ -37,6 +37,11 @@ extends ServerPost.ServerReturn{
 	 */
 	public ShareBearServerReturn(ServerReturn toCopy){
 		super(toCopy);
+		
+		// check for success and add failure code if available
+		if (!isSuccess() && getStatus().equalsIgnoreCase(FAILURE)){
+			setError(getResponseCode(), getMessage());
+		}
 	}
 	
 	public ShareBearServerReturn(){
@@ -63,13 +68,25 @@ extends ServerPost.ServerReturn{
 		}
 		
 		// check that 3 important fields are present
-		if (!json.has(KEY_STATUS) || !json.has(KEY_RESPONSE_MESSAGE) || !json.has(RESPONSE_CODE))
+		if (!json.has(KEY_STATUS) || !json.has(KEY_RESPONSE_MESSAGE) || !json.has(KEY_RESPONSE_CODE))
 			return false;
 		if (!json.optString(KEY_STATUS).equalsIgnoreCase(SUCCESS))
 				return false;
 		
 		// if we made it here, then we're good
 		return isSuccessCustom2();
+	}
+	
+	/**
+	 * Get the status code of this return. "" if none.
+	 * @return
+	 */
+	public String getStatus(){
+		JSONObject json = getJSONObject();
+		if (json == null)
+			return "";
+		else
+			return getJSONObject().optString(KEY_STATUS);
 	}
 	
 	/**
@@ -81,11 +98,27 @@ extends ServerPost.ServerReturn{
 	}
 	
 	/**
-	 * Get the response_message of this object
+	 * Get the response_message of this object, "" if not found
 	 * @return
 	 */
 	public String getMessage(){
-		return getJSONObject().optString(KEY_RESPONSE_MESSAGE);
+		JSONObject json = getJSONObject();
+		if (json == null)
+			return "";
+		else
+			return getJSONObject().optString(KEY_RESPONSE_MESSAGE);
+	}
+	
+	/**
+	 * Get the response code, "" if none.
+	 * @return
+	 */
+	public String getResponseCode(){
+		JSONObject json = getJSONObject();
+		if (json == null)
+			return "";
+		else
+			return getJSONObject().optString(KEY_RESPONSE_CODE);
 	}
 	
 	/**

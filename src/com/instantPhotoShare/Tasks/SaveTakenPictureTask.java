@@ -83,9 +83,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask<ACTIVITY_TYPE>
 				null);
 
 		// save data
-		//TODO: memory erro crash here sometimes
-		this.camData = new byte[camData.length];
-		System.arraycopy(camData, 0, this.camData, 0, camData.length);
+		this.camData = camData;
 		this.camRotation = camRotation;
 		this.caption = caption;
 		this.groups = groups;
@@ -247,7 +245,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask<ACTIVITY_TYPE>
 		// local error
 		if (result.isLocalError()){
 			//Toast.makeText(applicationCtx, result.getMessage(), Toast.LENGTH_LONG).show();
-			showAlert(result.getMessage());
+			showAlert(result.getDetailErrorMessage());
 			return;
 
 			// server error
@@ -258,10 +256,10 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask<ACTIVITY_TYPE>
 			NOTIFICATION_TYPES notesType;
 
 			// default values
-			toastMessage = "Picture not saved on server because:\n" + result.getMessage() +
+			toastMessage = "Picture not saved on server because:\n" + result.getDetailErrorMessage() +
 			".\nPictre is still saved on device, but is not shared!";
 			notesMessage = "Picture with rowId " + result.getPictureRowId() + " not created on server because:\n"
-			+ result.getMessage() + ".\nPicture is still saved on device, but is not shared!";
+			+ result.getDetailErrorMessage() + ".\nPicture is still saved on device, but is not shared!";
 			notesType = NOTIFICATION_TYPES.SERVER_ERROR;
 
 			// show the toast

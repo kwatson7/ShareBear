@@ -238,7 +238,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 		// if not successful, then see how
 		// local error
 		if (result.isLocalError()){
-			Toast.makeText(applicationCtx, result.getMessage(), Toast.LENGTH_LONG).show();
+			Toast.makeText(applicationCtx, result.getDetailErrorMessage(), Toast.LENGTH_LONG).show();
 			return;
 
 			// server error
@@ -248,14 +248,14 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 			// show the toast
 			Toast.makeText(applicationCtx,
 					getTotalEdits() + " users updated to " + group.getName()
-					+ " on device, but not added to server because:\n" + result.getMessage(),
+					+ " on device, but not added to server because:\n" + result.getDetailErrorMessage(),
 					Toast.LENGTH_LONG).show();
 
 			// store in notifications
 			NotificationsAdapter notes = new NotificationsAdapter(applicationCtx);
 			notes.createNotification("Group with name '" + group.getName() + "' and rowId " + groudRowId +
 					" users not updated successfully on server because:\n"
-					+ result.getMessage() + ".\nUsers are still created on device, but not on server!", 
+					+ result.getDetailErrorMessage() + ".\nUsers are still created on device, but not on server!", 
 					NOTIFICATION_TYPES.SERVER_ERROR);
 
 			// send the result back to calling activity

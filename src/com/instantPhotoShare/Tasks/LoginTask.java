@@ -80,7 +80,7 @@ public class LoginTask <ACTIVITY_TYPE extends CustomActivity>
 					"Successfully logged in",
 					Toast.LENGTH_SHORT).show();
 		}else{
-			String reason = result.getMessage();
+			String reason = result.getDetailErrorMessage();
 			if (callingActivity != null)
 				Toast.makeText(callingActivity,
 						"Failed to login because:\n" + reason,

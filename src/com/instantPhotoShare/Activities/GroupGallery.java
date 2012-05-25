@@ -53,8 +53,6 @@ extends CustomActivity{
 	@Override
 	public void onAsyncExecute(int requestCode, AsyncTypeCall asyncTypeCall,
 			Object data) {
-		// TODO Auto-generated method stub
-		throw new UnsupportedOperationException("Not supported yet.");
 
 	}
 

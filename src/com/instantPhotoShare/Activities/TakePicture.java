@@ -3,6 +3,7 @@ package com.instantPhotoShare.Activities;
 import java.util.ArrayList;
 import com.instantPhotoShare.Prefs;
 import com.instantPhotoShare.R;
+import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.GroupsAdapter.Group;
 import com.instantPhotoShare.Adapters.PicturesAdapter;
@@ -219,7 +220,7 @@ implements SurfaceHolder.Callback{
         setGroupsString(); 
 
         // class for keeping camera orientated properly, and force to stay in landscape
-		cameraHelper = new CameraHelper(this, null, false, onRotate);
+		cameraHelper = new CameraHelper(null, Utils.IMAGE_QUALITY, false, onRotate);
 		cameraHelper.onCreate(this);
 
 		// setup surface for holding camera
@@ -700,6 +701,8 @@ implements SurfaceHolder.Callback{
 		
 		@Override
 		public void onShutter() {
+			AudioManager mgr = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
+			mgr.setStreamMute(AudioManager.STREAM_SYSTEM, false);
 			AudioManager meng = (AudioManager) getBaseContext().getSystemService(Context.AUDIO_SERVICE);
 		    int volume = meng.getStreamVolume( AudioManager.STREAM_NOTIFICATION);
 
@@ -713,6 +716,7 @@ implements SurfaceHolder.Callback{
 			
 		}
 	};
+	
 	/** callback for taking a picture that saves important camera byte data*/
 	private android.hardware.Camera.PictureCallback pictureCallback = new android.hardware.Camera.PictureCallback() {
 
@@ -758,6 +762,8 @@ implements SurfaceHolder.Callback{
 			if (isTryingToTakePicture){
 
 				// take the picture
+				AudioManager mgr = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
+				mgr.setStreamMute(AudioManager.STREAM_SYSTEM, true);
 				camera.takePicture(shutterCallback, null, pictureCallback); 
 				cameraHelper.setIsPreviewRunning(false);
 			}
@@ -785,7 +791,8 @@ implements SurfaceHolder.Callback{
 			camera.cancelAutoFocus();
 			camera.autoFocus(myAutoFocusCallback);
 		}else{
-
+			AudioManager mgr = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
+			mgr.setStreamMute(AudioManager.STREAM_SYSTEM, true);
 			camera.takePicture(shutterCallback, null, pictureCallback); 
 			cameraHelper.setIsPreviewRunning(false);
 		}

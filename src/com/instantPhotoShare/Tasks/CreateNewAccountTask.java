@@ -58,7 +58,7 @@ public class CreateNewAccountTask<ACTIVITY_TYPE extends CustomActivity>
 	protected ReturnFromCreateNewAccountTask doInBackground(Void... params) {
 
 		// post data to server and get response
-		ReturnFromCreateNewAccountTask serverResponse = null;
+		ReturnFromCreateNewAccountTask serverResponse = new ReturnFromCreateNewAccountTask();
 		try {
 			serverResponse = new ReturnFromCreateNewAccountTask(Utils.postToServer(CREATE_USER, person.getNewUserInfo(), null));
 		} catch (JSONException e) {
@@ -126,7 +126,7 @@ public class CreateNewAccountTask<ACTIVITY_TYPE extends CustomActivity>
 					"Successfully created account on server",
 					Toast.LENGTH_SHORT).show();
 		else{
-			String reason = result.getMessage();
+			String reason = result.getDetailErrorMessage();
 			if (callingActivity != null)
 				Toast.makeText(callingActivity,
 						"Failed to create account because:\n" + reason,
@@ -162,6 +162,10 @@ public class CreateNewAccountTask<ACTIVITY_TYPE extends CustomActivity>
 		 */
 		protected ReturnFromCreateNewAccountTask(ServerReturn toCopy) {
 			super(toCopy);
+		}
+
+		public ReturnFromCreateNewAccountTask() {
+			super();
 		}
 
 		/**

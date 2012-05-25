@@ -374,6 +374,7 @@ extends com.tools.CustomActivity {
 	 */
 	private void returnFromCreateAccount(int requestCode, int resultCode, Intent data){
 		//TODO: user info is being saved to prefs, even when we just did a login
+		
 		// switch across resultCodes
 		switch (resultCode){
 
@@ -440,7 +441,6 @@ extends com.tools.CustomActivity {
 	@Override
 	public void onAsyncExecute(int requestCode, AsyncTypeCall asyncTypeCall,
 			Object data) {
-		// TODO Auto-generated method stub
 		
 	}
 }

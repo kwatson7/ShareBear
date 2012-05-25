@@ -30,6 +30,8 @@ extends ServerPost.ServerReturn{
 	// different error codes
 	private static final String NO_JSON_DATA_CODE = "NO_JSON_DATA";
 	private static final String NO_JSON_DATA_MESSAGE = "No return from the server";
+	private static final String INCORRECT_FORMAT_CODE = "INCORRECT_FORMAT_CODE";
+	private static final String INCORRECT_FORMAT_CODE_STRING = "Server Error";
 	
 	/**
 	 * Initialize a ShareBearServerReturn object with a generic ServerReturn object.
@@ -68,8 +70,11 @@ extends ServerPost.ServerReturn{
 		}
 		
 		// check that 3 important fields are present
-		if (!json.has(KEY_STATUS) || !json.has(KEY_RESPONSE_MESSAGE) || !json.has(KEY_RESPONSE_CODE))
+		if (!json.has(KEY_STATUS) || !json.has(KEY_RESPONSE_MESSAGE) || !json.has(KEY_RESPONSE_CODE)){
+			if (this.getErrorCode() == null || this.getErrorCode().length() == 0)
+				setError(INCORRECT_FORMAT_CODE, INCORRECT_FORMAT_CODE_STRING);
 			return false;
+		}
 		if (!json.optString(KEY_STATUS).equalsIgnoreCase(SUCCESS))
 				return false;
 		

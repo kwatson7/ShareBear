@@ -216,7 +216,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, CreateGroupTask<ACTIVITY_TYPE>.R
 		// if not successful, then see how
 		// local error
 		if (result.isLocalError()){
-			Toast.makeText(applicationCtx, result.getMessage(), Toast.LENGTH_LONG).show();
+			Toast.makeText(applicationCtx, result.getDetailErrorMessage(), Toast.LENGTH_LONG).show();
 			return;
 
 			// server error
@@ -227,10 +227,10 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, CreateGroupTask<ACTIVITY_TYPE>.R
 			NOTIFICATION_TYPES notesType;
 			
 			// default values
-			toastMessage = "Group not created on server because:\n" + result.getMessage() +
+			toastMessage = "Group not created on server because:\n" + result.getDetailErrorMessage() +
 				".\nGroup is still created locally, but is not shared!";
 			notesMessage = "Group with name '" + groupName + "' and rowId " + rowId + " not created on server because:\n"
-				+ result.getMessage() + ".\nGroup is still created locally, but is not shared!";
+				+ result.getDetailErrorMessage() + ".\nGroup is still created locally, but is not shared!";
 			notesType = NOTIFICATION_TYPES.SERVER_ERROR;
 			
 			// custom actions for different group errors

@@ -133,8 +133,6 @@ extends TableAdapter <PicturesInGroupsAdapter>{
 
 	@Override
 	protected void setColumnNumbers() throws IllegalArgumentException {
-		// TODO Auto-generated method stub
-		throw new UnsupportedOperationException("Not supported yet.");
 		
 	}
 }

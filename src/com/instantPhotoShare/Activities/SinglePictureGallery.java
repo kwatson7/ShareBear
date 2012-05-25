@@ -1,11 +1,14 @@
 package com.instantPhotoShare.Activities;
 
 import java.io.File;
+import java.io.FileInputStream;
 
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.text.Html;
@@ -355,59 +358,7 @@ extends CustomActivity{
 					pictureWindowWidth,
 					pictureWindowHeight,
 					true,
-					new LoadImage<Long, Long>() {
-
-						@Override
-						public Bitmap onThumbnailLocal(Long thumbnailData) {
-							if (thumbnailData == null)
-								return null;
-							PicturesAdapter pics = new PicturesAdapter(ctx);
-							pics.fetchPicture(thumbnailData);
-							Bitmap bmp = pics.getThumbnail();
-							pics.close();
-							return bmp;
-						}
-
-						@Override
-						public Bitmap onThumbnailWeb(Long thumbnailData) {
-							return null;
-						}
-
-						@Override
-						public Bitmap onFullSizeLocal(
-								Long fullSizeData,
-								int desiredWidth,
-								int desiredHeight) {
-							if (fullSizeData == null)
-								return null;
-							PicturesAdapter pics = new PicturesAdapter(ctx);
-							pics.fetchPicture(fullSizeData);
-							String path = pics.getFullPicturePath();
-							pics.close();
-							return com.tools.images.ImageLoader.getFullImage(path, desiredWidth, desiredHeight);
-						}
-
-						@Override
-						public Bitmap onFullSizeWeb(Long fullSizeData,
-								int desiredWidth, int desiredHeight) {
-							return null;
-						}
-
-						@Override
-						public void createThumbnailFromFull(
-								Long thumbnailData, Long fullSizeData) {
-							PicturesAdapter pics = new PicturesAdapter(ctx);
-							pics.fetchPicture(thumbnailData);
-							
-							com.tools.images.ImageLoader.createThumbnailFromFull(
-									pics.getThumbnailPath(),
-									pics.getFullPicturePath(),
-									Utils.MAX_THUMBNAIL_DIMENSION,
-									Utils.FORCE_BASE2_THUMBNAIL_RESIZE,
-									Utils.IMAGE_QUALITY);
-							pics.close();
-						}
-					});
+					PicturesAdapter.imageLoaderCallback(ctx));		
 		}
 
 		public int getCount() {

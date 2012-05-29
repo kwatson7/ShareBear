@@ -14,7 +14,7 @@ import com.tools.CustomActivity;
 import com.tools.ServerPost.ServerReturn;
 
 public class CreateNewAccountTask<ACTIVITY_TYPE extends CustomActivity>
-	extends com.tools.CustomAsyncTask <ACTIVITY_TYPE, Integer, CreateNewAccountTask<ACTIVITY_TYPE>.ReturnFromCreateNewAccountTask>{
+extends com.tools.CustomAsyncTask <ACTIVITY_TYPE, Integer, CreateNewAccountTask<ACTIVITY_TYPE>.ReturnFromCreateNewAccountTask>{
 
 	// different error codes
 	private static final String USERNAME_EXISTS_ERROR = "USERNAME_EXISTS_ERROR";
@@ -24,7 +24,7 @@ public class CreateNewAccountTask<ACTIVITY_TYPE extends CustomActivity>
 
 	// codes to be sent to server
 	private static final String CREATE_USER = "create_user";
-	
+
 	// field that Person class needs to access to know what data we need to send to server
 	public static final String PERSON_FIRST_NAME = "person_fname";
 	public static final String PERSON_LAST_NAME = "person_lname";
@@ -60,7 +60,7 @@ public class CreateNewAccountTask<ACTIVITY_TYPE extends CustomActivity>
 		// post data to server and get response
 		ReturnFromCreateNewAccountTask serverResponse = new ReturnFromCreateNewAccountTask();
 		try {
-			serverResponse = new ReturnFromCreateNewAccountTask(Utils.postToServer(CREATE_USER, person.getNewUserInfo(), null));
+			serverResponse = new ReturnFromCreateNewAccountTask(Utils.postToServer(CREATE_USER, person.getNewUserInfo(), null, null));
 		} catch (JSONException e) {
 			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 			serverResponse.setError(e);
@@ -77,15 +77,15 @@ public class CreateNewAccountTask<ACTIVITY_TYPE extends CustomActivity>
 	 * @param taskValue The value returned from CreateNewAccountTask
 	 */
 	private boolean saveValuesFromServer(ReturnFromCreateNewAccountTask taskValue){
-    	
+
 		// grab values from form data
 		String firstName =  person.getFirstName();
-    	String lastName = person.getLastName();
-    	String phone = person.getMainPhone();
-    	String email = person.getEmailsAsString();
-    	String user = person.getUserName();
-    	String pass = person.getPassword();
-    	
+		String lastName = person.getLastName();
+		String phone = person.getMainPhone();
+		String email = person.getEmailsAsString();
+		String user = person.getUserName();
+		String pass = person.getPassword();
+
 		// create new user for ourselves
 		UsersAdapter adapter = new UsersAdapter(applicationCtx);
 		long rowId = adapter.makeNewUser(
@@ -99,18 +99,18 @@ public class CreateNewAccountTask<ACTIVITY_TYPE extends CustomActivity>
 				true,
 				"",
 				null);
-		
+
 		// check failure or not
 		if (rowId == -1)
 			return false;
-		
+
 		// store the rest of the settings
 		Prefs.setUserRowId(applicationCtx, rowId);
 		Prefs.setUserServerId(applicationCtx, taskValue.getUserId());
 		Prefs.setUserName(applicationCtx, user);
 		Prefs.setSecretCode(applicationCtx, taskValue.getSecretCode());
 		Prefs.setPassword(applicationCtx, pass);
-		
+
 		return true;
 	}
 
@@ -178,12 +178,11 @@ public class CreateNewAccountTask<ACTIVITY_TYPE extends CustomActivity>
 		protected boolean isSuccessCustom2(){
 
 			// now check that we have userId and secretCode
-			if (isSuccess()){
-				if (getUserId() == -1 || getSecretCode().length() == 0)
-					Log.e(Utils.LOG_TAG, "not correct info back from server in CreateNewAccountTask");
-					return false;
-			}		
-			
+			if (getUserId() == -1 || getSecretCode().length() == 0){
+				Log.e(Utils.LOG_TAG, "not correct info back from server in CreateNewAccountTask");
+				return false;	
+			}
+
 			return true;
 		}
 

@@ -151,7 +151,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, CreateGroupTask<ACTIVITY_TYPE>.R
 		groups.setIsUpdating(rowId, true);
 		ReturnFromCreateGroupTask serverResponse = new ReturnFromCreateGroupTask();
 		try {
-			serverResponse = new ReturnFromCreateGroupTask(Utils.postToServer(CREATE_GROUP, getDataToPost(groupName), null));
+			serverResponse = new ReturnFromCreateGroupTask(Utils.postToServer(CREATE_GROUP, getDataToPost(groupName), null, null));
 		} catch (JSONException e) {
 			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 			serverResponse.setError(e);

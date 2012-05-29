@@ -131,7 +131,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 		//TODO: convert non json server return to proper error
 		ReturnFromAddUsersToGroupTask serverResponse = new ReturnFromAddUsersToGroupTask();
 		try {
-			serverResponse = new ReturnFromAddUsersToGroupTask(Utils.postToServer(ACTION, getDataToPost(newUsers, deletions), null));
+			serverResponse = new ReturnFromAddUsersToGroupTask(Utils.postToServer(ACTION, getDataToPost(newUsers, deletions), null, null));
 		} catch (JSONException e) {
 			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 			serverResponse.setError(e);

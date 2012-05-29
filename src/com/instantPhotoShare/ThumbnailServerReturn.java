@@ -20,6 +20,9 @@ extends ShareBearServerReturn{
 	 * @return
 	 */
 	public String getThumbailData(long serverId){
+		if (!isSuccess())
+			return null;
+		
 		// grab the base64 data
 		JSONObject json = getMessageObject();
 		String base64 = json.optString(String.valueOf(serverId));
@@ -38,6 +41,9 @@ extends ShareBearServerReturn{
 	 * @return The byte[] array of data. Will be null if not present.
 	 */
 	public byte[] getThumbnailBytes(long serverId){
+		if (!isSuccess())
+			return null;
+		
 		// grab the base64
 		String base64 = getThumbailData(serverId);
 		

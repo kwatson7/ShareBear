@@ -26,6 +26,9 @@ import android.widget.ImageView;
 public class PicturesAdapter 
 extends TableAdapter<PicturesAdapter>{
 
+	// other contants
+	private static final float PICTURE_OVERSIZE = 2f;
+	
 	/** Table name */
 	public static final String TABLE_NAME = "pictureInfo";
 
@@ -40,10 +43,14 @@ extends TableAdapter<PicturesAdapter>{
 	private static final String KEY_LONGITUE = "pictureLongitude";
 	private static final String KEY_IS_UPDATING = "isUpdating";
 	private static final String KEY_IS_SYNCED = "isSynced";
+	private static final String KEY_IS_FULLSIZE_DOWNLOADING = "KEY_IS_FULLSIZE_DOWNLOADING";
+	private static final String KEY_LAST_FULLSIZE_DOWNLOAD_TIME = "KEY_LAST_FULLSIZE_DOWNLOAD_TIME";
 	private static final String KEY_LAST_UPDATE_ATTEMPT_TIME = "KEY_LAST_UPDATE_ATTEMPT_TIME";
 
 	// types for some of the keys
 	private static final String LAST_UPDATE_ATTEMPT_TIME_TYPE = " text not null DEFAULT '1900-01-01 01:00:00'";
+	private static final String IS_FULLSIZE_DOWNLOADING_TYPE = " text not null DEFAULT 'FALSE'";
+	private static final String LAST_FULLSIZE_DOWNLOAD_ATTEMPT_TIME_TYPE = " text not null DEFAULT '1900-01-01 01:00:00'";
 
 	// some other constants
 	private static String SORT_ORDER = KEY_DATE_TAKEN + " DESC"; 			// sort the picture by most recent
@@ -62,6 +69,8 @@ extends TableAdapter<PicturesAdapter>{
 					+KEY_LONGITUE +" DOUBLE, "
 					+KEY_IS_UPDATING +" boolean DEFAULT 'FALSE', "
 					+KEY_LAST_UPDATE_ATTEMPT_TIME + LAST_UPDATE_ATTEMPT_TIME_TYPE + ", "
+					+KEY_IS_FULLSIZE_DOWNLOADING + IS_FULLSIZE_DOWNLOADING_TYPE + ", "
+					+KEY_LAST_FULLSIZE_DOWNLOAD_TIME + LAST_FULLSIZE_DOWNLOAD_ATTEMPT_TIME_TYPE + ", "
 					+KEY_IS_SYNCED +" boolean DEFAULT 'FALSE', "
 					+"foreign key(" +KEY_USER_ID_TOOK +") references " +UsersAdapter.TABLE_NAME +"(" +UsersAdapter.KEY_ROW_ID + ")"
 					+");";
@@ -85,6 +94,20 @@ extends TableAdapter<PicturesAdapter>{
 							KEY_LAST_UPDATE_ATTEMPT_TIME + " "+
 							LAST_UPDATE_ATTEMPT_TIME_TYPE;
 			out.add(upgradeQuery);
+		}
+		if (oldVersion < 5 && newVersion >= 5){
+			String upgradeQuery = 
+				"ALTER TABLE " +
+				TABLE_NAME + " ADD COLUMN " + 
+				KEY_IS_FULLSIZE_DOWNLOADING + " "+
+				IS_FULLSIZE_DOWNLOADING_TYPE;
+			out.add(upgradeQuery);
+			String upgradeQuery2 = 
+				"ALTER TABLE " +
+				TABLE_NAME + " ADD COLUMN " + 
+				KEY_LAST_FULLSIZE_DOWNLOAD_TIME + " "+
+				LAST_FULLSIZE_DOWNLOAD_ATTEMPT_TIME_TYPE;
+			out.add(upgradeQuery2);
 		}
 
 		return out;
@@ -161,7 +184,7 @@ extends TableAdapter<PicturesAdapter>{
 		}
 
 		// post to the server
-		ThumbnailServerReturn result = new ThumbnailServerReturn(Utils.postToServer("get_thumbnails", json, null));
+		ThumbnailServerReturn result = new ThumbnailServerReturn(Utils.postToServer("get_thumbnails", json, null, null));
 
 		// grab the thumbnail data
 		byte[] data = result.getThumbnailBytes(serverId);
@@ -213,7 +236,7 @@ extends TableAdapter<PicturesAdapter>{
 		}
 
 		// post to the server
-		FullSizeServerReturn result = new FullSizeServerReturn(Utils.postToServer("get_fullsize", json, null));
+		FullSizeServerReturn result = new FullSizeServerReturn(Utils.postToServer("get_fullsize", json, null, null));
 
 		// grab the image data
 		byte[] data = result.getImageBytes();
@@ -785,7 +808,11 @@ extends TableAdapter<PicturesAdapter>{
 				// grab the picture from the server
 				PicturesAdapter pics = new PicturesAdapter(ctx);
 				pics.fetchPicture(thumbnailData);
-				byte[] data = pics.getFullImageServer();
+				if (pics.getServerId() == 0 || pics.getServerId() == -1){
+					pics.close();
+					return null;
+				}
+				byte[] data = pics.getThumbnailServer();
 				pics.close();
 				
 				//TODO: read orientation from server
@@ -813,7 +840,9 @@ extends TableAdapter<PicturesAdapter>{
 				pics.close();
 				
 				// read the data from the path
-				return com.tools.images.ImageLoader.getFullImage(path, desiredWidth, desiredHeight);
+				return com.tools.images.ImageLoader.getFullImage(path,
+						(int)(desiredWidth*PICTURE_OVERSIZE),
+						(int)(desiredHeight*PICTURE_OVERSIZE));
 			}
 
 			@Override
@@ -825,6 +854,10 @@ extends TableAdapter<PicturesAdapter>{
 				// grab the picture from the server
 				PicturesAdapter pics = new PicturesAdapter(ctx);
 				pics.fetchPicture(fullSizeData);
+				if (pics.getServerId() == 0 || pics.getServerId() == -1){
+					pics.close();
+					return null;
+				}
 				byte[] data = pics.getFullImageServer();
 				pics.close();
 				
@@ -833,7 +866,11 @@ extends TableAdapter<PicturesAdapter>{
 				//TODO: rotate the image here
 				
 				// resize the data and rotate
-				return com.tools.images.ImageLoader.getFullImage(data, 0, desiredWidth, desiredHeight);
+				return com.tools.images.ImageLoader.getFullImage(
+						data,
+						0,
+						(int)(desiredWidth*PICTURE_OVERSIZE),
+						(int)(desiredHeight*PICTURE_OVERSIZE));
 			}
 
 			@Override

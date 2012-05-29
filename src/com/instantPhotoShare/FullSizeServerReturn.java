@@ -17,6 +17,9 @@ extends ShareBearServerReturn{
 	 * @return
 	 */
 	public String getImageData(){
+		if (!isSuccess())
+			return null;
+		
 		// grab the base64 data
 		String base64 = getMessage();
 		
@@ -33,6 +36,9 @@ extends ShareBearServerReturn{
 	 * @return The byte[] array of data. Will be null if not present.
 	 */
 	public byte[] getImageBytes(){
+		if (!isSuccess())
+			return null;
+		
 		// grab the base64
 		String base64 = getImageData();
 		

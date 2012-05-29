@@ -18,16 +18,19 @@ import android.widget.BaseAdapter;
 import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.instantPhotoShare.Prefs;
 import com.instantPhotoShare.R;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.GroupsAdapter.Group;
+import com.instantPhotoShare.Adapters.GroupsAdapter.PicturesFetchedCallback;
 import com.instantPhotoShare.Adapters.PicturesAdapter;
 import com.tools.CustomActivity;
 import com.tools.ServerPost.PostCallback;
 import com.tools.ServerPost.ServerReturn;
+import com.tools.images.MemoryCache;
 import com.tools.images.ImageLoader.LoadImage;
 
 public class InsideGroupGallery 
@@ -46,6 +49,7 @@ extends CustomActivity{
     private CustomActivity act = this; 			// This activity
     private Drawable backgroundDrawable = null;
     private String groupName; 					// The name of the group we are in
+    private int nNewPictures = 0;
     
     // variables to indicate what can be passed in through intents
     public static final String GROUP_ID = "GROUP_ID";
@@ -92,9 +96,34 @@ extends CustomActivity{
 	
 	// fill list with the pictures
 	private void fillPictures() {
+		// stop old thread if we need to
+		//if (adapter != null)
+		//	adapter.imageLoader.stopThreads();
+		
+		// set the adapter
+      //  adapter = new PicturesGridAdapter(this, picturesAdapater);
+      //  gridView.setAdapter(adapter);
+        
+        
+        
+     // save index and top position
+		int index = gridView.getFirstVisiblePosition();
+		
 		// set adapter
-        adapter = new PicturesGridAdapter(this, picturesAdapater);
-        gridView.setAdapter(adapter);
+		MemoryCache<Long> cache = null;
+		if (adapter != null){
+			adapter.imageLoader.stopThreads();
+			cache = adapter.imageLoader.getMemoryCache();
+		}
+		adapter = new PicturesGridAdapter(this, picturesAdapater);
+		if (cache != null)
+			adapter.imageLoader.restoreMemoryCache(cache);
+		gridView.setAdapter(adapter);
+		
+		// restore
+		
+		if (index != GridView.INVALID_POSITION)
+			gridView.smoothScrollToPosition(index);	
 	}
 
 	/**
@@ -158,21 +187,25 @@ extends CustomActivity{
 	/**
 	 * The callback to run when we are done grabbing the pictures from the server
 	 */
-	private PostCallback<InsideGroupGallery> fetchPictureIdsCallback = 
-		new PostCallback<InsideGroupGallery>() {
-			
+	private PicturesFetchedCallback<InsideGroupGallery> fetchPictureIdsCallback = 
+		new PicturesFetchedCallback<InsideGroupGallery>() {
+
 			@Override
-			public void onPostFinishedUiThread(
+			public void OnPicturesFetchedBackground(
 					InsideGroupGallery act,
-					ServerReturn result) {
-				act.getPictures();
-				act.fillPictures();
-				
+					int nNewPictures) {
+				// store the pictures
+				act.nNewPictures = nNewPictures;
 			}
-			
+
 			@Override
-			public void onPostFinished(InsideGroupGallery act, ServerReturn result) {
-				
+			public void OnPicturesFetchedUiThread(InsideGroupGallery act) {
+				// update adatper if there are new pictures
+				if (act.nNewPictures > 0){
+					Toast.makeText(act, act.nNewPictures + " new pictures!", Toast.LENGTH_SHORT).show();
+					act.getPictures();
+					act.fillPictures();
+				}
 			}
 		};
 	

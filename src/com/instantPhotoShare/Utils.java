@@ -1,27 +1,11 @@
 package com.instantPhotoShare;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.StatusLine;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.mime.HttpMultipartMode;
-import org.apache.http.entity.mime.MultipartEntity;
-import org.apache.http.entity.mime.content.ByteArrayBody;
-import org.apache.http.entity.mime.content.StringBody;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.params.CoreProtocolPNames;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -175,8 +159,9 @@ public class Utils {
 	/**
 	 * Post data to server on a background thread
 	 * @param action The action to take
-	 * @param jsonData the "data" json data to post
-	 * @param imageData thumbnail, full picture data, null if none
+	 * @param jsonData the "data" key json data to post
+	 * @param fullFilePath the path to the image file with rotation data stored in exif, null if none
+	 * @param rotatedThumbnailData thumbnail data that has been rotated already, null if none
 	 * @param act The activity that calls the background task, can be null
 	 * @param callback callback to run when return from server
 	 */
@@ -184,7 +169,8 @@ public class Utils {
 	void postToServer(
 			String action,
 			String jsonData,
-			TwoObjects<byte[], byte[]> imageData,
+			String fullFilePath,
+			byte[] rotatedThumbnailData,
 			ACTIVITY_TYPE act,
 			com.tools.ServerPost.PostCallback<ACTIVITY_TYPE> callback){
 
@@ -194,26 +180,28 @@ public class Utils {
 		// set values
 		post.addData(KEY_ACTION, action);
 		post.addData(KEY_DATA, jsonData);
-		if (imageData != null){
-			post.addFile(KEY_FULLSIZE, imageData.mObject1, FileType.JPEG);
-			post.addFile(KEY_THUMBNAIL, imageData.mObject2, FileType.JPEG);
-		}
+		if (rotatedThumbnailData != null)
+			post.addFile(KEY_THUMBNAIL, rotatedThumbnailData, FileType.JPEG);
+		if (fullFilePath != null && fullFilePath.length() != 0)
+			post.addFile(KEY_FULLSIZE, fullFilePath, FileType.JPEG);
 		
 		// post to server
 		post.postInBackground(act, callback);
 	}
 	
 	/**
-	 * Post data to the server
+	 * Post data to the server helper
 	 * @param action the action to take
 	 * @param jsonData the data to post
-	 * @param imageData the thumbnail, and picture data, null if there is no data
+	 * @param fullFilePath the path to the image file with rotation data stored in exif, null if none
+	 * @param rotatedThumbnailData thumbnail data that has been rotated already, null if none
 	 * @return the result of the post
 	 */
-	static private ShareBearServerReturn postToServerHelper(
+	private static ShareBearServerReturn postToServerHelper(
 			String action,
 			String jsonData,
-			TwoObjects<byte[], byte[]> imageData){
+			String fullFilePath,
+			byte[] rotatedThumbnailData){
 				
 		// make the post
 		com.tools.ServerPost post = new ServerPost(Prefs.BASE_URL + Prefs.REQUEST_PAGE);
@@ -221,10 +209,10 @@ public class Utils {
 		// set values
 		post.addData(KEY_ACTION, action);
 		post.addData(KEY_DATA, jsonData);
-		if (imageData != null){
-			post.addFile(KEY_FULLSIZE, imageData.mObject1, FileType.JPEG);
-			post.addFile(KEY_THUMBNAIL, imageData.mObject2, FileType.JPEG);
-		}
+		if (rotatedThumbnailData != null)
+			post.addFile(KEY_THUMBNAIL, rotatedThumbnailData, FileType.JPEG);
+		if (fullFilePath != null && fullFilePath.length() != 0)
+			post.addFile(KEY_FULLSIZE, fullFilePath, FileType.JPEG);
 		
 		// post to server
 		ServerReturn result = post.post();
@@ -234,37 +222,37 @@ public class Utils {
 	}
 
 	/**
-	 * Post values to the server. The json response will always have either <p>
-	 * 1. At least 2 keys, KEY_STATUS, and KEY_SUCCESS_MESSAGE or <br>
-	 * 2. At least 3 keys, KEY_STATUS, KEY_ERROR_MESSAGE, and KEY_ERROR_CODE
-	 * @param action The action to take on the server
-	 * @param data The json data to post to server
-	 * @param imageData Two objects, the full image byte[] and the thumbnail byte[]
-	 * @return The json response from server.
+	 * Post data to the server helper
+	 * @param action the action to take
+	 * @param data the data to post
+	 * @param fullFilePath the path to the image file with rotation data stored in exif, null if none
+	 * @param rotatedThumbnailData thumbnail data that has been rotated already, null if none
+	 * @return the result of the post
 	 */
 	static public ShareBearServerReturn postToServer(
 			String action,
 			JSONObject data,
-			TwoObjects<byte[], byte[]> imageData){
+			String fullFilePath,
+			byte[] rotatedThumbnailData){
 
-		return postToServerHelper(action, data.toString(), imageData);
+		return postToServerHelper(action, data.toString(), fullFilePath, rotatedThumbnailData);
 	}
 	
 	/**
-	 * Post values to the server. The json response will always have either <p>
-	 * 1. At least 2 keys, KEY_STATUS, and KEY_SUCCESS_MESSAGE or <br>
-	 * 2. At least 3 keys, KEY_STATUS, KEY_ERROR_MESSAGE, and KEY_ERROR_CODE
-	 * @param action The action to take on the server
-	 * @param data The json data to post to server
-	 * @param imageData Two objects, the full image byte[] and the thumbnail byte[]
-	 * @return The json response from server.
+	 * Post data to the server helper
+	 * @param action the action to take
+	 * @param data the data to post
+	 * @param fullFilePath the path to the image file with rotation data stored in exif, null if none
+	 * @param rotatedThumbnailData thumbnail data that has been rotated already, null if none
+	 * @return the result of the post
 	 */
 	static public ShareBearServerReturn postToServer(
 			String action,
 			JSONArray data,
-			TwoObjects<byte[], byte[]> imageData){
+			String fullFilePath,
+			byte[] rotatedThumbnailData){
 
-		return postToServerHelper(action, data.toString(), imageData);
+		return postToServerHelper(action, data.toString(), fullFilePath, rotatedThumbnailData);
 	}
 
 	/**

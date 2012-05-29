@@ -15,11 +15,11 @@ import com.tools.CustomActivity;
 import com.tools.ServerPost.ServerReturn;
 
 public class LoginTask <ACTIVITY_TYPE extends CustomActivity>
-	extends com.tools.CustomAsyncTask<ACTIVITY_TYPE, Integer, LoginTask<ACTIVITY_TYPE>.ReturnFromLoginTask>{
+extends com.tools.CustomAsyncTask<ACTIVITY_TYPE, Integer, LoginTask<ACTIVITY_TYPE>.ReturnFromLoginTask>{
 
 	// codes to be sent to server
 	private static final String USER_LOGIN = "user_login";
-	
+
 	// login errors
 	private static final String INCORRECT_LOGIN_ERROR = "INCORRECT_LOGIN_ERROR";
 	private static final String COULD_NOT_STORE_LOCALLY = "COULD_NOT_STORE_LOCALLY";
@@ -50,20 +50,20 @@ public class LoginTask <ACTIVITY_TYPE extends CustomActivity>
 
 	@Override
 	protected ReturnFromLoginTask doInBackground(Void... params) {
-		
+
 		// post data to server and get response
 		LoginTask<ACTIVITY_TYPE>.ReturnFromLoginTask serverResponse = new ReturnFromLoginTask();
 		try {
-			serverResponse = new ReturnFromLoginTask(Utils.postToServer(USER_LOGIN, getDataToPost(), null));
+			serverResponse = new ReturnFromLoginTask(Utils.postToServer(USER_LOGIN, getDataToPost(), null, null));
 		} catch (JSONException e) {
 			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 			serverResponse.setError(e);
 		}
-		
+
 		// SAVE to users database
 		if(serverResponse.isSuccess() && !saveValuesFromServer(serverResponse))
 			serverResponse.setError(COULD_NOT_STORE_LOCALLY, "Could not save user into database");
-		
+
 		return serverResponse;
 	}
 
@@ -91,7 +91,7 @@ public class LoginTask <ACTIVITY_TYPE extends CustomActivity>
 		if (callingActivity != null)
 			sendObjectToActivityFromPostExecute(result);
 	}
-	
+
 	/**
 	 * Save values returned from login Task into preferences. Shows a toast if not successful
 	 * @param returnVal
@@ -110,18 +110,18 @@ public class LoginTask <ACTIVITY_TYPE extends CustomActivity>
 				true,
 				"",
 				null);
-		
+
 		// check failure or not
 		if (rowId == -1)
 			return false;
-		
+
 		// store the rest of the settings
 		Prefs.setUserRowId(applicationCtx, rowId);
 		Prefs.setUserServerId(applicationCtx, returnVal.getUserId());
 		Prefs.setUserName(applicationCtx, returnVal.getUserName());
 		Prefs.setSecretCode(applicationCtx, returnVal.getSecretCode());
 		Prefs.setPassword(applicationCtx, returnVal.getPassword());
-		
+
 		return true;
 	}
 
@@ -157,11 +157,11 @@ public class LoginTask <ACTIVITY_TYPE extends CustomActivity>
 		private String userName = user;
 		/** The password that we used to login simply taken from enclosing class */
 		private String password = pass;
-		
+
 		// KEYS in JSON
 		private static final String KEY_UNIQUE_KEY = "secret_code";
 		private static final String KEY_USER_ID = "user_id";
-		
+
 		/**
 		 * Intiailize a ReturnFromLoginTask object from a ServerJSON object.
 		 * @param toCopy
@@ -169,11 +169,11 @@ public class LoginTask <ACTIVITY_TYPE extends CustomActivity>
 		protected ReturnFromLoginTask(ServerReturn toCopy) {
 			super(toCopy);
 		}
-		
+
 		protected ReturnFromLoginTask(){
 			super();
 		}
-		
+
 		/**
 		 * The json must have either <br>
 		 * 1. At least 2 keys, KEY_STATUS, and KEY_SUCCESS_MESSAGE or <br>
@@ -182,13 +182,12 @@ public class LoginTask <ACTIVITY_TYPE extends CustomActivity>
 		 */
 		@Override
 		protected boolean isSuccessCustom2(){
-			
+
 			// now check that we have userId and secretCode
-			if (isSuccess()){
-				if (getUserId() == -1 || getSecretCode().length() == 0)
-					Log.e(Utils.LOG_TAG, "Incorrect format return from LoginTask");
-					return false;
-			}		
+			if (getUserId() == -1 || getSecretCode().length() == 0){
+				Log.e(Utils.LOG_TAG, "Incorrect format return from LoginTask");
+				return false;		
+			}
 			return true;
 		}
 

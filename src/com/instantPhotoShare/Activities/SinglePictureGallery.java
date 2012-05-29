@@ -8,11 +8,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.text.Html;
 import android.view.Display;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -26,6 +28,7 @@ import android.view.animation.RotateAnimation;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.BaseAdapter;
+import android.widget.FrameLayout;
 import android.widget.Gallery;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -153,6 +156,8 @@ extends CustomActivity{
 	// fill list with the pictures
 	private void fillPictures() {
 		// set adapter
+		if (adapter != null)
+			adapter.imageLoader.stopThreads();
 		adapter = new PicturesGridAdapter(this, picturesAdapater);
 		if (oldCache != null){
 			adapter.restoreMemoryCache(oldCache);
@@ -191,6 +196,7 @@ extends CustomActivity{
 
 		// grab pointers to objects
 		gallery = (CustomGallery)findViewById(R.id.galleryView);
+		gallery.setImageViewTouchId(R.id.picture);
 		takePictureButton = (ImageView) findViewById(R.id.takePictureButton);
 		groupNameText = (TextView) findViewById(R.id.groupName);
 
@@ -416,12 +422,12 @@ extends CustomActivity{
 	            vi.setLayoutParams(new Gallery.LayoutParams(
 						WindowManager.LayoutParams.FILL_PARENT,
 						WindowManager.LayoutParams.FILL_PARENT));
-	        //    FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) image2.getLayoutParams();
-	           // params.height = pictureWindowHeight;
-	          //  params.width = pictureWindowWidth;
-	          //  params.gravity = Gravity.CENTER;
-	          //  image2.setLayoutParams(params);
-	          //  image2.setBackgroundColor(Color.BLACK);
+	           FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) image2.getLayoutParams();
+	            params.height = pictureWindowHeight;
+	            params.width = pictureWindowWidth;
+	            params.gravity = Gravity.CENTER;
+	            image2.setLayoutParams(params);
+	            image2.setBackgroundColor(Color.BLACK);
 	        }
 
 	        // grab the items to display

@@ -191,19 +191,38 @@ extends TableAdapter <GroupsAdapter>{
 		return newRow;
 	}	
 	
+	public interface PicturesFetchedCallback <ACTIVITY_TYPE>{
+		/**
+		 * This is called when the pictures are done being fetched and placeholders have been put into database for new pictures.
+		 * This is called before OnPicturesFetchedUiThread
+		 * @param act The current activity that is active
+		 * @param nNewPictures The number of new pictures
+		 */
+		public void OnPicturesFetchedBackground(ACTIVITY_TYPE act, int nNewPictures);
+		/**
+		 * This is called on the UI thread when we are done getting the pictures. and after OnPicturesFetchedBackground
+		 * @param act The current activity, not guaranteed to be the same activity as in OnPicturesFetchedBackground
+		 */
+		public void OnPicturesFetchedUiThread(ACTIVITY_TYPE act);
+	}
 	/**
 	 * Fetch all the pictures from the server for a given groupID and then create holding pictures
 	 * for any pictures not present in database. Done a a background thread
 	 * @param <ACTIVITY_TYPE>
 	 * @param act The activity that will be attached to callback on return.
 	 * @param groupServerId the server id of the group in question
-	 * @param callback The callback to be called when we are done. Can be null
+	 * @param callback The callback to be called when we are done. Can be null.
+	 * callback 3rd return will be how many new pictures there are
 	 */
 	public synchronized <ACTIVITY_TYPE extends CustomActivity>
 		void fetchPictureIdsFromServer(
 			ACTIVITY_TYPE act,
 			final long groupServerId,
-			final PostCallback<ACTIVITY_TYPE> callback){
+			final PicturesFetchedCallback<ACTIVITY_TYPE> callback){
+		
+		// bad serverId
+		if (groupServerId == -1 || groupServerId == 0)
+			return;
 		
 		// make json data to post
 		JSONObject json = new JSONObject();
@@ -219,6 +238,7 @@ extends TableAdapter <GroupsAdapter>{
 		Utils.postToServer(
 				"get_thumbnail_ids",
 				json.toString(),
+				null,
 				null,
 				act,
 				new PostCallback<ACTIVITY_TYPE>() {
@@ -244,18 +264,19 @@ extends TableAdapter <GroupsAdapter>{
 
 						// loop checking the pictures and creating in database if we don't have
 						PicturesAdapter pics = new PicturesAdapter(ctx);
+						PicturesInGroupsAdapter comboAdapter = new PicturesInGroupsAdapter(ctx);
 						GroupsAdapter adapter = new GroupsAdapter(ctx);
 						Group group = adapter.getGroupByServerId(groupServerId);
+						if(group == null || group.keepLocal)
+							return;
 						int counter = 0;
 						for (int i = 0; i < array.length(); i++){
 							
-							// create a new picture in database
+							// determine the path to store files
 							TwoStrings picNames = group.getNextPictureName();
-							counter++;
-							
 							try {
-								// determine the path to store files
 								
+								// create a new picture in database
 								if(!pics.isPicturePresent(array.getLong(i))){
 									pics.createPicture(
 											ctx,
@@ -265,12 +286,25 @@ extends TableAdapter <GroupsAdapter>{
 											-1l,
 											null,
 											null);
+
+									// find the picture by serverId
+									pics.fetchPictureFromServerId(array.getLong(i));
+									if (pics.getRowId() == 0 || pics.getRowId() == -1)
+										continue;
+									
+									// add the picture to this group if not already present
+									if(!pics.isPictureInGroup(pics.getRowId(), group.getRowId())){
+										comboAdapter.addPictureToGroup(ctx, pics.getRowId(), group.getRowId());
+										counter++;
+									}
 								}
 							} catch (NumberFormatException e) {
 								Log.e("TAG", Log.getStackTraceString(e));
+								continue;
 							} catch (JSONException e) {
 								Log.e("TAG", Log.getStackTraceString(e));
-							}
+								continue;
+							}							
 						}	
 						
 						// notification for new pictures
@@ -283,7 +317,7 @@ extends TableAdapter <GroupsAdapter>{
 						
 						// send callback back to activity
 						if (callback != null)
-							callback.onPostFinished(act, result);
+							callback.OnPicturesFetchedBackground(act, counter);
 					}
 
 					@Override
@@ -291,7 +325,7 @@ extends TableAdapter <GroupsAdapter>{
 							ACTIVITY_TYPE act,
 							ServerReturn result) {
 						if (callback != null)
-							callback.onPostFinishedUiThread(act, result);
+							callback.OnPicturesFetchedUiThread(act);
 					}
 		});
 	}
@@ -647,7 +681,7 @@ extends TableAdapter <GroupsAdapter>{
 					true,
 					TABLE_NAME,
 					null,
-					KEY_ROW_ID + "=?" + ADDITIONAL_QUERY,
+					KEY_SERVER_ID + "=?" + ADDITIONAL_QUERY,
 					new String[] {String.valueOf(serverId)},
 					null,
 					null,

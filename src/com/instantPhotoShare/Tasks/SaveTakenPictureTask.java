@@ -215,7 +215,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask<ACTIVITY_TYPE>
 		publishProgress();
 
 		// post to server
-		return postDataToServer(picId, camData, thumbnail);
+		return postDataToServer(picId, pictureSave.getReason(), thumbnail);
 	}
 
 	@Override
@@ -299,7 +299,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask<ACTIVITY_TYPE>
 		}
 	}
 
-	private ReturnFromPostPicture postDataToServer(long pictureRowId, byte[] camdata, byte[] thumbnail){
+	private ReturnFromPostPicture postDataToServer(long pictureRowId, String fullPictureFile, byte[] thumbnail){
 
 		//TODO: can we do multiple group ids on upload
 		//TODO: is brennan making sure to check if we can actually post to a group
@@ -331,7 +331,8 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask<ACTIVITY_TYPE>
 				Utils.postToServer(
 						ACTION,
 						serverData.mObject1,
-						new TwoObjects<byte[], byte[]>(camdata, thumbnail)));
+						fullPictureFile,
+						thumbnail));
 		serverResponse.setPictureRowId(pictureRowId);
 
 		// set sync and update status
@@ -398,7 +399,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask<ACTIVITY_TYPE>
 		protected ReturnFromPostPicture(ServerReturn toCopy) {
 			super(toCopy);
 		}
-		
+
 		protected ReturnFromPostPicture(){
 			super();
 		}
@@ -413,13 +414,11 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask<ACTIVITY_TYPE>
 		protected boolean isSuccessCustom2(){
 
 			// now check that we have userId and secretCode
-			if (isSuccess()){
-				if (getPictureServerId() == -1){
-					Log.e(Utils.LOG_TAG, "Incorrect SaveTakenPictureServerReturn");
-					return false;
-				}
-			}	
-			
+			if (getPictureServerId() == -1){
+				Log.e(Utils.LOG_TAG, "Incorrect SaveTakenPictureServerReturn");
+				return false;
+			}
+
 			return true;
 		}
 

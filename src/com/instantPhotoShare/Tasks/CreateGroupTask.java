@@ -296,7 +296,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, CreateGroupTask<ACTIVITY_TYPE>.R
 		private long rowId = -1;
 
 		// KEYS in JSON
-		private static final String KEY_GROUP_ID = "group_id";;
+		private static final String KEY_GROUP_ID = "group_id";
 
 		/**
 		 * Intiailize a ReturnFromCreateGroupTask object from a ServerJSON object.
@@ -311,33 +311,16 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, CreateGroupTask<ACTIVITY_TYPE>.R
 		}
 
 		/**
-		 * The json must have either <br>
-		 * 1. At least 2 keys, KEY_STATUS, and KEY_SUCCESS_MESSAGE or <br>
-		 * 2. At least 3 keys, KEY_STATUS, KEY_ERROR_MESSAGE, and KEY_ERROR_CODE <br>
-		 * Also if successfull must have KEY_GROUP_ID
-		 */
-		protected void checkAcceptableSub(){
-
-			// now check that we have userId and secretCode
-			if (isSuccess()){
-				if (getGroupId() == -1)
-					throw new IllegalArgumentException(
-							"ReturnFromCreateGroupTask " + 
-							KEY_GROUP_ID + " key required.");
-
-			}		
-		}
-
-		/**
 		 * Gets the group ID stored in this object returned from the server. Returns -1 if there isn't one. <br>
 		 * That should never happen, because an illegal argument exceptions should have been
 		 * thrown if this were the case, when object was created.
 		 * @return
 		 */
 		public long getGroupId() {
-			try {
-				return getMessageObject().getLong(KEY_GROUP_ID);
-			} catch (JSONException e) {
+			try{
+				return Long.parseLong(getMessage());
+			}catch(NumberFormatException e){
+				Log.e(Utils.LOG_TAG, "CreategroupTask intstead of long returned: " + getMessage());
 				return -1;
 			}
 		}

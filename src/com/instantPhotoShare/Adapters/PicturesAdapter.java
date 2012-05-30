@@ -185,6 +185,12 @@ extends TableAdapter<PicturesAdapter>{
 
 		// post to the server
 		ThumbnailServerReturn result = new ThumbnailServerReturn(Utils.postToServer("get_thumbnails", json, null, null));
+		
+		// check success
+		if (!result.isSuccess()){
+			Log.e(Utils.LOG_TAG, result.getDetailErrorMessage());
+			return null;
+		}
 
 		// grab the thumbnail data
 		byte[] data = result.getThumbnailBytes(serverId);
@@ -237,6 +243,12 @@ extends TableAdapter<PicturesAdapter>{
 
 		// post to the server
 		FullSizeServerReturn result = new FullSizeServerReturn(Utils.postToServer("get_fullsize", json, null, null));
+		
+		// check success
+		if (!result.isSuccess()){
+			Log.e(Utils.LOG_TAG, result.getDetailErrorMessage());
+			return null;
+		}
 
 		// grab the image data
 		byte[] data = result.getImageBytes();

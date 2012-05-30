@@ -26,62 +26,59 @@ extends ServerPost.ServerReturn{
 	// values for the server
 	private static final String FAILURE = "failed"; 						// The value for a failed status
 	private static final String SUCCESS = "success"; 						// The value for a success status/
-	
+
 	// different error codes
 	private static final String NO_JSON_DATA_CODE = "NO_JSON_DATA";
 	private static final String NO_JSON_DATA_MESSAGE = "No return from the server";
 	private static final String INCORRECT_FORMAT_CODE = "INCORRECT_FORMAT_CODE";
 	private static final String INCORRECT_FORMAT_CODE_STRING = "Server Error";
-	
+
 	/**
 	 * Initialize a ShareBearServerReturn object with a generic ServerReturn object.
 	 * @param toCopy
 	 */
 	public ShareBearServerReturn(ServerReturn toCopy){
 		super(toCopy);
-		
-		// check for success and add failure code if available
-		if (!isSuccess() && getStatus().equalsIgnoreCase(FAILURE)){
-			setError(getResponseCode(), getMessage());
-		}
 	}
-	
+
 	public ShareBearServerReturn(){
 		super();
 	}
-	
+
 	public ShareBearServerReturn(String errorCode, String errorMessage){
 		super();
 		setError(errorCode, errorMessage);
 	}
-	
+
 	/**
 	 * Requires that we have KEY_STATUS, and KEY_STATUS must be SUCCESS
 	 */
 	@Override
 	final protected boolean isSuccessCustom(){
 		JSONObject json = getJSONObject();
-		
+
 		// make sure there is json data
 		if (json == null){
 			setError(NO_JSON_DATA_CODE, NO_JSON_DATA_MESSAGE);
 			Log.e(Utils.LOG_TAG, "no json data. This should not happen");
 			return false;
 		}
-		
+
 		// check that 3 important fields are present
 		if (!json.has(KEY_STATUS) || !json.has(KEY_RESPONSE_MESSAGE) || !json.has(KEY_RESPONSE_CODE)){
 			if (this.getErrorCode() == null || this.getErrorCode().length() == 0)
 				setError(INCORRECT_FORMAT_CODE, INCORRECT_FORMAT_CODE_STRING);
 			return false;
 		}
-		if (!json.optString(KEY_STATUS).equalsIgnoreCase(SUCCESS))
-				return false;
-		
+		if (!json.optString(KEY_STATUS).equalsIgnoreCase(SUCCESS)){
+			setError(getResponseCode(), getMessage());
+			return false;
+		}
+
 		// if we made it here, then we're good
 		return isSuccessCustom2();
 	}
-	
+
 	/**
 	 * Get the status code of this return. "" if none.
 	 * @return
@@ -93,7 +90,7 @@ extends ServerPost.ServerReturn{
 		else
 			return getJSONObject().optString(KEY_STATUS);
 	}
-	
+
 	/**
 	 * This method always returns true. Override it to add further constraints to isSuccess();
 	 * @return
@@ -101,7 +98,7 @@ extends ServerPost.ServerReturn{
 	protected boolean isSuccessCustom2(){
 		return true;
 	}
-	
+
 	/**
 	 * Get the response_message of this object, "" if not found
 	 * @return
@@ -113,7 +110,7 @@ extends ServerPost.ServerReturn{
 		else
 			return getJSONObject().optString(KEY_RESPONSE_MESSAGE);
 	}
-	
+
 	/**
 	 * Get the response code, "" if none.
 	 * @return
@@ -125,7 +122,7 @@ extends ServerPost.ServerReturn{
 		else
 			return getJSONObject().optString(KEY_RESPONSE_CODE);
 	}
-	
+
 	/**
 	 * Return the mssage as a json object. Will be null if we could not convert
 	 * @return
@@ -140,7 +137,7 @@ extends ServerPost.ServerReturn{
 		}
 		return json;
 	}
-	
+
 	/**
 	 * Return the message as a json array. Will be null if we could not convert
 	 * @return

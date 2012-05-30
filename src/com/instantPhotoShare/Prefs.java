@@ -36,7 +36,7 @@ public class Prefs {
 	public static final int DEFAULT_INT = -1;
 	
 	// static values, not stored in file
-	public static final String BASE_URL = "http://www.sharebearapp.com/";//"https://secure1907.hostgator.com/~bheyde1/";//"http://www.brennanmaxinc.com/";
+	public static final String BASE_URL = "http://www.sharebearapp.com/request.php/";//"https://secure1907.hostgator.com/~bheyde1/";//"http://www.brennanmaxinc.com/";
 	public static final String REQUEST_PAGE = "request.php";
 	
 	private static final String PREEMPTIVE_ACCESS_ERROR = "Cannot access before user has been saved in contacts database";

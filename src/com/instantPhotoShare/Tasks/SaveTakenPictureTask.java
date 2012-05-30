@@ -237,7 +237,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask<ACTIVITY_TYPE>
 
 		// show toast if successful
 		if (result.isSuccess())	{
-			//Toast.makeText(applicationCtx, "Picture shared on the interwebs", Toast.LENGTH_SHORT).show();
+			Toast.makeText(applicationCtx, "Picture uploaed to the interwebs", Toast.LENGTH_SHORT).show();
 			return;
 		}
 

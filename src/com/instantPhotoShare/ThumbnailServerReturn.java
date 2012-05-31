@@ -10,29 +10,12 @@ import com.tools.ServerPost.ServerReturn;
 public class ThumbnailServerReturn
 extends ShareBearServerReturn{
 
+	// constants
+	private static final int IGNORE_CHARACTERS_BEGINNING_BASE64 = 23;
+	private static final int BASE64_FORMAT = Base64.DEFAULT;
+	
 	public ThumbnailServerReturn(ServerReturn toCopy) {
 		super(toCopy);
-	}
-	
-	/**
-	 * Grab the thumnail data for the given serverId. If not present then, null will be returned.
-	 * @param serverId
-	 * @return
-	 */
-	public String getThumbailData(long serverId){
-		if (!isSuccess())
-			return null;
-		
-		// grab the base64 data
-		JSONObject json = getMessageObject();
-		String base64 = json.optString(String.valueOf(serverId));
-		
-		// strip off useless data in front
-		if (base64 == null || base64.length() < 23)
-			return null;
-		base64 = base64.substring(23);
-		
-		return base64;
 	}
 	
 	/**
@@ -40,16 +23,31 @@ extends ShareBearServerReturn{
 	 * @param serverId The serverId of the thumbnail data
 	 * @return The byte[] array of data. Will be null if not present.
 	 */
-	public byte[] getThumbnailBytes(long serverId){
+	public byte[] getThumbnailBytes(long serverId){		
+		
+		// return null if unsuccessful
 		if (!isSuccess())
 			return null;
 		
-		// grab the base64
-		String base64 = getThumbailData(serverId);
+		// grab the base64 data
+		JSONObject json = getMessageObject();
+		String base64 = json.optString(String.valueOf(serverId));
+		
+		// check null and length
+		if (base64 == null || base64.length() < IGNORE_CHARACTERS_BEGINNING_BASE64)
+			return null;
+		
+		// extract important values
+		byte[] base64Bytes = new byte[base64.length() - IGNORE_CHARACTERS_BEGINNING_BASE64];
+		base64.getBytes(IGNORE_CHARACTERS_BEGINNING_BASE64, base64.length(), base64Bytes, 0);
+		
+		// clear base64
+		base64 = null;
+		System.gc();
 		
 		// now convert to byte
 		try{
-			return Base64.decode(base64, Base64.DEFAULT);
+			return Base64.decode(base64Bytes, BASE64_FORMAT);
 		}catch (RuntimeException e){
 			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 			return null;

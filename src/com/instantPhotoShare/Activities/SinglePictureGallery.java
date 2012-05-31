@@ -418,6 +418,7 @@ extends CustomActivity{
 			View vi=convertView;
 	        if(convertView==null){
 	            vi = inflater.inflate(R.layout.single_picture_item, null);
+	            /*
 	            ImageView image2 = (ImageView)vi.findViewById(R.id.picture);
 	            vi.setLayoutParams(new Gallery.LayoutParams(
 						WindowManager.LayoutParams.FILL_PARENT,
@@ -428,6 +429,13 @@ extends CustomActivity{
 	            params.gravity = Gravity.CENTER;
 	            image2.setLayoutParams(params);
 	            image2.setBackgroundColor(Color.BLACK);
+	            */
+	            
+	            ImageView image2 = (ImageView)vi.findViewById(R.id.picture);
+	            FrameLayout.LayoutParams params = (android.widget.FrameLayout.LayoutParams) image2.getLayoutParams();
+	            params.height = pictureWindowHeight;
+	            params.width = pictureWindowWidth;
+	            image2.setLayoutParams(params);
 	        }
 
 	        // grab the items to display

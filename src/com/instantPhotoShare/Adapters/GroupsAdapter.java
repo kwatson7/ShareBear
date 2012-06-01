@@ -3,6 +3,7 @@ package com.instantPhotoShare.Adapters;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import org.json.JSONArray;
@@ -285,7 +286,8 @@ extends TableAdapter <GroupsAdapter>{
 											"",
 											-1l,
 											null,
-											null);
+											null,
+											false);
 
 									// find the picture by serverId
 									pics.fetchPictureFromServerId(array.getLong(i));
@@ -1243,7 +1245,14 @@ extends TableAdapter <GroupsAdapter>{
 		}
 		public boolean isUpdating() {
 			// if the last time we updated is too long ago, then we are not updating any more
-			if (Date.parse(Utils.getNowTime()) - Date.parse(getLastUpdateAttemptTime()) > 1000*Utils.SECONDS_SINCE_UPDATE_RESET) 
+			boolean timeout;
+			try {
+				timeout = Utils.parseMilliseconds(Utils.getNowTime()) - Utils.parseMilliseconds(getLastUpdateAttemptTime()) > 1000*Utils.SECONDS_SINCE_UPDATE_RESET;
+			} catch (ParseException e) {
+				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+				timeout = true;
+			}
+			if (timeout) 
 				return false;
 			else
 				return isUpdating;

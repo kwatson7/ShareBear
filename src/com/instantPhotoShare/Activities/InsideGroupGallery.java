@@ -3,7 +3,6 @@ package com.instantPhotoShare.Activities;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.text.Html;
@@ -28,10 +27,8 @@ import com.instantPhotoShare.Adapters.GroupsAdapter.Group;
 import com.instantPhotoShare.Adapters.GroupsAdapter.PicturesFetchedCallback;
 import com.instantPhotoShare.Adapters.PicturesAdapter;
 import com.tools.CustomActivity;
-import com.tools.ServerPost.PostCallback;
-import com.tools.ServerPost.ServerReturn;
+import com.tools.TwoObjects;
 import com.tools.images.MemoryCache;
-import com.tools.images.ImageLoader.LoadImage;
 
 public class InsideGroupGallery 
 extends CustomActivity{
@@ -287,12 +284,12 @@ extends CustomActivity{
 
         private PicturesAdapter data;
         private LayoutInflater inflater = null;
-        private com.tools.images.ImageLoader<Long, Long, Long> imageLoader; 
+        private com.tools.images.ImageLoader<Long, TwoObjects<Long, Long>, TwoObjects<Long, Long>> imageLoader; 
         
         public PicturesGridAdapter(Activity a, PicturesAdapter pictures) {
             data = pictures;
             inflater = (LayoutInflater)a.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-            imageLoader = new com.tools.images.ImageLoader<Long, Long, Long>(
+            imageLoader = new com.tools.images.ImageLoader<Long, TwoObjects<Long, Long>, TwoObjects<Long, Long>>(
 					R.drawable.stub,
 					0,
 					0,
@@ -341,8 +338,10 @@ extends CustomActivity{
             
             // fill the views
             text.setText("");
-            if (data.moveToPosition(position))
-            	imageLoader.DisplayImage(data.getRowId(), data.getRowId(), data.getRowId(), image);
+            if (data.moveToPosition(position)){
+            	TwoObjects<Long, Long> loaderData = new TwoObjects<Long, Long>(data.getRowId(), groupId);
+            	imageLoader.DisplayImage(data.getRowId(), loaderData, loaderData, image);
+            }
 
             return vi;
         }

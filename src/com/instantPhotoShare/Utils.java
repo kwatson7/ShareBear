@@ -3,6 +3,8 @@ package com.instantPhotoShare;
 import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -106,6 +108,20 @@ public class Utils {
 		SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT); 
 		Date date = new Date();
 		return dateFormat.format(date);
+	}
+	
+	/**
+	 * Get the current date with the given millisecondsAgo and time formatted as "yyyy-MM-dd HH:mm:ss"
+	 * For example, if it is currently "2012-06-18 12:54:48" and we enter 3, then output would be "2012-06-18 12:54:45"
+	 * @param secondsAgo how long ago we want to look
+	 * @return The time date string
+	 */
+	public static String getTimeSecondsAgo(int secondsAgo){
+		SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT); 
+		Date date = new Date();
+		long timeAgo = date.getTime() - (long)(secondsAgo*1e3);
+		Date agoDate = new Date(timeAgo);
+		return dateFormat.format(agoDate);
 	}
 
 	/**
@@ -310,5 +326,17 @@ public class Utils {
 				});
 			}
 		}).start();
+	}
+	
+	/**
+	 * Parse milliseconds from a correctly formatted date string
+	 * @param date The data string of format Utils.DATE_FORMAT
+	 * @return The time in milliseconds
+	 * @throws ParseException
+	 */
+	public static long parseMilliseconds(String date)
+			throws ParseException{
+		DateFormat formatter = new SimpleDateFormat(Utils.DATE_FORMAT);
+		return formatter.parse(Utils.getNowTime()).getTime();
 	}
 }

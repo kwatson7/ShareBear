@@ -1,5 +1,8 @@
 package com.instantPhotoShare.Adapters;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
@@ -11,6 +14,7 @@ import com.instantPhotoShare.FullSizeServerReturn;
 import com.instantPhotoShare.Prefs;
 import com.instantPhotoShare.ThumbnailServerReturn;
 import com.instantPhotoShare.Utils;
+import com.tools.SuccessReason;
 import com.tools.TwoObjects;
 import com.tools.images.ImageLoader.LoadImage;
 
@@ -28,7 +32,9 @@ extends TableAdapter<PicturesAdapter>{
 
 	// other contants
 	private static final float PICTURE_OVERSIZE = 2f;
-	
+	private static final int THUMBNAILS_TO_GRAB_AT_ONCE = 10;
+	private static final int TIMEOUT_ON_THUMBNAIL = 60;
+
 	/** Table name */
 	public static final String TABLE_NAME = "pictureInfo";
 
@@ -43,14 +49,20 @@ extends TableAdapter<PicturesAdapter>{
 	private static final String KEY_LONGITUE = "pictureLongitude";
 	private static final String KEY_IS_UPDATING = "isUpdating";
 	private static final String KEY_IS_SYNCED = "isSynced";
-	private static final String KEY_IS_FULLSIZE_DOWNLOADING = "KEY_IS_FULLSIZE_DOWNLOADING";
+	private static final String KEY_IS_FULLSIZE_DOWNLOADING = "KEY_IS_FULLSIZE_DOWNLOADING"; 
 	private static final String KEY_LAST_FULLSIZE_DOWNLOAD_TIME = "KEY_LAST_FULLSIZE_DOWNLOAD_TIME";
+	private static final String KEY_IS_THUMBNAIL_DOWNLOADING = "KEY_IS_THUMBNAIL_DOWNLOADING"; 
+	private static final String KEY_LAST_THUMBNAIL_DOWNLOAD_TIME = "KEY_LAST_THUMBNAIL_DOWNLOAD_TIME";
 	private static final String KEY_LAST_UPDATE_ATTEMPT_TIME = "KEY_LAST_UPDATE_ATTEMPT_TIME";
+	private static final String KEY_HAS_THUMBNAIL_DATA = "HAS_THUMBNAIL_DATA";
 
 	// types for some of the keys
 	private static final String LAST_UPDATE_ATTEMPT_TIME_TYPE = " text not null DEFAULT '1900-01-01 01:00:00'";
 	private static final String IS_FULLSIZE_DOWNLOADING_TYPE = " text not null DEFAULT 'FALSE'";
 	private static final String LAST_FULLSIZE_DOWNLOAD_ATTEMPT_TIME_TYPE = " text not null DEFAULT '1900-01-01 01:00:00'";
+	private static final String IS_THUMBNAIL_DOWNLOADING_TYPE = " text not null DEFAULT 'FALSE'";
+	private static final String LAST_THUMBNAIL_DOWNLOAD_ATTEMPT_TIME_TYPE = " text not null DEFAULT '1900-01-01 01:00:00'";
+	private static final String HAS_THUMBNAIL_DATA_TYPE = " BOOLEAN not null DEFAULT 'FALSE'";
 
 	// some other constants
 	private static String SORT_ORDER = KEY_DATE_TAKEN + " DESC"; 			// sort the picture by most recent
@@ -71,6 +83,9 @@ extends TableAdapter<PicturesAdapter>{
 					+KEY_LAST_UPDATE_ATTEMPT_TIME + LAST_UPDATE_ATTEMPT_TIME_TYPE + ", "
 					+KEY_IS_FULLSIZE_DOWNLOADING + IS_FULLSIZE_DOWNLOADING_TYPE + ", "
 					+KEY_LAST_FULLSIZE_DOWNLOAD_TIME + LAST_FULLSIZE_DOWNLOAD_ATTEMPT_TIME_TYPE + ", "
+					+KEY_IS_THUMBNAIL_DOWNLOADING + IS_THUMBNAIL_DOWNLOADING_TYPE + ", "
+					+KEY_LAST_THUMBNAIL_DOWNLOAD_TIME + LAST_THUMBNAIL_DOWNLOAD_ATTEMPT_TIME_TYPE + ", "
+					+KEY_HAS_THUMBNAIL_DATA + HAS_THUMBNAIL_DATA_TYPE + ", "
 					+KEY_IS_SYNCED +" boolean DEFAULT 'FALSE', "
 					+"foreign key(" +KEY_USER_ID_TOOK +") references " +UsersAdapter.TABLE_NAME +"(" +UsersAdapter.KEY_ROW_ID + ")"
 					+");";
@@ -97,17 +112,37 @@ extends TableAdapter<PicturesAdapter>{
 		}
 		if (oldVersion < 5 && newVersion >= 5){
 			String upgradeQuery = 
-				"ALTER TABLE " +
-				TABLE_NAME + " ADD COLUMN " + 
-				KEY_IS_FULLSIZE_DOWNLOADING + " "+
-				IS_FULLSIZE_DOWNLOADING_TYPE;
+					"ALTER TABLE " +
+							TABLE_NAME + " ADD COLUMN " + 
+							KEY_IS_FULLSIZE_DOWNLOADING + " "+
+							IS_FULLSIZE_DOWNLOADING_TYPE;
 			out.add(upgradeQuery);
 			String upgradeQuery2 = 
-				"ALTER TABLE " +
-				TABLE_NAME + " ADD COLUMN " + 
-				KEY_LAST_FULLSIZE_DOWNLOAD_TIME + " "+
-				LAST_FULLSIZE_DOWNLOAD_ATTEMPT_TIME_TYPE;
+					"ALTER TABLE " +
+							TABLE_NAME + " ADD COLUMN " + 
+							KEY_LAST_FULLSIZE_DOWNLOAD_TIME + " "+
+							LAST_FULLSIZE_DOWNLOAD_ATTEMPT_TIME_TYPE;
 			out.add(upgradeQuery2);
+		}
+		if (oldVersion < 6 && newVersion >= 6){
+			String upgradeQuery = 
+					"ALTER TABLE " +
+							TABLE_NAME + " ADD COLUMN " + 
+							KEY_IS_THUMBNAIL_DOWNLOADING + " "+
+							IS_THUMBNAIL_DOWNLOADING_TYPE;
+			out.add(upgradeQuery);
+			String upgradeQuery2 = 
+					"ALTER TABLE " +
+							TABLE_NAME + " ADD COLUMN " + 
+							KEY_LAST_THUMBNAIL_DOWNLOAD_TIME + " "+
+							LAST_THUMBNAIL_DOWNLOAD_ATTEMPT_TIME_TYPE;
+			out.add(upgradeQuery2);
+			String upgradeQuery3 = 
+					"ALTER TABLE " +
+							TABLE_NAME + " ADD COLUMN " + 
+							KEY_HAS_THUMBNAIL_DATA + " "+
+							HAS_THUMBNAIL_DATA_TYPE;
+			out.add(upgradeQuery3);
 		}
 
 		return out;
@@ -126,6 +161,7 @@ extends TableAdapter<PicturesAdapter>{
 	 * @param idWhoTook The id of the user who took the picture. Insert null for id of person on phone
 	 * @param latitude latitude of pictures in degrees, or null
 	 * @param longitude longitude of picture in degrees, or null
+	 * @param hasThumbnailData if there is thumbnail data available locally
 	 * @return rowId or -1 if failed
 	 */
 	public long createPicture(
@@ -135,7 +171,8 @@ extends TableAdapter<PicturesAdapter>{
 			String dateTaken, 
 			Long idWhoTook, 
 			Double latitude,
-			Double longitude){	
+			Double longitude,
+			boolean hasThumbnailData){	
 
 		// override some values and/or check
 		if (dateTaken == null || dateTaken.length() == 0)
@@ -151,6 +188,7 @@ extends TableAdapter<PicturesAdapter>{
 		values.put(KEY_USER_ID_TOOK, idWhoTook);
 		values.put(KEY_LATITUDE, latitude);
 		values.put(KEY_LONGITUE, longitude);
+		values.put(KEY_HAS_THUMBNAIL_DATA, hasThumbnailData);
 
 		// insert the values
 		return database.insert(TABLE_NAME, null, values);
@@ -161,7 +199,7 @@ extends TableAdapter<PicturesAdapter>{
 	 * *** This is slow, so perform on background thread ***
 	 * @return The thumbnail data
 	 */
-	public byte[] getThumbnailServer(){
+	public byte[] getThumbnailServerDONTUSE(){
 
 		// grab the server Id
 		long serverId = getServerId();
@@ -185,7 +223,7 @@ extends TableAdapter<PicturesAdapter>{
 
 		// post to the server
 		ThumbnailServerReturn result = new ThumbnailServerReturn(Utils.postToServer("get_thumbnails", json, null, null));
-		
+
 		// check success
 		if (!result.isSuccess()){
 			Log.e(Utils.LOG_TAG, result.getDetailErrorMessage());
@@ -215,6 +253,300 @@ extends TableAdapter<PicturesAdapter>{
 		// return the data
 		return data;
 	}
+	//TODO: go back and change all update times in sqlite database
+	//TODO: update download and hasThumbnail in full to thumb converter
+	/**
+	 * Grab the bitmap from the server for a given picture. This method is synchronized because we will fetch more than 
+	 * one picture at a time. When we go into this method, we will check if the picture is available locally first.
+	 * Because while we were waiting to sync, it may have been downloaded. <br>
+	 * *** Slow make sure to call on background thread ***
+	 * @param ctx Context required to search
+	 * @param pictureRowId The picture id we want to fetch
+	 * @param groupRowId The groupRowId we want to limit ourselves to when fetching other pictures. Enter -1 if you only want to grab this individual picture
+	 * @return The bitmap of the given picture
+	 */
+	public static Bitmap getThumbnailFromServer(Context ctx, long pictureRowId, long groupRowId){
+
+		// pictureRowId -1 or 0 break
+		if (pictureRowId == 0 || pictureRowId == -1){
+			Log.e(Utils.LOG_TAG, "entered " + pictureRowId + " which is unallowed into getThumbnailFromServer");
+			return null;
+		}
+
+		// we need a context
+		if (ctx == null){
+			Log.e(Utils.LOG_TAG, "entered a null context into getThumbnailFromServer");
+			return null;
+		}
+
+		// grab the app context
+		Context appCtx = ctx.getApplicationContext();
+		ctx = null;
+
+		// grab which picture we are talking about
+		PicturesAdapter pics = new PicturesAdapter(appCtx);
+		pics.fetchPicture(pictureRowId);
+		if (!pics.checkCursor()){
+			Log.e(Utils.LOG_TAG, "tried to download picture with a bad rowId");
+			return null;
+		}
+
+		// if we are updating, then wait
+		Bitmap bmp = null;
+		while (pics.isDownloadingThumbnail() && bmp == null){
+			synchronized (PicturesAdapter.class) {
+				try {
+					PicturesAdapter.class.wait(TIMEOUT_ON_THUMBNAIL*1000);
+				} catch (InterruptedException e) {
+					Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+				}
+				bmp = pics.getThumbnail();
+			}
+		}
+
+		// check if we had an update while we were waiting
+		if (bmp == null)
+			bmp = pics.getThumbnail();
+		if (bmp != null){
+			pics.close();
+			return bmp;
+		}
+
+		// grab the serverId
+		long serverId = pics.getServerId();
+		pics.close();
+
+		// we haven't found it locally, so grab from server, but also grab 9 more pics	
+
+		// the array to grab the thumbnails
+		JSONArray array = new JSONArray();
+		ArrayList <Long> rowIds = new ArrayList<Long>(10);
+		if (!(serverId == -1 || serverId == 0)){
+			array.put(serverId);
+			rowIds.add(pictureRowId);
+			pics.setIsDownloadingThumbnail(pictureRowId);
+		}
+
+		// grab the 9 other pictures
+		if (groupRowId != -1){
+			pics.fetchThumbnailsNeedDownloading(groupRowId, THUMBNAILS_TO_GRAB_AT_ONCE-1);
+
+			// fill the json array
+			while(pics.moveToNext()){
+				long server = pics.getServerId();
+				if (!(server == -1 || server == 0)){
+					array.put(server);
+					rowIds.add(pics.getRowId());
+					synchronized (PicturesAdapter.class) {
+						pics.setIsDownloadingThumbnail(pics.getRowId());
+					}
+				}
+			}
+			pics.close();
+		}
+
+		// empty array break
+		if (array.length() == 0)
+			return null;
+
+		// create the data required to post to server
+		JSONObject json = new JSONObject();
+		try{
+			json.put("user_id", Prefs.getUserServerId(appCtx));
+			json.put("secret_code", Prefs.getSecretCode(appCtx));
+			json.put("thumbnail_ids", array);
+		}catch (JSONException e) {
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			return null;
+		}
+
+		// post to the server
+		ThumbnailServerReturn result = new ThumbnailServerReturn(Utils.postToServer("get_thumbnails", json, null, null));
+
+		// check success
+		if (!result.isSuccess()){
+			Log.e(Utils.LOG_TAG, result.getDetailErrorMessage());
+			return null;
+		}
+
+		// loop over return grabbing thumbnail data
+		for (int i = 0; i < array.length(); i++){
+			// grab the thumbnail data
+			byte[] data;
+			try {
+				data = result.getThumbnailBytes(array.getLong(i));
+			} catch (JSONException e) {
+				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+				synchronized (PicturesAdapter.class) {
+					pics.setFinishedDownloadingThumbnail(rowIds.get(i), false);
+				}
+				continue;
+			}
+
+			// store the important one
+			try {
+				if (data != null && data.length != 0 && array.getLong(i) == serverId)
+					bmp = com.tools.images.ImageLoader.getThumbnail(data, 0);
+			} catch (JSONException e) {
+				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+				continue;
+			}
+
+			// store to file
+			pics.fetchPicture(rowIds.get(i));
+
+			// determine wehre to save it
+			String thumbPath = pics.getThumbnailPath();
+
+			// write to file
+			if (thumbPath != null && thumbPath.length() != 0){
+				SuccessReason result2 = 
+				com.tools.Tools.saveByteDataToFile(
+						appCtx,
+						data,
+						"",
+						false,
+						thumbPath,
+						ExifInterface.ORIENTATION_NORMAL,
+						false);
+				if (result2.getSuccess())
+					synchronized (PicturesAdapter.class) {
+						pics.setFinishedDownloadingThumbnail(rowIds.get(i), true);
+					}
+				else
+					synchronized (PicturesAdapter.class) {
+						pics.setFinishedDownloadingThumbnail(rowIds.get(i), false);
+					}
+			}else
+				synchronized (PicturesAdapter.class) {
+					pics.setFinishedDownloadingThumbnail(rowIds.get(i), false);
+				}
+			pics.close();
+			
+			// notify anyone waiting that we are done saveing a file
+			synchronized (PicturesAdapter.class) {
+				PicturesAdapter.class.notifyAll();
+			}
+		}
+
+		// return the data
+		return bmp;
+	}
+
+	/**
+	 * Fetch the pictures that need thumbnails downloaded and aren't currently downloading from the given group
+	 * @param groupId The group to focus on when grabbing pictures
+	 * @param howManyPics how many pictures to grab, use -1 to grab all
+	 */
+	public void fetchThumbnailsNeedDownloading(long groupId, int howManyPics){
+
+		// GRAB current time
+		String timeAgo = Utils.getTimeSecondsAgo(TIMEOUT_ON_THUMBNAIL);
+
+		// build the where clause
+		String where = 
+				"(UPPER(pics." + KEY_HAS_THUMBNAIL_DATA + ") = 'FALSE' OR pics." + KEY_HAS_THUMBNAIL_DATA + " = '0')" 
+						+ " AND "
+						+ "((UPPER(pics." + KEY_IS_THUMBNAIL_DOWNLOADING + ") = 'FALSE' OR pics." + KEY_IS_THUMBNAIL_DOWNLOADING + " = '0')"	
+						+ " OR "
+						+ "(Datetime(pics." + KEY_LAST_THUMBNAIL_DOWNLOAD_TIME + ") < Datetime('" + timeAgo + "')))"; 
+
+		// create the query where we match up all the pictures that are in the group
+		String query = 
+				"SELECT pics.* FROM "
+						+PicturesAdapter.TABLE_NAME + " pics "
+						+" INNER JOIN "
+						+PicturesInGroupsAdapter.TABLE_NAME + " joinner "
+						+" ON "
+						+"pics." + PicturesAdapter.KEY_ROW_ID + " = "
+						+"joinner." + PicturesInGroupsAdapter.KEY_PICTURE_ID
+						+" WHERE "
+						+"joinner." + PicturesInGroupsAdapter.KEY_GROUP_ID
+						+"=?"
+						+" AND "
+						+where
+						+" ORDER BY " + SORT_ORDER;
+
+		// the number to grab
+		String limit = null;
+		if (howManyPics == -1)
+			limit = null;
+		else
+			limit = String.valueOf(howManyPics);
+		if (limit != null)
+			query += " LIMIT " + limit;
+
+		// do the query
+		Cursor cursor = database.rawQuery(
+				query,
+				new String[]{String.valueOf(groupId)});
+
+		// set cursor
+		setCursor(cursor);
+	}
+
+	/**
+	 * If we are downloading the thumbnail and we haven't timedout, then return true, else false
+	 * @return
+	 */
+	public boolean isDownloadingThumbnail(){
+		boolean isDownloading = getBoolean(KEY_IS_THUMBNAIL_DOWNLOADING);
+		boolean isTimeout;
+		try {
+			isTimeout = Utils.parseMilliseconds(Utils.getNowTime()) - 
+					Utils.parseMilliseconds(getString(KEY_LAST_THUMBNAIL_DOWNLOAD_TIME))
+					> 1000*TIMEOUT_ON_THUMBNAIL;
+		}catch (ParseException e) {
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			return false;
+		}
+
+		// we must be downloading and not timeout
+		return (isDownloading && !isTimeout);
+	}
+
+	/**
+	 * If we are downlaiding thumbnail from the server, then set this field to true.
+	 * When we are done updating, make sure to set to false. <br>
+	 * If isDownlading is true, then we know we are not synced, so we will set sync to false as well.
+	 * @param rowId the rowId of the picture to update.
+	 */
+	public void setIsDownloadingThumbnail(long rowId){
+
+		// the values
+		ContentValues values = new ContentValues();
+		values.put(KEY_IS_THUMBNAIL_DOWNLOADING, true);	
+		values.put(KEY_HAS_THUMBNAIL_DATA, false);
+		values.put(KEY_LAST_THUMBNAIL_DOWNLOAD_TIME, Utils.getNowTime());
+
+		// update the values to the table
+		if (database.update(
+				TABLE_NAME,
+				values,
+				KEY_ROW_ID + "='" + rowId + "'", null) <=0)
+			Log.e(Utils.LOG_TAG, "setDownloadingThumbnail did not update properly");
+	}
+
+	/**
+	 * Set that we are done downloading thumbnail data for this picture
+	 * @param rowId the rowId of the picture
+	 * @param didWeReceiveData If we successfully received data.
+	 */
+	public void setFinishedDownloadingThumbnail(long rowId, boolean didWeReceiveData){
+
+		// the values
+		ContentValues values = new ContentValues();
+		values.put(KEY_IS_THUMBNAIL_DOWNLOADING, false);	
+		if (didWeReceiveData)
+			values.put(KEY_HAS_THUMBNAIL_DATA, true);
+
+		// update the values to the table
+		if (database.update(
+				TABLE_NAME,
+				values,
+				KEY_ROW_ID + "='" + rowId + "'", null) <=0)
+			Log.e(Utils.LOG_TAG, "setFinishedDownloadingThumbnail did not update properly");
+	}
 
 	/**
 	 * Grab the full image data from the server and save it to file. <br>
@@ -243,7 +575,7 @@ extends TableAdapter<PicturesAdapter>{
 
 		// post to the server
 		FullSizeServerReturn result = new FullSizeServerReturn(Utils.postToServer("get_fullsize", json, null, null));
-		
+
 		// check success
 		if (!result.isSuccess()){
 			Log.e(Utils.LOG_TAG, result.getDetailErrorMessage());
@@ -750,7 +1082,14 @@ extends TableAdapter<PicturesAdapter>{
 	 */
 	public boolean isUpdating() {
 		// if the last time we updated is too long ago, then we are not updating any more
-		if (Date.parse(Utils.getNowTime()) - Date.parse(getLastUpdateAttemptTime()) > 1000*Utils.SECONDS_SINCE_UPDATE_RESET) 
+		boolean timeout;
+		try {
+			timeout = Utils.parseMilliseconds(Utils.getNowTime()) - Utils.parseMilliseconds(getLastUpdateAttemptTime()) > 1000*Utils.SECONDS_SINCE_UPDATE_RESET;
+		} catch (ParseException e) {
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			timeout = true;
+		}
+		if (timeout) 
 			return false;
 		else
 			return getBoolean(updatingCol);
@@ -796,27 +1135,29 @@ extends TableAdapter<PicturesAdapter>{
 
 	/**
 	 * Image loader for this picture class
-	 * @param activityContext The context required to load imges
+	 * @param activityContext The context required to load images
 	 * @return The callback for use in ImageLoader
 	 */
-	public static LoadImage<Long, Long> imageLoaderCallback(Context activityContext){
+	public static LoadImage<TwoObjects<Long, Long>, TwoObjects<Long, Long>> imageLoaderCallback(Context activityContext){
 		final Context ctx = activityContext.getApplicationContext();
-		
-		return new LoadImage<Long, Long>() {
+
+		return new LoadImage<TwoObjects<Long, Long>, TwoObjects<Long, Long>>() {
 
 			@Override
-			public Bitmap onThumbnailLocal(Long thumbnailData) {
+			public Bitmap onThumbnailLocal(TwoObjects<Long, Long> thumbnailData) {
 				if (thumbnailData == null)
 					return null;
 				PicturesAdapter pics = new PicturesAdapter(ctx);
-				pics.fetchPicture(thumbnailData);
+				pics.fetchPicture(thumbnailData.mObject1);
 				Bitmap bmp = pics.getThumbnail();
 				pics.close();
 				return bmp;
 			}
 
 			@Override
-			public Bitmap onThumbnailWeb(Long thumbnailData) {
+			public Bitmap onThumbnailWeb(TwoObjects<Long, Long> thumbnailData) {
+				return PicturesAdapter.getThumbnailFromServer(ctx, thumbnailData.mObject1, thumbnailData.mObject2);
+				/*
 				// grab the picture from the server
 				PicturesAdapter pics = new PicturesAdapter(ctx);
 				pics.fetchPicture(thumbnailData);
@@ -826,31 +1167,32 @@ extends TableAdapter<PicturesAdapter>{
 				}
 				byte[] data = pics.getThumbnailServer();
 				pics.close();
-				
+
 				//TODO: read orientation from server
 				//TODO: write orientation to server
 				//TODO: rotate the image here
-				
+
 				// resize the data and rotate
 				return com.tools.images.ImageLoader.getThumbnail(data, 0);
+				 */
 			}
 
 			@Override
 			public Bitmap onFullSizeLocal(
-					Long fullSizeData,
+					TwoObjects<Long, Long> fullSizeData,
 					int desiredWidth,
 					int desiredHeight) {
-				
+
 				// no data
 				if (fullSizeData == null)
 					return null;
-				
+
 				// figure out the correct path
 				PicturesAdapter pics = new PicturesAdapter(ctx);
-				pics.fetchPicture(fullSizeData);
+				pics.fetchPicture(fullSizeData.mObject1);
 				String path = pics.getFullPicturePath();
 				pics.close();
-				
+
 				// read the data from the path
 				return com.tools.images.ImageLoader.getFullImage(path,
 						(int)(desiredWidth*PICTURE_OVERSIZE),
@@ -859,24 +1201,24 @@ extends TableAdapter<PicturesAdapter>{
 
 			@Override
 			public Bitmap onFullSizeWeb(
-					Long fullSizeData,
+					TwoObjects<Long, Long> fullSizeData,
 					int desiredWidth,
 					int desiredHeight) {
-				
+
 				// grab the picture from the server
 				PicturesAdapter pics = new PicturesAdapter(ctx);
-				pics.fetchPicture(fullSizeData);
+				pics.fetchPicture(fullSizeData.mObject2);
 				if (pics.getServerId() == 0 || pics.getServerId() == -1){
 					pics.close();
 					return null;
 				}
 				byte[] data = pics.getFullImageServer();
 				pics.close();
-				
+
 				//TODO: read orientation from server
 				//TODO: write orientation to server
 				//TODO: rotate the image here
-				
+
 				// resize the data and rotate
 				return com.tools.images.ImageLoader.getFullImage(
 						data,
@@ -887,20 +1229,21 @@ extends TableAdapter<PicturesAdapter>{
 
 			@Override
 			public void createThumbnailFromFull(
-					Long thumbnailData, Long fullSizeData) {
-				
+					TwoObjects<Long, Long> thumbnailData, TwoObjects<Long, Long> fullSizeData) {
+
 				// grab which picture
 				PicturesAdapter pics = new PicturesAdapter(ctx);
-				pics.fetchPicture(thumbnailData);
+				pics.fetchPicture(thumbnailData.mObject1);
 
 				// resize
-				com.tools.images.ImageLoader.createThumbnailFromFull(
+				if(com.tools.images.ImageLoader.createThumbnailFromFull(
 						pics.getThumbnailPath(),
 						pics.getFullPicturePath(),
 						Utils.MAX_THUMBNAIL_DIMENSION,
 						Utils.FORCE_BASE2_THUMBNAIL_RESIZE,
-						Utils.IMAGE_QUALITY);
-				
+						Utils.IMAGE_QUALITY))
+					pics.setFinishedDownloadingThumbnail(thumbnailData.mObject1, true);
+
 				// close it
 				pics.close();
 			}

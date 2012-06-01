@@ -1,6 +1,7 @@
 package com.instantPhotoShare.Adapters;
 
 import java.lang.reflect.Field;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
@@ -16,13 +17,14 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.ContactsContract;
+import android.util.Log;
 
 public class UsersAdapter
 extends TableAdapter <UsersAdapter>{
 
 	/** Table name */
 	public static final String TABLE_NAME = "userInfo";
-	
+
 	// user table keys
 	public static final String KEY_ROW_ID = "_id";
 	private static final String KEY_FIRST_NAME = "firstName";
@@ -39,40 +41,40 @@ extends TableAdapter <UsersAdapter>{
 	private static final String KEY_DEFAULT_CONTACT = "defaultContact";
 	private static final String KEY_CONTACTS_ROW_ID = "contactsRowId";
 	private static final String KEY_LOOKUP_KEY = "KEY_LOOKUP_KEY";
-	
+
 	private static final String DELIM = ","; // cannot change this as hashset converter does commas
-	
+
 	private static final String LOOKUP_KEY_TYPE = "String not null default ''";
-	
+
 	private Context ctx;
-	
+
 	/** Table creation string */
 	public static String TABLE_CREATE = 
-		"create table "
-		+TABLE_NAME +" ("
-		+KEY_ROW_ID +" integer primary key autoincrement, "
-		+KEY_FIRST_NAME +" text DEFAULT '', "
-		+KEY_LAST_NAME +" text DEFAULT '', "
-		+KEY_SERVER_ID +" integer DEFAULT '-1', "
-		+KEY_EMAILS +" text, "
-		+KEY_PHONES +" text, "
-		+KEY_PICTURE_ID +" integer DEFAULT '-1', "
-		+KEY_DATE_JOINED +" text, "
-		+KEY_HAS_ACCOUNT +" boolean DEFAULT 'FALSE', "
-		+KEY_IS_UPDATING +" boolean DEFAULT 'FALSE', "
-		+KEY_LAST_UPDATE_ATTEMPT_TIME +" text not null DEFAULT '1900-01-01 01:00:00', "
-		+KEY_IS_SYNCED +" boolean DEFAULT 'FALSE', "
-		+KEY_DEFAULT_CONTACT + " TEXT, "
-		+KEY_CONTACTS_ROW_ID + " integer DEFAULT '-1', "
-		+KEY_LOOKUP_KEY + " " + LOOKUP_KEY_TYPE + ", "
-		+"foreign key(" +KEY_PICTURE_ID +") references " +PicturesAdapter.TABLE_NAME +"(" +PicturesAdapter.KEY_ROW_ID + ")" 
-		+");";
-	
+			"create table "
+					+TABLE_NAME +" ("
+					+KEY_ROW_ID +" integer primary key autoincrement, "
+					+KEY_FIRST_NAME +" text DEFAULT '', "
+					+KEY_LAST_NAME +" text DEFAULT '', "
+					+KEY_SERVER_ID +" integer DEFAULT '-1', "
+					+KEY_EMAILS +" text, "
+					+KEY_PHONES +" text, "
+					+KEY_PICTURE_ID +" integer DEFAULT '-1', "
+					+KEY_DATE_JOINED +" text, "
+					+KEY_HAS_ACCOUNT +" boolean DEFAULT 'FALSE', "
+					+KEY_IS_UPDATING +" boolean DEFAULT 'FALSE', "
+					+KEY_LAST_UPDATE_ATTEMPT_TIME +" text not null DEFAULT '1900-01-01 01:00:00', "
+					+KEY_IS_SYNCED +" boolean DEFAULT 'FALSE', "
+					+KEY_DEFAULT_CONTACT + " TEXT, "
+					+KEY_CONTACTS_ROW_ID + " integer DEFAULT '-1', "
+					+KEY_LOOKUP_KEY + " " + LOOKUP_KEY_TYPE + ", "
+					+"foreign key(" +KEY_PICTURE_ID +") references " +PicturesAdapter.TABLE_NAME +"(" +PicturesAdapter.KEY_ROW_ID + ")" 
+					+");";
+
 	public UsersAdapter(Context context) {
 		super(context);
 		ctx = context;
 	}
-	
+
 	/**
 	 * Return a list of SQL statements to perform upon an upgrade from oldVersion to newVersion.
 	 * @param oldVersion old version of database
@@ -83,16 +85,16 @@ extends TableAdapter <UsersAdapter>{
 		ArrayList<String> out = new ArrayList<String>(1);
 		if (oldVersion < 4 && newVersion >= 4){
 			String upgradeQuery = 
-				"ALTER TABLE " +
-				TABLE_NAME + " ADD COLUMN " + 
-				KEY_LOOKUP_KEY + " "+
-				LOOKUP_KEY_TYPE;
+					"ALTER TABLE " +
+							TABLE_NAME + " ADD COLUMN " + 
+							KEY_LOOKUP_KEY + " "+
+							LOOKUP_KEY_TYPE;
 			out.add(upgradeQuery);
 		}
-		
+
 		return out;
 	}
-	
+
 	/**
 	 * Make a new contact in the database or update an existing one.
 	 * Puts isUpdating to false and doesn't overwrite serverId if -1 is input.
@@ -126,7 +128,7 @@ extends TableAdapter <UsersAdapter>{
 		// find emails, phones, and names
 		TwoStrings fullName = null;
 		ThreeObjects<HashSet<TwoStrings>, HashSet<TwoStrings>, TwoStrings>  phoneEmailName = 
-			com.tools.CustomCursors.getContactPhoneArrayEmailArrayAndName(ctx, contactId);
+				com.tools.CustomCursors.getContactPhoneArrayEmailArrayAndName(ctx, contactId);
 		if (phoneEmailName != null){
 			String phone = phoneEmailName.mObject1.toString();
 			String email = phoneEmailName.mObject2.toString();
@@ -150,11 +152,11 @@ extends TableAdapter <UsersAdapter>{
 
 		// The where clause
 		String where = 
-			KEY_CONTACTS_ROW_ID + " = ?";
-		
+				KEY_CONTACTS_ROW_ID + " = ?";
+
 		// The selection args
 		String[] selectionArgs = {String.valueOf(contactId)};
-		
+
 		// update the row, insert it if not possible
 		long newRow = -1;
 		int affected = database.update(TABLE_NAME,
@@ -174,7 +176,7 @@ extends TableAdapter <UsersAdapter>{
 
 		return newRow;
 	}
-	
+
 	/**
 	 * Insert a new user into the database. Return the new rowId or -1 if unsuccessful.
 	 * This user will not have a serverId attached
@@ -214,16 +216,16 @@ extends TableAdapter <UsersAdapter>{
 		values.put(KEY_HAS_ACCOUNT, hasAccount);
 		values.put(KEY_DEFAULT_CONTACT, defaultContact);
 		values.put(KEY_CONTACTS_ROW_ID, contactsRowId);
-		
+
 		// create new row
 		long newRow = database.insert(
 				TABLE_NAME,
 				null,
 				values);
-		
+
 		return newRow;
 	}	
-	
+
 	/**
 	 * Return a user for the given rowId
 	 * 
@@ -234,62 +236,62 @@ extends TableAdapter <UsersAdapter>{
 
 		// default
 		User output = null;
-		
+
 		// grab the cursor
 		Cursor cursor =
 
-			database.query(
-					true,
-					TABLE_NAME,
-					null,
-					KEY_ROW_ID + "='" + rowId +"'",
-					null,
-					null,
-					null,
-					null,
-					null);
-		
+				database.query(
+						true,
+						TABLE_NAME,
+						null,
+						KEY_ROW_ID + "='" + rowId +"'",
+						null,
+						null,
+						null,
+						null,
+						null);
+
 		// check null
 		if (cursor == null || !cursor.moveToFirst())
 			return output;
-		
+
 		// check if we are accessing more than one row, this shouuldn't happen
 		if (cursor.getCount() > 1 && !Prefs.debug.allowMultipleUpdates)
 			throw new IllegalArgumentException("attempting to access more than one row. This should never happen");
-		
+
 		// make the group from cursor
 		output = new User(cursor);
-		
+
 		// close and return
 		cursor.close();
 		return output;
 	}
-	
+
 	/**
 	 * Get an array of all users stored in database
 	 * @return
 	 */
 	public ArrayList<User> getAllUsers(){
-		
+
 		// grab the cursor over all groups
 		Cursor cursor = fetchAllCursor(TABLE_NAME);
-		
+
 		// initalize output
 		ArrayList<User> output = new ArrayList<User>();
-		
+
 		// check null
 		if (cursor == null)
 			return output;
-		
+
 		// loop over cursor
 		while (cursor.moveToNext()){
 			output.add(new User(cursor));
 		}
-		
+
 		cursor.close();
 		return output;
 	}
-	
+
 	/**
 	 * If we are updating to the server, then set this field to true.
 	 * When we are done updating, make sure to set to false. <br>
@@ -312,7 +314,7 @@ extends TableAdapter <UsersAdapter>{
 				values,
 				KEY_ROW_ID + "='" + rowId + "'", null) > 0;	
 	}
-	
+
 	/**
 	 * If we are synced to the server, then set this field to true.
 	 * Also if we set to synced, then we know we aren't updating, so that is set to false.
@@ -335,42 +337,42 @@ extends TableAdapter <UsersAdapter>{
 				values,
 				KEY_ROW_ID + "='" + rowId + "'", null) > 0;	
 	}
-	
+
 	/**
 	 * Get the row id from the phone's contact database that aligns with this "user" rowId
 	 * @param contactId The rowId in the "user" database
 	 * @return the rowId in the contacts database on the phone, -1 if none.
 	 */
 	public int getRowIdFromContactsDatabaseDONTUSE(long contactId){
-		
+
 		return getIntFrowRowId(contactId, KEY_CONTACTS_ROW_ID);
 	}
-	
+
 	/**
 	 * Update or create new link between this current user and the contacts database user
 	 * @param usersRowId The row id of the "users" database this contact is located at
 	 * @param contactsRowId The row id in the contacts database
 	 */
 	public void setRowIdFromContactsDatabaseDONTUSE(int usersRowId, int contactsRowId){
-		
+
 		// the value to update
 		ContentValues values = new ContentValues(2);
 		values.put(KEY_CONTACTS_ROW_ID, contactsRowId);	
-		
+
 		// The where clause
 		String where = 
-			KEY_ROW_ID + " = ?";
-		
+				KEY_ROW_ID + " = ?";
+
 		// The selection args
 		String[] selectionArgs = {String.valueOf(usersRowId)};
-		
+
 		// update the row
 		database.update(TABLE_NAME,
 				values,
 				where,
 				selectionArgs);
 	}
-	
+
 	/**
 	 * Get the default contact info, either an email string or phone string, for this row id.
 	 * This searches on the "users" databse rowId. To search on the contacts database row id, see getDefaultContactInfoFromContactsDatabaseRowId
@@ -378,10 +380,10 @@ extends TableAdapter <UsersAdapter>{
 	 * @return a string of either an email or phone, null if none found.
 	 */
 	public String getDefaultContactInfoDONTUSE(int rowId){
-		
+
 		return getStringFrowRowId(rowId, KEY_DEFAULT_CONTACT);
 	}
-	
+
 	/**
 	 * Get the default contact info, either an email string or phone string, for a given contacts database row id.
 	 * This searches on the "contacts" databse rowId. To search on the "users" database row id, see getDefaultContactInfo
@@ -395,7 +397,7 @@ extends TableAdapter <UsersAdapter>{
 		else
 			return null;
 	}
-	
+
 	/**
 	 * Set the default contact info based on the id from the contacts database, not the "users" database
 	 * @param contactsRowId The contact Id
@@ -407,17 +409,17 @@ extends TableAdapter <UsersAdapter>{
 		values.put(KEY_CONTACTS_ROW_ID, contactsRowId);	
 		values.put(KEY_DEFAULT_CONTACT, defaultContact);
 		values.put(KEY_IS_UPDATING, false);
-		
+
 		// check if we have a row that we can update
-		
-		
+
+
 		// The where clause
 		String where = 
-			KEY_CONTACTS_ROW_ID + " = ?";
-		
+				KEY_CONTACTS_ROW_ID + " = ?";
+
 		// The selection args
 		String[] selectionArgs = {String.valueOf(contactsRowId)};
-		
+
 		// update the row
 		int affected = database.update(TABLE_NAME,
 				values,
@@ -429,27 +431,27 @@ extends TableAdapter <UsersAdapter>{
 			throw new IllegalArgumentException("attempting to update more than one row. This should never happen");
 		}
 	}
-	
+
 	/**
 	 * Set the default contact info based on the rowId
 	 * @param rowId The user row Id
 	 * @param defaultContact The default contact info, ie "johnsmith@gmail.com"
 	 */
 	public void setDefaultContactInfo(long rowId, String defaultContact){
-		
+
 		// the values to update
 		ContentValues values = new ContentValues(2);
 		values.put(KEY_DEFAULT_CONTACT, defaultContact);
 		values.put(KEY_IS_SYNCED, false);
-		
+
 		// check if we have a row that we can update
 		// The where clause
 		String where = 
-			KEY_ROW_ID + " = ?";
-		
+				KEY_ROW_ID + " = ?";
+
 		// The selection args
 		String[] selectionArgs = {String.valueOf(rowId)};
-		
+
 		// update the row
 		int affected = database.update(TABLE_NAME,
 				values,
@@ -463,24 +465,24 @@ extends TableAdapter <UsersAdapter>{
 			throw new IllegalArgumentException("attempting to update more than one row. This should never happen");
 		}
 	}
-	
+
 	/**
 	 * Get the rowId in this database given the contacts Database row id
 	 * @param contactId The contacts Database rowId
 	 * @return the "users" database row id, -1 if not found.
 	 */
 	public int getRowIdGivenContactsDatabaseRowIdDONTUSE(long contactId){
-		
+
 		// default output
 		int output = -1;
-		
+
 		// create the query
 		String selection = 
-			KEY_CONTACTS_ROW_ID+ " = ?";
-		
+				KEY_CONTACTS_ROW_ID+ " = ?";
+
 		// the selection args
 		String[] selectionArgs = {String.valueOf(contactId)};
-		
+
 		// do the query
 		Cursor cursor = database.query(
 				TABLE_NAME,
@@ -490,23 +492,23 @@ extends TableAdapter <UsersAdapter>{
 				null,
 				null,
 				null);
-		
+
 		// check for null
 		if (cursor == null)
 			return output;
-		
+
 		// move to first position in cursor
 		if (!cursor.moveToFirst()){
 			cursor.close();
 			return output;
 		}
-		
+
 		// grab the row id
 		output =  cursor.getInt(cursor.getColumnIndexOrThrow(KEY_ROW_ID));
 		cursor.close();
 		return output;
 	}
-	
+
 	/**
 	 * Delete the given user. Also delete any connections in user - group database
 	 * @param ctx Context needed to delete connections
@@ -517,11 +519,11 @@ extends TableAdapter <UsersAdapter>{
 
 		// The where clause
 		String where = 
-			KEY_ROW_ID + " = ?";
-		
+				KEY_ROW_ID + " = ?";
+
 		// The selection args
 		String[] selectionArgs = {String.valueOf(rowId)};
-		
+
 		// delete the row
 		int effected = database.delete(
 				TABLE_NAME,
@@ -531,38 +533,38 @@ extends TableAdapter <UsersAdapter>{
 		// throw error if we somehow linked to more than one group
 		if (effected > 1 && !Prefs.debug.allowMultipleUpdates)
 			throw new IllegalArgumentException("attempting to delete more than one row in groups. This should never happen");
-		
+
 		// delte teh connections
 		UsersInGroupsAdapter connections = new UsersInGroupsAdapter(ctx);
 		return connections.deleteUserDebug(rowId);				
 	}
-	
-	
-	
+
+
+
 	/**
 	 * Load the user the given rowId into the cursor for this object
 	 * @param rowId
 	 */
 	public void fetchUser(long rowId){
-		
+
 		// grab the cursor
 		Cursor cursor =
 
-			database.query(
-					true,
-					TABLE_NAME,
-					null,
-					KEY_ROW_ID + "='" + rowId +"'",
-					null,
-					null,
-					null,
-					null,
-					null);
-		
+				database.query(
+						true,
+						TABLE_NAME,
+						null,
+						KEY_ROW_ID + "='" + rowId +"'",
+						null,
+						null,
+						null,
+						null,
+						null);
+
 		setCursor(cursor);
 		moveToFirst();
 	}
-	
+
 	/**
 	 * Return a user for the given contacts database rowId
 	 * 
@@ -574,20 +576,20 @@ extends TableAdapter <UsersAdapter>{
 		// grab the cursor
 		Cursor cursor =
 
-			database.query(
-					true,
-					TABLE_NAME,
-					null,
-					KEY_CONTACTS_ROW_ID + "='" + rowId +"'",
-					null,
-					null,
-					null,
-					null,
-					null);
+				database.query(
+						true,
+						TABLE_NAME,
+						null,
+						KEY_CONTACTS_ROW_ID + "='" + rowId +"'",
+						null,
+						null,
+						null,
+						null,
+						null);
 
 		setCursor(cursor);
 		moveToFirst();
-		
+
 		// double check that this matches, if it doens't match, then create a new one
 		UsersAdapter users = new UsersAdapter(ctx);
 		users.fetchUser(this.getRowId());
@@ -595,20 +597,20 @@ extends TableAdapter <UsersAdapter>{
 			setCursor(null);
 		users.close();
 	}
-	
+
 	/**
 	 * Load all users into this cursor
 	 * @return
 	 */
 	public void fetchAllUsers(){
-		
+
 		// grab the cursor over all groups
 		Cursor cursor = fetchAllCursor(TABLE_NAME);
-		
+
 		// return the cursor
 		setCursor(cursor);
 	}
-	
+
 	/**
 	 * Get a cursor for all the users that are linked to the group groupId
 	 * in UsersInGroups table
@@ -619,16 +621,16 @@ extends TableAdapter <UsersAdapter>{
 
 		// create the query where we match up all the pictures that are in the group
 		String query = 
-			"SELECT users.* FROM "
-			+UsersAdapter.TABLE_NAME + " users "
-			+" INNER JOIN "
-			+UsersInGroupsAdapter.TABLE_NAME + " groups "
-			+" ON "
-			+"users." + UsersAdapter.KEY_ROW_ID + " = "
-			+"groups." + UsersInGroupsAdapter.KEY_USER_ID
-			+" WHERE "
-			+"groups." + UsersInGroupsAdapter.KEY_GROUP_ID
-			+"=?";
+				"SELECT users.* FROM "
+						+UsersAdapter.TABLE_NAME + " users "
+						+" INNER JOIN "
+						+UsersInGroupsAdapter.TABLE_NAME + " groups "
+						+" ON "
+						+"users." + UsersAdapter.KEY_ROW_ID + " = "
+						+"groups." + UsersInGroupsAdapter.KEY_USER_ID
+						+" WHERE "
+						+"groups." + UsersInGroupsAdapter.KEY_GROUP_ID
+						+"=?";
 
 		// do the query
 		Cursor cursor = database.rawQuery(
@@ -638,7 +640,7 @@ extends TableAdapter <UsersAdapter>{
 		// return the cursor
 		setCursor(cursor);
 	}
-	
+
 	/**
 	 * Return the users first name
 	 * @return
@@ -648,7 +650,7 @@ extends TableAdapter <UsersAdapter>{
 			return "";
 		return getString(KEY_FIRST_NAME);
 	}
-	
+
 	/**
 	 * Return the users last name
 	 * @return
@@ -658,7 +660,7 @@ extends TableAdapter <UsersAdapter>{
 			return "";
 		return getString(KEY_LAST_NAME);
 	}
-	
+
 	/**
 	 * Return the users name. Usually first + last
 	 * @return
@@ -676,14 +678,14 @@ extends TableAdapter <UsersAdapter>{
 		}
 		return name;
 	}
-	
+
 	/**
 	 * Readable string of user, usually getName();
 	 */
 	public String toString(){
 		return getName();
 	}
-	
+
 	/**
 	 * Return a comma delimited list of the default contact methods.
 	 * @return
@@ -693,7 +695,7 @@ extends TableAdapter <UsersAdapter>{
 			return "";
 		return getString(KEY_DEFAULT_CONTACT);
 	}
-	
+
 	/**
 	 * Return the contact id from the google address book. <br>
 	 * This searches the contacts database to confirm we have the correct id, so it can be slow
@@ -703,14 +705,14 @@ extends TableAdapter <UsersAdapter>{
 		//TODO: this method is slow, but currently required to make sure we don't get contact confusion. it can be fixed by outputing a uri, so it doesn't have to be done again in adduserstogroup
 		if (!checkCursor())
 			return -1;
-		
+
 		// just use the current contactId if there is no lookupKey
 		if (getLookupKey().length() == 0)
 			return getLong(KEY_CONTACTS_ROW_ID);
-		
+
 		// keep track of original row id
 		long originalId = getLong(KEY_CONTACTS_ROW_ID);
-		
+
 		// if we have a lookup key, then use it to search database
 		Uri uri = ContactsContract.Contacts.getLookupUri(getLong(KEY_CONTACTS_ROW_ID), getLookupKey());
 		Uri uri2 = ContactsContract.Contacts.lookupContact(ctx.getContentResolver(), uri);
@@ -719,7 +721,7 @@ extends TableAdapter <UsersAdapter>{
 				uri2,
 				projection,
 				null, null, null);
-		
+
 		// read the id
 		int id = -1;
 		if (cursor != null && cursor.moveToFirst()){
@@ -727,17 +729,17 @@ extends TableAdapter <UsersAdapter>{
 		}
 		if (cursor != null)
 			cursor.close();
-		
+
 		// if we have a changed id, then we need to update.
 		//if (originalId != id){
-			//TODO: determine if this should happen or not
-			//setRowIdFromContactsDatabaseDONTUSE((int)getRowId(), id);
+		//TODO: determine if this should happen or not
+		//setRowIdFromContactsDatabaseDONTUSE((int)getRowId(), id);
 		//}
-		
+
 		// return the value
 		return id;
 	}
-	
+
 	/**
 	 * Return the lookup key to find the user in the database
 	 * @return
@@ -747,7 +749,7 @@ extends TableAdapter <UsersAdapter>{
 			return "";
 		return getString(KEY_LOOKUP_KEY);
 	}
-	
+
 	/**
 	 * Return the server id or -1 if none
 	 * @return
@@ -757,7 +759,7 @@ extends TableAdapter <UsersAdapter>{
 			return -1;
 		return getLong(KEY_SERVER_ID);
 	}
-	
+
 	/**
 	 * Return the row ID of the contact, -1 if none
 	 * @return
@@ -767,7 +769,7 @@ extends TableAdapter <UsersAdapter>{
 			return -1;
 		return getLong(KEY_ROW_ID);
 	}
-	
+
 	/**
 	 * Return the comma separated list of phone numbers for this user.
 	 * @return
@@ -777,7 +779,7 @@ extends TableAdapter <UsersAdapter>{
 			return "";
 		return getString(KEY_PHONES);
 	}
-	
+
 	/**
 	 * Return the comma separated list of emails for this user.
 	 * @return
@@ -787,7 +789,7 @@ extends TableAdapter <UsersAdapter>{
 			return "";
 		return getString(KEY_EMAILS);
 	}
-	
+
 	// helper functions
 	/**
 	 * Get an int from the table for a given rowID and a given column. -1 if none found
@@ -796,17 +798,17 @@ extends TableAdapter <UsersAdapter>{
 	 * @return the value at that row and column name, -1 if none found.
 	 */
 	private int getIntFrowRowId(long contactId, String columnName){
-		
+
 		// default output
 		int output = -1;
-		
+
 		// create the query
 		String selection = 
-			KEY_ROW_ID + " = ?";
-		
+				KEY_ROW_ID + " = ?";
+
 		// the selection args
 		String[] selectionArgs = {String.valueOf(contactId)};
-		
+
 		// do the query
 		Cursor cursor = database.query(
 				TABLE_NAME,
@@ -816,23 +818,23 @@ extends TableAdapter <UsersAdapter>{
 				null,
 				null,
 				null);
-		
+
 		// check for null
 		if (cursor == null)
 			return output;
-		
+
 		// move to first position in cursor
 		if (!cursor.moveToFirst()){
 			cursor.close();
 			return output;
 		}
-		
+
 		// grab the row id
 		output =  cursor.getInt(cursor.getColumnIndexOrThrow(columnName));
 		cursor.close();
 		return output;
 	}
-	
+
 	/**
 	 * Get a string from the table for a given rowID and a given column. null if none found
 	 * @param rowId the rowId to search on
@@ -840,17 +842,17 @@ extends TableAdapter <UsersAdapter>{
 	 * @return the value at that row and column name, null if none found.
 	 */
 	private String getStringFrowRowId(int rowId, String columnName){
-		
+
 		// default output
 		String output = null;
-		
+
 		// create the query
 		String selection = 
-			KEY_ROW_ID + " = ?";
-		
+				KEY_ROW_ID + " = ?";
+
 		// the selection args
 		String[] selectionArgs = {String.valueOf(rowId)};
-		
+
 		// do the query
 		Cursor cursor = database.query(
 				TABLE_NAME,
@@ -860,23 +862,23 @@ extends TableAdapter <UsersAdapter>{
 				null,
 				null,
 				null);
-		
+
 		// check for null
 		if (cursor == null)
 			return output;
-		
+
 		// move to first position in cursor
 		if (!cursor.moveToFirst()){
 			cursor.close();
 			return output;
 		}
-		
+
 		// grab the row id
 		output =  cursor.getString(cursor.getColumnIndexOrThrow(columnName));
 		cursor.close();
 		return output;
 	}
-	
+
 	/**
 	 * Get an array of strings returned from grabbing the values at an array of column name.
 	 * The rows are determined by searching the columnName == columnValue.
@@ -891,17 +893,17 @@ extends TableAdapter <UsersAdapter>{
 			String columnName,
 			String columnValue,
 			String[] returnColumns){
-		
+
 		// default output
 		ArrayList<String> output = new ArrayList<String>(returnColumns.length);
-		
+
 		// create the query
 		String selection = 
-			columnName + " = ?";
-		
+				columnName + " = ?";
+
 		// the selection args
 		String[] selectionArgs = {columnValue};
-		
+
 		// do the query
 		Cursor cursor = database.query(
 				TABLE_NAME,
@@ -911,24 +913,24 @@ extends TableAdapter <UsersAdapter>{
 				null,
 				null,
 				null);
-		
+
 		// check for null
 		if (cursor == null)
 			return output;
-		
+
 		// move to first position in cursor
 		if (!cursor.moveToFirst()){
 			cursor.close();
 			return output;
 		}
-		
+
 		// grab the values
 		for (int i = 0; i < returnColumns.length; i++)
 			output.add(i, cursor.getString(cursor.getColumnIndexOrThrow(returnColumns[i])));
 		cursor.close();
 		return output;
 	}
-	
+
 	/**
 	 * Get an int of string returned from grabbing the value at a column name.
 	 * The rows are determined by searching the columnName == columnValue.
@@ -943,17 +945,17 @@ extends TableAdapter <UsersAdapter>{
 			String columnName,
 			String columnValue,
 			String returnColumn){
-		
+
 		// default output
 		int output = -1;
-		
+
 		// create the query
 		String selection = 
-			columnName + " = ?";
-		
+				columnName + " = ?";
+
 		// the selection args
 		String[] selectionArgs = {columnValue};
-		
+
 		// do the query
 		Cursor cursor = database.query(
 				TABLE_NAME,
@@ -963,23 +965,23 @@ extends TableAdapter <UsersAdapter>{
 				null,
 				null,
 				null);
-		
+
 		// check for null
 		if (cursor == null)
 			return output;
-		
+
 		// move to first position in cursor
 		if (!cursor.moveToFirst()){
 			cursor.close();
 			return output;
 		}
-		
+
 		// grab the value
 		output =  cursor.getInt(cursor.getColumnIndexOrThrow(returnColumn));
 		cursor.close();
 		return output;
 	}
-	
+
 	/**
 	 * Get a string from the table for a given rowID and a given column. null if none found
 	 * @param rowId the rowId to search on
@@ -987,17 +989,17 @@ extends TableAdapter <UsersAdapter>{
 	 * @return the value at that row and column name, null if none found.
 	 */
 	private String getStringFrowContactsDatabaseRowId(int rowId, String columnName){
-		
+
 		// default output
 		String output = null;
-		
+
 		// create the query
 		String selection = 
-			KEY_ROW_ID + " = ?";
-		
+				KEY_ROW_ID + " = ?";
+
 		// the selection args
 		String[] selectionArgs = {String.valueOf(rowId)};
-		
+
 		// do the query
 		Cursor cursor = database.query(
 				TABLE_NAME,
@@ -1007,23 +1009,23 @@ extends TableAdapter <UsersAdapter>{
 				null,
 				null,
 				null);
-		
+
 		// check for null
 		if (cursor == null)
 			return output;
-		
+
 		// move to first position in cursor
 		if (!cursor.moveToFirst()){
 			cursor.close();
 			return output;
 		}
-		
+
 		// grab the row id
 		output =  cursor.getString(cursor.getColumnIndexOrThrow(columnName));
 		cursor.close();
 		return output;
 	}
-	
+
 	/**
 	 * Object that defines a user.
 	 *
@@ -1045,17 +1047,17 @@ extends TableAdapter <UsersAdapter>{
 
 		private boolean isEmpty = true;
 		private String lastUpdateAttemptTime;
-			
+
 		/**
 		 * Create a user from the database cursor at the current location.
 		 * @param cursor
 		 */
 		private User(Cursor cursor){
-			
+
 			// check null and size of cursor
 			if (cursor == null)
 				return;
-			
+
 			// fill fields
 			setEmpty(false);	
 			setRowId(cursor.getLong(cursor.getColumnIndexOrThrow(KEY_ROW_ID)));
@@ -1073,12 +1075,12 @@ extends TableAdapter <UsersAdapter>{
 			setDefaultContactMethod(cursor.getString(cursor.getColumnIndexOrThrow(KEY_DEFAULT_CONTACT)));
 			setContactsRowId(cursor.getInt(cursor.getColumnIndexOrThrow(KEY_CONTACTS_ROW_ID)));
 		}
-		
+
 		@Override
 		public String toString(){
 			return getFullName();
 		}
-		
+
 		/**
 		 * Return first + last name as full name
 		 * @return
@@ -1090,7 +1092,7 @@ extends TableAdapter <UsersAdapter>{
 				name += " " + last;
 			return name;
 		}
-		
+
 		/**
 		 * These two objects are considered equal if all fields are equal
 		 */
@@ -1099,18 +1101,18 @@ extends TableAdapter <UsersAdapter>{
 			// must be correct type
 			if (!( o instanceof User) || o==null)
 				return false;
-			
+
 			// convert			
 			User input = ((User) o);
-			
+
 			// if empty, they cannot be equal
 			if (isEmpty() || input.isEmpty())
 				return false;
-			
+
 			// now compare each field
 			return equalsHelper(input);
 		}
-		
+
 		/**
 		 * compare each field in this class to be equal
 		 * @param user
@@ -1134,7 +1136,7 @@ extends TableAdapter <UsersAdapter>{
 			}
 			return true;
 		}
-		
+
 		@Override
 		public int hashCode(){
 			if (isEmpty())
@@ -1142,7 +1144,7 @@ extends TableAdapter <UsersAdapter>{
 			else
 				return ((Long)getRowId()).hashCode();
 		}
-		
+
 		private void setEmpty(boolean isEmpty) {
 			this.isEmpty = isEmpty;
 		}
@@ -1150,14 +1152,21 @@ extends TableAdapter <UsersAdapter>{
 		public boolean isEmpty() {
 			return isEmpty;
 		}
-		
+
 		private void setUpdating(boolean isUpdating) {
 			this.isUpdating = isUpdating;
 		}
-		
+
 		public boolean isUpdating() {
 			// if the last time we updated is too long ago, then we are not updating any more
-			if (Date.parse(Utils.getNowTime()) - Date.parse(getLastUpdateAttemptTime()) > 1000*Utils.SECONDS_SINCE_UPDATE_RESET) 
+			boolean timeout;
+			try {
+				timeout = Utils.parseMilliseconds(Utils.getNowTime()) - Utils.parseMilliseconds(getLastUpdateAttemptTime()) > 1000*Utils.SECONDS_SINCE_UPDATE_RESET;
+			} catch (ParseException e) {
+				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+				timeout = true;
+			}
+			if (timeout) 
 				return false;
 			else
 				return isUpdating;
@@ -1270,6 +1279,6 @@ extends TableAdapter <UsersAdapter>{
 
 	@Override
 	protected void setColumnNumbers() throws IllegalArgumentException {
-		
+
 	}
 }

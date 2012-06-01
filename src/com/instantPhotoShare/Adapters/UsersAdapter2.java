@@ -1,5 +1,6 @@
 package com.instantPhotoShare.Adapters;
 
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
@@ -762,9 +763,16 @@ extends TableAdapter <UsersAdapter>{
 			return false;
 		
 		// if the last time we updated is too long ago, then we are not updating any more
-		if (Date.parse(Utils.getNowTime()) - Date.parse(getLastUpdateTime()) > 1000*Utils.SECONDS_SINCE_UPDATE_RESET) 
+		boolean timeout;
+		try {
+			timeout = Utils.parseMilliseconds(Utils.getNowTime()) - Utils.parseMilliseconds(getLastUpdateTime()) > 1000*Utils.SECONDS_SINCE_UPDATE_RESET;
+		} catch (ParseException e) {
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			timeout = true;
+		}
+		if (timeout) 
 			return false;
 		else
-			return getBoolean(KEY_IS_UPDATING);
+			return getBoolean(KEY_IS_UPDATING);	
 	}
 }

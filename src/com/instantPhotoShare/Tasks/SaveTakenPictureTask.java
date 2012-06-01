@@ -183,7 +183,8 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask<ACTIVITY_TYPE>
 				null,
 				null,
 				latitude,
-				longitude);
+				longitude,
+				true);
 
 		// we had an error, so break out
 		if (picId == -1){

@@ -40,6 +40,7 @@ import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.PicturesAdapter;
 import com.tools.CustomActivity;
+import com.tools.TwoObjects;
 import com.tools.images.CustomGallery;
 import com.tools.images.ImageLoader.LoadImage;
 import com.tools.images.ImageViewTouch;
@@ -354,12 +355,12 @@ extends CustomActivity{
 
 		private PicturesAdapter data;
 		private LayoutInflater inflater = null;
-		private com.tools.images.ImageLoader<Long, Long, Long> imageLoader; 
+		private com.tools.images.ImageLoader<Long, TwoObjects<Long, Long>, TwoObjects<Long, Long>> imageLoader; 
 
 		public PicturesGridAdapter(Activity a, PicturesAdapter pictures) {
 			data = pictures;
 			inflater = (LayoutInflater)a.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-			imageLoader = new com.tools.images.ImageLoader<Long, Long, Long>(
+			imageLoader = new com.tools.images.ImageLoader<Long, TwoObjects<Long, Long>, TwoObjects<Long, Long>>(
 					android.R.color.transparent,
 					pictureWindowWidth,
 					pictureWindowHeight,
@@ -442,8 +443,10 @@ extends CustomActivity{
 	        ImageViewTouch image = (ImageViewTouch)vi.findViewById(R.id.picture);
 	        
 	        // move to correct location and fill views
-			if (data.moveToPosition(position))
-				imageLoader.DisplayImage(data.getRowId(), data.getRowId(), data.getRowId(), image);
+	        if (data.moveToPosition(position)){
+            	TwoObjects<Long, Long> loaderData = new TwoObjects<Long, Long>(data.getRowId(), groupId);
+            	imageLoader.DisplayImage(data.getRowId(), loaderData, loaderData, image);
+            }
 	        
 	        // return the view
 	        return vi;

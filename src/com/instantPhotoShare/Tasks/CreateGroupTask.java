@@ -318,9 +318,9 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, CreateGroupTask<ACTIVITY_TYPE>.R
 		 */
 		public long getGroupId() {
 			try{
-				return Long.parseLong(getMessage());
-			}catch(NumberFormatException e){
-				Log.e(Utils.LOG_TAG, "CreategroupTask intstead of long returned: " + getMessage());
+				return getMessageObject().getLong(KEY_GROUP_ID);
+			}catch (JSONException e) {
+				Log.e("TAG", Log.getStackTraceString(e));
 				return -1;
 			}
 		}

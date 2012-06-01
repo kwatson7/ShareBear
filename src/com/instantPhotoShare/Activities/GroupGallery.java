@@ -27,6 +27,7 @@ import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.PicturesAdapter;
 import com.instantPhotoShare.Adapters.GroupsAdapter.Group;
 import com.tools.CustomActivity;
+import com.tools.TwoObjects;
 import com.tools.images.ImageLoader.LoadImage;
 
 public class GroupGallery 
@@ -175,12 +176,23 @@ extends CustomActivity{
 
 						@Override
 						public Bitmap onThumbnailLocal(Group thumbnailData) {
-							return com.tools.images.ImageLoader.getThumbnail(thumbnailData.getPictureThumbnailPath(act));
+							long picId = thumbnailData.getPictureId(act);
+							if (picId == -1)
+								return null;
+							PicturesAdapter pics = new PicturesAdapter(ctx);
+							pics.fetchPicture(picId);
+							Bitmap bmp = pics.getThumbnail();
+							pics.close();
+							return bmp; 
+							//return com.tools.images.ImageLoader.getThumbnail(thumbnailData.getPictureThumbnailPath(act));
 						}
 
 						@Override
 						public Bitmap onThumbnailWeb(Group thumbnailData) {
-							return null;
+							long picId = thumbnailData.getPictureId(act);
+							if (picId == -1)
+								return null;
+							return PicturesAdapter.getThumbnailFromServer(ctx, picId, thumbnailData.getRowId());
 						}
 
 						@Override

@@ -1207,7 +1207,7 @@ extends TableAdapter<PicturesAdapter>{
 
 				// grab the picture from the server
 				PicturesAdapter pics = new PicturesAdapter(ctx);
-				pics.fetchPicture(fullSizeData.mObject2);
+				pics.fetchPicture(fullSizeData.mObject1);
 				if (pics.getServerId() == 0 || pics.getServerId() == -1){
 					pics.close();
 					return null;

@@ -10,6 +10,7 @@ import com.instantPhotoShare.Adapters.PicturesAdapter;
 import com.instantPhotoShare.Adapters.GroupsAdapter.Group;
 import com.instantPhotoShare.Tasks.CreatePrivateGroup;
 import com.tools.CustomActivity;
+import com.tools.TwoObjects;
 import com.tools.images.ImageLoader.LoadImage;
 import com.tools.images.MemoryCache;
 
@@ -259,61 +260,17 @@ extends CustomActivity{
 
 		private PicturesAdapter data;
 		private LayoutInflater inflater = null;
-		public com.tools.images.ImageLoader<Long,Long,Long> imageLoader; 
+		public com.tools.images.ImageLoader<Long, TwoObjects<Long, Long>, TwoObjects<Long, Long>> imageLoader; 
 
 		public PicturesGridAdapter(Activity a, PicturesAdapter pictures) {
 			data = pictures;
 			inflater = (LayoutInflater)a.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-			imageLoader = new com.tools.images.ImageLoader<Long, Long, Long>(
+			imageLoader = new com.tools.images.ImageLoader<Long, TwoObjects<Long, Long>, TwoObjects<Long, Long>>(
 					R.drawable.stub,
 					0,
 					0,
 					false,
-					new LoadImage<Long, Long>() {
-
-						@Override
-						public Bitmap onThumbnailLocal(Long thumbnailData) {
-							if (thumbnailData == null)
-								return null;
-							PicturesAdapter pics = new PicturesAdapter(act);
-							pics.fetchPicture(thumbnailData);
-							Bitmap bmp = pics.getThumbnail();
-							pics.close();
-							return bmp;
-						}
-
-						@Override
-						public Bitmap onThumbnailWeb(Long thumbnailData) {
-							return null;
-						}
-
-						@Override
-						public Bitmap onFullSizeLocal(Long fullSizeData,
-								int desiredWidth, int desiredHeight) {
-							return null;
-						}
-
-						@Override
-						public Bitmap onFullSizeWeb(Long fullSizeData,
-								int desiredWidth, int desiredHeight) {
-							return null;
-						}
-
-						@Override
-						public void createThumbnailFromFull(
-								Long thumbnailData, Long fullSizeData) {
-							PicturesAdapter pics = new PicturesAdapter(act);
-							pics.fetchPicture(thumbnailData);
-							
-							com.tools.images.ImageLoader.createThumbnailFromFull(
-									pics.getThumbnailPath(),
-									pics.getFullPicturePath(),
-									Utils.MAX_THUMBNAIL_DIMENSION,
-									Utils.FORCE_BASE2_THUMBNAIL_RESIZE,
-									Utils.IMAGE_QUALITY);
-							pics.close();
-						}
-					});
+					PicturesAdapter.imageLoaderCallback(ctx));
 		}
 
 		public int getCount() {
@@ -375,8 +332,10 @@ extends CustomActivity{
 				imageView = (ImageView) convertView;
 			
 			// move to correct location and fill views
-			if (data.moveToPosition(position))
-				imageLoader.DisplayImage(data.getRowId(), data.getRowId(), data.getRowId(), imageView);
+			if (data.moveToPosition(position)){
+            	TwoObjects<Long, Long> loaderData = new TwoObjects<Long, Long>(data.getRowId(), (long) -1);
+            	imageLoader.DisplayImage(data.getRowId(), loaderData, loaderData, imageView);
+            }
 
 			return imageView;
 		}

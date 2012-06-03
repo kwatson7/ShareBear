@@ -3,21 +3,21 @@
  */
 package com.instantPhotoShare.Activities;
 
+import java.util.ArrayList;
+
 import com.instantPhotoShare.R;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.PicturesAdapter;
-import com.instantPhotoShare.Adapters.GroupsAdapter.Group;
 import com.instantPhotoShare.Tasks.CreatePrivateGroup;
 import com.tools.CustomActivity;
+import com.tools.DownloadFile;
 import com.tools.TwoObjects;
-import com.tools.images.ImageLoader.LoadImage;
 import com.tools.images.MemoryCache;
 
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
@@ -85,6 +85,7 @@ extends CustomActivity{
 		CreatePrivateGroup<MainScreen> task = new CreatePrivateGroup<MainScreen>(this, ASYNC_TASKS.MAKE_PRIVATE_GROUP.ordinal());
 		task.execute();
 	}
+	
 	
 	/**
 	 * Find the cursor required for pictures

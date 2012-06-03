@@ -435,157 +435,6 @@ extends TableAdapter<PicturesAdapter>{
 	}
 
 	/**
-	 * Get a cursor for all the pictures that are linked to the group groupId
-	 * in PicturesInGroup table
-	 * @param groupId
-	 * @return A cursor on the pictures that match the groupId in PictursInGroupsAdapter
-	 */
-	public boolean isPictureInGroup(long pictureId, long groupId){
-
-		// create the query where we match up all the pictures that are in the group
-		String query = 
-				"SELECT pics.* FROM "
-						+PicturesAdapter.TABLE_NAME + " pics "
-						+" INNER JOIN "
-						+PicturesInGroupsAdapter.TABLE_NAME + " groups "
-						+" ON "
-						+"pics." + PicturesAdapter.KEY_ROW_ID + " = "
-						+"groups." + PicturesInGroupsAdapter.KEY_PICTURE_ID
-						+" WHERE "
-						+"groups." + PicturesInGroupsAdapter.KEY_GROUP_ID
-						+"=?"
-						+" AND "
-						+"pics." + PicturesAdapter.KEY_ROW_ID
-						+"=?"
-						+" ORDER BY " + SORT_ORDER;
-
-		// do the query
-		Cursor cursor = database.rawQuery(
-				query,
-				new String[]{String.valueOf(groupId), String.valueOf(pictureId)});
-
-		// return the false if there is no good cursor, and true otherwise.
-		if (cursor == null || !cursor.moveToFirst()){
-			if (cursor != null)
-				cursor.close();
-			return false;
-		}else
-			return true;
-	}
-
-	/**
-	 * Is the given picture based on the serverId present in the database
-	 * @param serverId is the picture present
-	 * @return
-	 */
-	public boolean isPicturePresent(long serverId){
-		Cursor cursor =
-
-				database.query(
-						true,
-						TABLE_NAME,
-						new String[] {KEY_ROW_ID},
-						KEY_SERVER_ID + "=?",
-						new String[] {String.valueOf(serverId)},
-						null,
-						null,
-						SORT_ORDER,
-						null);
-		boolean value = cursor.moveToFirst();
-		cursor.close();
-		return value;
-	}
-	
-	/**
-	 * Set that we are done downloading thumbnail data for this picture
-	 * @param rowId the rowId of the picture
-	 * @param didWeReceiveData If we successfully received data.
-	 */
-	public void setFinishedDownloadingThumbnail(long rowId, boolean didWeReceiveData){
-
-		// the values
-		ContentValues values = new ContentValues();
-		values.put(KEY_IS_THUMBNAIL_DOWNLOADING, false);	
-		if (didWeReceiveData)
-			values.put(KEY_HAS_THUMBNAIL_DATA, true);
-
-		// update the values to the table
-		if (database.update(
-				TABLE_NAME,
-				values,
-				KEY_ROW_ID + "='" + rowId + "'", null) <=0)
-			Log.e(Utils.LOG_TAG, "setFinishedDownloadingThumbnail did not update properly");
-	}
-
-	/**
-	 * If we are downlaiding thumbnail from the server, then set this field to true.
-	 * When we are done updating, make sure to set to false. <br>
-	 * If isDownlading is true, then we know we are not synced, so we will set sync to false as well.
-	 * @param rowId the rowId of the picture to update.
-	 */
-	public void setIsDownloadingThumbnail(long rowId){
-
-		// the values
-		ContentValues values = new ContentValues();
-		values.put(KEY_IS_THUMBNAIL_DOWNLOADING, true);	
-		values.put(KEY_HAS_THUMBNAIL_DATA, false);
-		values.put(KEY_LAST_THUMBNAIL_DOWNLOAD_TIME, Utils.getNowTime());
-
-		// update the values to the table
-		if (database.update(
-				TABLE_NAME,
-				values,
-				KEY_ROW_ID + "='" + rowId + "'", null) <=0)
-			Log.e(Utils.LOG_TAG, "setDownloadingThumbnail did not update properly");
-	}
-	
-	/**
-	 * If we are synced to the server, then set this field to true.
-	 * Also if we set to synced, then we know we aren't updating, so that is set to false.
-	 * @param rowId the rowId of the picture to update.
-	 * @param isSynced boolean if we are synced
-	 * @param newServerId, input -1, if not known and nothing will be saved
-	 * @return boolean if we updated successfully to sql table.
-	 */
-	public boolean setIsSynced(long rowId, boolean isSynced, long newServerId){
-
-		ContentValues values = new ContentValues();
-		values.put(KEY_IS_SYNCED, isSynced);	
-		if (isSynced)
-			values.put(KEY_IS_UPDATING, false);
-		if (newServerId != -1)
-			values.put(KEY_SERVER_ID, newServerId);
-
-		return database.update(
-				TABLE_NAME,
-				values,
-				KEY_ROW_ID + "='" + rowId + "'", null) > 0;	
-	}
-
-	/**
-	 * If we are updating to the server, then set this field to true.
-	 * When we are done updating, make sure to set to false. <br>
-	 * If isUpdating is true, then we know we are not synced, so we will set sync to false as well.
-	 * @param rowId the rowId of the picture to update.
-	 * @param isUpdating
-	 * @return boolean if we updated successfully to sql table.
-	 */
-	public boolean setIsUpdating(long rowId, boolean isUpdating){
-
-		ContentValues values = new ContentValues();
-		values.put(KEY_IS_UPDATING, isUpdating);	
-		if (isUpdating)
-			values.put(KEY_IS_SYNCED, false);
-		if (isUpdating)
-			values.put(KEY_LAST_UPDATE_ATTEMPT_TIME, Utils.getNowTime());
-
-		return database.update(
-				TABLE_NAME,
-				values,
-				KEY_ROW_ID + "='" + rowId + "'", null) > 0;	
-	}
-	
-	/**
 	 * Insert a new picture using the info. If the picture is
 	 * successfully created return the new rowId for that picture, otherwise return
 	 * a -1 to indicate failure.
@@ -638,8 +487,8 @@ extends TableAdapter<PicturesAdapter>{
 	public void fetchPicture(long rowId){
 		setCursor(fetchPicturePrivate(rowId));
 		moveToFirst();
-	}	
-
+	}
+	
 	/**
 	 * Fetch the picture with the given serverId. <br>
 	 * *** Make sure to close cursor when finished with closeCursor ***
@@ -670,7 +519,7 @@ extends TableAdapter<PicturesAdapter>{
 	public void fetchPicturesInGroup(long groupId){
 		setCursor(fetchPicturesInGroupPrivate(groupId));
 	}
-
+	
 	/**
 	 * Fetch random pictures. <br>
 	 * If nPictures <= 1, then we start of positioned at the first (and only)
@@ -793,7 +642,7 @@ extends TableAdapter<PicturesAdapter>{
 		// set cursor
 		setCursor(cursor);
 	}
-
+	
 	/**
 	 * Return the date taken as a string, or "" if not accessible.
 	 * @return
@@ -866,8 +715,8 @@ extends TableAdapter<PicturesAdapter>{
 
 		// return the data
 		return data;
-	}
-	
+	}	
+
 	/**
 	 * Return the path to the picture, "" if there is none or cursor cannot be read. <br>
 	 * @see getThumbnail
@@ -882,7 +731,7 @@ extends TableAdapter<PicturesAdapter>{
 			return getString(KEY_PATH);
 		}
 	}
-	
+
 	/**
 	 * Get formatted last update time. or "1900-01-01 01:00:00" if not accessible
 	 * @return
@@ -894,7 +743,7 @@ extends TableAdapter<PicturesAdapter>{
 		}
 		return getString(KEY_LAST_UPDATE_ATTEMPT_TIME);
 	}
-	
+
 	/**
 	 * Return the rowId of the current row, or return -1 if not accessible.
 	 * @return
@@ -906,7 +755,7 @@ extends TableAdapter<PicturesAdapter>{
 		}else
 			return getLong(KEY_ROW_ID);
 	}
-	
+
 	/**
 	 * Get the server Id of this picture, -1 if none.
 	 * @return
@@ -918,7 +767,7 @@ extends TableAdapter<PicturesAdapter>{
 		}else
 			return getLong(KEY_SERVER_ID);
 	}
-	
+
 	/**
 	 * Get the bitmap for the thumbnnail. null if there is none.
 	 * @return
@@ -952,8 +801,19 @@ extends TableAdapter<PicturesAdapter>{
 		}else{
 			return getString(KEY_THUMBNAIL_PATH);
 		}
-	}	
-
+	}
+	
+	/**
+	 * Get the row Id of the user who took this picture. -1 if unknown
+	 * @return
+	 */
+	public long getUserIdWhoTook(){
+		if (!checkCursor())
+			return -1;
+		else
+			return getLong(KEY_USER_ID_TOOK);
+	}
+	
 	/**
 	 * If we are downloading the thumbnail and we haven't timedout, then return true, else false
 	 * @return
@@ -978,9 +838,69 @@ extends TableAdapter<PicturesAdapter>{
 		// we must be downloading and not timeout
 		return (isDownloading && !isTimeout);
 	}
-
 	
+	/**
+	 * Get a cursor for all the pictures that are linked to the group groupId
+	 * in PicturesInGroup table
+	 * @param groupId
+	 * @return A cursor on the pictures that match the groupId in PictursInGroupsAdapter
+	 */
+	public boolean isPictureInGroup(long pictureId, long groupId){
 
+		// create the query where we match up all the pictures that are in the group
+		String query = 
+				"SELECT pics.* FROM "
+						+PicturesAdapter.TABLE_NAME + " pics "
+						+" INNER JOIN "
+						+PicturesInGroupsAdapter.TABLE_NAME + " groups "
+						+" ON "
+						+"pics." + PicturesAdapter.KEY_ROW_ID + " = "
+						+"groups." + PicturesInGroupsAdapter.KEY_PICTURE_ID
+						+" WHERE "
+						+"groups." + PicturesInGroupsAdapter.KEY_GROUP_ID
+						+"=?"
+						+" AND "
+						+"pics." + PicturesAdapter.KEY_ROW_ID
+						+"=?"
+						+" ORDER BY " + SORT_ORDER;
+
+		// do the query
+		Cursor cursor = database.rawQuery(
+				query,
+				new String[]{String.valueOf(groupId), String.valueOf(pictureId)});
+
+		// return the false if there is no good cursor, and true otherwise.
+		if (cursor == null || !cursor.moveToFirst()){
+			if (cursor != null)
+				cursor.close();
+			return false;
+		}else
+			return true;
+	}
+	
+	/**
+	 * Is the given picture based on the serverId present in the database
+	 * @param serverId is the picture present
+	 * @return
+	 */
+	public boolean isPicturePresent(long serverId){
+		Cursor cursor =
+
+				database.query(
+						true,
+						TABLE_NAME,
+						new String[] {KEY_ROW_ID},
+						KEY_SERVER_ID + "=?",
+						new String[] {String.valueOf(serverId)},
+						null,
+						null,
+						SORT_ORDER,
+						null);
+		boolean value = cursor.moveToFirst();
+		cursor.close();
+		return value;
+	}
+	
 	/**
 	 * Determine if we are currently updating by looking at database. If last update time was too long ago, then we are no longer updating.
 	 * @return
@@ -1004,8 +924,97 @@ extends TableAdapter<PicturesAdapter>{
 		else
 			return getBoolean(KEY_IS_UPDATING);
 	}
+	
+	/**
+	 * Set that we are done downloading thumbnail data for this picture
+	 * @param rowId the rowId of the picture
+	 * @param didWeReceiveData If we successfully received data.
+	 */
+	public void setFinishedDownloadingThumbnail(long rowId, boolean didWeReceiveData){
+
+		// the values
+		ContentValues values = new ContentValues();
+		values.put(KEY_IS_THUMBNAIL_DOWNLOADING, false);	
+		if (didWeReceiveData)
+			values.put(KEY_HAS_THUMBNAIL_DATA, true);
+
+		// update the values to the table
+		if (database.update(
+				TABLE_NAME,
+				values,
+				KEY_ROW_ID + "='" + rowId + "'", null) <=0)
+			Log.e(Utils.LOG_TAG, "setFinishedDownloadingThumbnail did not update properly");
+	}
+
+	/**
+	 * If we are downlaiding thumbnail from the server, then set this field to true.
+	 * When we are done updating, make sure to set to false. <br>
+	 * If isDownlading is true, then we know we are not synced, so we will set sync to false as well.
+	 * @param rowId the rowId of the picture to update.
+	 */
+	public void setIsDownloadingThumbnail(long rowId){
+
+		// the values
+		ContentValues values = new ContentValues();
+		values.put(KEY_IS_THUMBNAIL_DOWNLOADING, true);	
+		values.put(KEY_HAS_THUMBNAIL_DATA, false);
+		values.put(KEY_LAST_THUMBNAIL_DOWNLOAD_TIME, Utils.getNowTime());
+
+		// update the values to the table
+		if (database.update(
+				TABLE_NAME,
+				values,
+				KEY_ROW_ID + "='" + rowId + "'", null) <=0)
+			Log.e(Utils.LOG_TAG, "setDownloadingThumbnail did not update properly");
+	}	
+
+	/**
+	 * If we are synced to the server, then set this field to true.
+	 * Also if we set to synced, then we know we aren't updating, so that is set to false.
+	 * @param rowId the rowId of the picture to update.
+	 * @param isSynced boolean if we are synced
+	 * @param newServerId, input -1, if not known and nothing will be saved
+	 * @return boolean if we updated successfully to sql table.
+	 */
+	public boolean setIsSynced(long rowId, boolean isSynced, long newServerId){
+
+		ContentValues values = new ContentValues();
+		values.put(KEY_IS_SYNCED, isSynced);	
+		if (isSynced)
+			values.put(KEY_IS_UPDATING, false);
+		if (newServerId != -1)
+			values.put(KEY_SERVER_ID, newServerId);
+
+		return database.update(
+				TABLE_NAME,
+				values,
+				KEY_ROW_ID + "='" + rowId + "'", null) > 0;	
+	}
 
 	
+
+	/**
+	 * If we are updating to the server, then set this field to true.
+	 * When we are done updating, make sure to set to false. <br>
+	 * If isUpdating is true, then we know we are not synced, so we will set sync to false as well.
+	 * @param rowId the rowId of the picture to update.
+	 * @param isUpdating
+	 * @return boolean if we updated successfully to sql table.
+	 */
+	public boolean setIsUpdating(long rowId, boolean isUpdating){
+
+		ContentValues values = new ContentValues();
+		values.put(KEY_IS_UPDATING, isUpdating);	
+		if (isUpdating)
+			values.put(KEY_IS_SYNCED, false);
+		if (isUpdating)
+			values.put(KEY_LAST_UPDATE_ATTEMPT_TIME, Utils.getNowTime());
+
+		return database.update(
+				TABLE_NAME,
+				values,
+				KEY_ROW_ID + "='" + rowId + "'", null) > 0;	
+	}
 
 	/**
 	 * Set the input imageView to the current thumbnail.

@@ -39,8 +39,11 @@ import com.instantPhotoShare.R;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.PicturesAdapter;
+import com.instantPhotoShare.Adapters.UsersAdapter;
 import com.tools.CustomActivity;
 import com.tools.TwoObjects;
+import com.tools.ViewLoader;
+import com.tools.ViewLoader.LoadData;
 import com.tools.images.CustomGallery;
 import com.tools.images.ImageLoader.LoadImage;
 import com.tools.images.ImageViewTouch;
@@ -58,22 +61,22 @@ extends CustomActivity{
 	private int pictureWindowWidth; 			// the width of the area the picture fits inside
 	private int pictureWindowHeight; 			// the height of the area the picture fits inside
 	private com.tools.images.MemoryCache<Long> oldCache = null; 		// the old imageloader cache. use this to handle screen rotations.
-	
+
 	// graphics
 	private CustomGallery gallery; 				// the gallery to show pictures
 	private ImageView takePictureButton; 		// the pointer to the take picture button
 	private TextView groupNameText; 			// Pointer to textView showing the group name
-	
+
 	// public static variables for passing values, be very careful with these
 	/** Static variable for passing in MemoryCache <br>
 	 * only should be used from InsidePictureGallery, right before calling startActivity.
 	 */
 	public static com.tools.images.MemoryCache<Long> passedCache = null;
-	
+
 	// variables to indicate what can be passed in through intents
 	public static final String GROUP_ID = "GROUP_ID";
 	public static final String PICTURE_POSITION = "PICTURE_POSITION";
-	
+
 	//enums for async calls
 	private enum MENU_ITEMS {
 		ROTATE_CCW, ROTATE_CW, SET_AS_DEFAULT_PICTURE, SHARE_PICTURE;
@@ -111,7 +114,7 @@ extends CustomActivity{
 			finish();
 			return;
 		}
-		
+
 		// get configuration data and copy over any old data from old configuration.
 		ConfigurationProperties config = (ConfigurationProperties) getLastNonConfigurationInstance();
 		if (config != null && config.customData != null){
@@ -120,7 +123,7 @@ extends CustomActivity{
 				oldCache = data.cache;
 			}
 		}
-		
+
 		// get any passed cache
 		if (passedCache != null){
 			oldCache = passedCache;
@@ -146,7 +149,7 @@ extends CustomActivity{
 			adapter.imageLoader.stopThreads();
 		super.onPause();
 	}
-	
+
 	@Override
 	public void onResume(){
 		if (adapter != null)
@@ -248,26 +251,26 @@ extends CustomActivity{
 	protected void additionalConfigurationStoring() {
 		ConfigurationPropertiesCustom data = new ConfigurationPropertiesCustom();
 		data.cache = adapter.getMemoryCache();
-		
+
 		configurationProperties.customData = data;
 	}
-	
+
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		super.onCreateOptionsMenu(menu);
 
 		// Add the menu items
-	//	MenuItem rotateCCW = menu.add(0, MENU_ITEMS.ROTATE_CCW.ordinal(), 0, "Rotate CCW");
+		//	MenuItem rotateCCW = menu.add(0, MENU_ITEMS.ROTATE_CCW.ordinal(), 0, "Rotate CCW");
 		//MenuItem setAsGroupPicture = menu.add(0, MENU_ITEMS.ROTATE_CW.ordinal(), 0, "Rotate CW");
 		menu.add(0, MENU_ITEMS.SET_AS_DEFAULT_PICTURE.ordinal(), 0, "Set as Group Picture");
 		menu.add(0, MENU_ITEMS.SHARE_PICTURE.ordinal(), 0, "Share Picture");
 
 		// add icons
-	//	selectAll.setIcon(drawable.emo_im_laughing);
+		//	selectAll.setIcon(drawable.emo_im_laughing);
 
 		return true;
 	}
-	
+
 	@Override
 	public boolean onMenuItemSelected(int featureId, MenuItem item) {
 
@@ -281,18 +284,18 @@ extends CustomActivity{
 					0, -90,
 					Animation.RELATIVE_TO_SELF, 0.5f,
 					Animation.RELATIVE_TO_SELF, 0.5f);
-			
+
 			// add animations to set
 			AnimationSet set = new AnimationSet(false);
 			set.addAnimation(rot);
 			set.setFillAfter(true);
 			set.setDuration(300);
 			view.startAnimation(set);
-		//	picturesAdapater.moveToPosition(gallery.getLastVisiblePosition());
+			//	picturesAdapater.moveToPosition(gallery.getLastVisiblePosition());
 			//com.tools.Tools.rotateExif(
-		//			picturesAdapater.getFullPicturePath(), -1);
-		//	adapter.clearCache();
-		//	adapter.notifyDataSetChanged();
+			//			picturesAdapater.getFullPicturePath(), -1);
+			//	adapter.clearCache();
+			//	adapter.notifyDataSetChanged();
 			return true;
 		case SET_AS_DEFAULT_PICTURE:
 			picturesAdapater.moveToPosition(gallery.getLastVisiblePosition());
@@ -313,7 +316,7 @@ extends CustomActivity{
 
 		return super.onMenuItemSelected(featureId, item);
 	}
-	
+
 	/**
 	 * Share the current picture with a sharing intent
 	 */
@@ -322,7 +325,7 @@ extends CustomActivity{
 		String shareBody = "Take a look at my picture from Share Bear. To share with me, download Share Bear and we can share instantly!";
 		String shareSubject = "A Picture from my Share Bear group " + unformatedGroupName;
 		String prompt = "Share picture";
-		
+
 		// grab the picture file
 		picturesAdapater.moveToPosition(gallery.getLastVisiblePosition());
 		String fileName = picturesAdapater.getFullPicturePath();
@@ -330,7 +333,7 @@ extends CustomActivity{
 			Toast.makeText(this, "No full picture. Thumbnail used", Toast.LENGTH_SHORT).show();
 			fileName = picturesAdapater.getThumbnailPath();
 		}
-		
+
 		// send the intent
 		if(!com.tools.Tools.sharePicture(this, shareSubject, shareBody, fileName, prompt))
 			Toast.makeText(this, "Picture could not be sent", Toast.LENGTH_SHORT).show();
@@ -356,6 +359,7 @@ extends CustomActivity{
 		private PicturesAdapter data;
 		private LayoutInflater inflater = null;
 		private com.tools.images.ImageLoader<Long, TwoObjects<Long, Long>, TwoObjects<Long, Long>> imageLoader; 
+		private com.tools.ViewLoader<Long, Long, String, TextView> nameLoader;
 
 		public PicturesGridAdapter(Activity a, PicturesAdapter pictures) {
 			data = pictures;
@@ -366,6 +370,23 @@ extends CustomActivity{
 					pictureWindowHeight,
 					true,
 					PicturesAdapter.imageLoaderCallback(ctx));		
+			
+			nameLoader = new ViewLoader<Long, Long, String, TextView>(
+					"Unknown Person",
+					new LoadData<Long, String, TextView>() {
+
+						@Override
+						public String onGetData(Long key) {
+							UsersAdapter users = new UsersAdapter(ctx);
+							users.fetchUser(key);
+							return users.getName();
+						}
+
+						@Override
+						public void onBindView(String data, TextView view) {
+							view.setText(data);
+						}
+					});
 		}
 
 		public int getCount() {
@@ -385,30 +406,30 @@ extends CustomActivity{
 			else
 				return 0;
 		}
-		
+
 		/**
-	     * Return the memory cache.<br>
-	     * **** This should only be used when storing this memory cache to be passed into again useing restoreMemoryCache
-	     * for example on orientation changes *****
-	     * @return
-	     */
+		 * Return the memory cache.<br>
+		 * **** This should only be used when storing this memory cache to be passed into again useing restoreMemoryCache
+		 * for example on orientation changes *****
+		 * @return
+		 */
 		public com.tools.images.MemoryCache<Long> getMemoryCache(){
 			return imageLoader.getMemoryCache();
 		}
-		
-		
+
+
 		/**
 		 * Clear cache as we need to reload picture
 		 */
 		public void clearCache(){
 			imageLoader.clearCache();
 		}
-		
+
 		/**
-	     * Set the memory cache to this new value, clearing old one.
-	     * @see getMemoryCache.
-	     * @param mem
-	     */
+		 * Set the memory cache to this new value, clearing old one.
+		 * @see getMemoryCache.
+		 * @param mem
+		 */
 		public void restoreMemoryCache(com.tools.images.MemoryCache<Long> mem){
 			imageLoader.restoreMemoryCache(mem);
 		}
@@ -417,9 +438,9 @@ extends CustomActivity{
 
 			// inflate a new view if we have to
 			View vi=convertView;
-	        if(convertView==null){
-	            vi = inflater.inflate(R.layout.single_picture_item, null);
-	            /*
+			if(convertView==null){
+				vi = inflater.inflate(R.layout.single_picture_item, null);
+				/*
 	            ImageView image2 = (ImageView)vi.findViewById(R.id.picture);
 	            vi.setLayoutParams(new Gallery.LayoutParams(
 						WindowManager.LayoutParams.FILL_PARENT,
@@ -430,26 +451,28 @@ extends CustomActivity{
 	            params.gravity = Gravity.CENTER;
 	            image2.setLayoutParams(params);
 	            image2.setBackgroundColor(Color.BLACK);
-	            */
-	            
-	            ImageView image2 = (ImageView)vi.findViewById(R.id.picture);
-	            FrameLayout.LayoutParams params = (android.widget.FrameLayout.LayoutParams) image2.getLayoutParams();
-	            params.height = pictureWindowHeight;
-	            params.width = pictureWindowWidth;
-	            image2.setLayoutParams(params);
-	        }
+				 */
 
-	        // grab the items to display
-	        ImageViewTouch image = (ImageViewTouch)vi.findViewById(R.id.picture);
-	        
-	        // move to correct location and fill views
-	        if (data.moveToPosition(position)){
-            	TwoObjects<Long, Long> loaderData = new TwoObjects<Long, Long>(data.getRowId(), groupId);
-            	imageLoader.DisplayImage(data.getRowId(), loaderData, loaderData, image);
-            }
-	        
-	        // return the view
-	        return vi;
+				ImageView image2 = (ImageView)vi.findViewById(R.id.picture);
+				FrameLayout.LayoutParams params = (android.widget.FrameLayout.LayoutParams) image2.getLayoutParams();
+				params.height = pictureWindowHeight;
+				params.width = pictureWindowWidth;
+				image2.setLayoutParams(params);
+			}
+
+			// grab the items to display
+			ImageViewTouch image = (ImageViewTouch)vi.findViewById(R.id.picture);
+			TextView name = (TextView) vi.findViewById(R.id.personWhoTookPicture);
+
+			// move to correct location and fill views
+			if (data.moveToPosition(position)){
+				TwoObjects<Long, Long> loaderData = new TwoObjects<Long, Long>(data.getRowId(), groupId);
+				imageLoader.DisplayImage(data.getRowId(), loaderData, loaderData, image);
+				nameLoader.DisplayView(data.getRowId(), data.getUserIdWhoTook(), name);
+			}
+
+			// return the view
+			return vi;
 		}
 	}
 }

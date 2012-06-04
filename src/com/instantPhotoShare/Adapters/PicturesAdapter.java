@@ -190,7 +190,7 @@ extends TableAdapter<PicturesAdapter>{
 						}
 						continue;
 					}
-					
+
 					// fill the array
 					array.put(server);
 					rowIds.add(pics.getRowId());
@@ -206,11 +206,26 @@ extends TableAdapter<PicturesAdapter>{
 		if (array.length() == 0)
 			return null;
 
-		// grab the groupId
+		// grab the group serverId
+		long groupServerId = -1;
+		if (groupRowId != -1){
 		GroupsAdapter groups = new GroupsAdapter(appCtx);
 		Group group = groups.getGroup(groupRowId);
-		long groupServerId = group.getServerId();
+		groupServerId = group.getServerId();
+		}else{
+			GroupsAdapter groups = new GroupsAdapter(appCtx);
+			groups.fetchGroupsContainPicture(pictureRowId);
+			while(groupServerId == -1 && groups.moveToNext())
+				groupServerId = groups.getServerId();
+			groups.close();
+		}
 		
+		// no group, can't get picture
+		if (groupServerId == -1){
+			Log.e(Utils.LOG_TAG, "bad group serverId, so we can't grab the thumbnail");
+			return null;
+		}
+
 		// create the data required to post to server
 		JSONObject json = new JSONObject();
 		try{
@@ -272,7 +287,7 @@ extends TableAdapter<PicturesAdapter>{
 								thumbPath,
 								ExifInterface.ORIENTATION_NORMAL,
 								false);
-				
+
 				// grab the id of the picture
 				long pictureServerId;
 				try {
@@ -281,23 +296,23 @@ extends TableAdapter<PicturesAdapter>{
 					Log.e("TAG", Log.getStackTraceString(e));
 					continue;
 				}
-				
+
 				// find the user who took this picture
 				UsersAdapter users = new UsersAdapter(appCtx);
 				users.fetchUserByServerId(result.getUserServerIdWhoCreated(pictureServerId));
 				long userRowId = users.getRowId();
-				
+
 				// unknown user, so create him.
 				if (userRowId == -1 || userRowId == 0){
 					users.close();
 					userRowId = users.makeNewUser(result.getUserServerIdWhoCreated(pictureServerId));
 				}
-				
+
 				// update the picture in the database
 				pics.updatePicture(rowIds.get(i), userRowId, result.getDateCreated(
 						pictureServerId),
 						result.getFullsizePath(pictureServerId));
-				
+
 				if (result2.getSuccess())
 					synchronized (PicturesAdapter.class) {
 						pics.setFinishedDownloadingThumbnail(rowIds.get(i), true);
@@ -388,15 +403,9 @@ extends TableAdapter<PicturesAdapter>{
 					pics.close();
 					return null;
 				}
-				byte[] data = pics.getFullImageServer();
+				Bitmap bmp = pics.getFullImageServer((int)(desiredWidth*PICTURE_OVERSIZE), (int)(desiredHeight*PICTURE_OVERSIZE));
 				pics.close();
-
-				// resize the data and rotate
-				return com.tools.images.ImageLoader.getFullImage(
-						data,
-						0,
-						(int)(desiredWidth*PICTURE_OVERSIZE),
-						(int)(desiredHeight*PICTURE_OVERSIZE));
+				return bmp;
 			}
 
 			@Override
@@ -533,7 +542,7 @@ extends TableAdapter<PicturesAdapter>{
 		setCursor(fetchPicturePrivate(rowId));
 		moveToFirst();
 	}
-	
+
 	/**
 	 * Fetch the picture with the given serverId. <br>
 	 * *** Make sure to close cursor when finished with closeCursor ***
@@ -564,7 +573,7 @@ extends TableAdapter<PicturesAdapter>{
 	public void fetchPicturesInGroup(long groupId){
 		setCursor(fetchPicturesInGroupPrivate(groupId));
 	}
-	
+
 	/**
 	 * Fetch random pictures. <br>
 	 * If nPictures <= 1, then we start of positioned at the first (and only)
@@ -637,6 +646,71 @@ extends TableAdapter<PicturesAdapter>{
 	}
 
 	/**
+	 * Fetch the pictures that still need to be uploaded to the server for a given group.
+	 * @param groupRowId
+	 */
+	public void fetchPicturesNeedUploading(long groupRowId){
+		// pictures that haven't been synced but need to be have the following
+		// serverId == 0, -1, or null
+		// part of a group that has keepLocal = 0
+		// isUpdating = 0
+		// last_update is old
+		// isSynced = 0
+		// KEY_HAS_THUMBNAIL_DATA is true
+
+		// first find the group and make sure it isn't keep local
+		GroupsAdapter groups = new GroupsAdapter(ctx);
+		groups.fetchGroup(groupRowId);
+		if (groups.getRowId() == -1 || groups.getRowId() == 0 || groups.isKeepLocal())
+			return;
+
+		// now we query the pictures in this group that match our criteria
+
+		// GRAB current time
+		String timeAgo = Utils.getTimeSecondsAgo((int) Utils.SECONDS_SINCE_UPDATE_RESET);
+
+		// build the where clause
+		String where = "(pics." + KEY_SERVER_ID + " =? OR pics." + KEY_SERVER_ID + " =? OR pics." + KEY_SERVER_ID + " IS NULL ) AND " +
+				"((pics." + KEY_IS_UPDATING + " =? OR UPPER(pics." + KEY_IS_UPDATING + ") =?) OR " + 
+				"(Datetime(" + KEY_LAST_UPDATE_ATTEMPT_TIME + ") < Datetime('" + timeAgo + "'))) AND " +
+				"(pics." + KEY_IS_SYNCED + " =? OR UPPER(pics." + KEY_IS_SYNCED + ") =?) AND " +
+				"(" + KEY_HAS_THUMBNAIL_DATA + " =? OR UPPER(" + KEY_HAS_THUMBNAIL_DATA + ") =?)";
+
+		// where args
+		String[] whereArgs = {String.valueOf(groupRowId),
+				String.valueOf(-1), String.valueOf(0),
+				String.valueOf(0), "FALSE",
+				String.valueOf(0), "FALSE",
+				String.valueOf(1), "TRUE"};
+
+		// create the query where we match up all the pictures that are in the group
+		String query = 
+				"SELECT pics.* FROM "
+						+PicturesAdapter.TABLE_NAME + " pics "
+						+" INNER JOIN "
+						+PicturesInGroupsAdapter.TABLE_NAME + " joinner "
+						+" ON "
+						+"pics." + PicturesAdapter.KEY_ROW_ID + " = "
+						+"joinner." + PicturesInGroupsAdapter.KEY_PICTURE_ID
+						+" WHERE "
+						+"joinner." + PicturesInGroupsAdapter.KEY_GROUP_ID
+						+"=?"
+						+" AND "
+						+where
+						+" ORDER BY " + SORT_ORDER;
+
+
+
+		// do the query
+		Cursor cursor = database.rawQuery(
+				query,
+				whereArgs);
+
+		// set cursor
+		setCursor(cursor);
+	}
+
+	/**
 	 * Fetch the pictures that need thumbnails downloaded and aren't currently downloading from the given group
 	 * @param groupId The group to focus on when grabbing pictures
 	 * @param howManyPics how many pictures to grab, use -1 to grab all
@@ -687,7 +761,7 @@ extends TableAdapter<PicturesAdapter>{
 		// set cursor
 		setCursor(cursor);
 	}
-	
+
 	/**
 	 * Return the date taken as a string, or "" if not accessible.
 	 * @return
@@ -761,7 +835,7 @@ extends TableAdapter<PicturesAdapter>{
 		// return the data
 		return data;
 	}	
-	
+
 	/**
 	 * Grab the full image data from the server and save it to file. <br>
 	 * *** This is slow, so perform on background thread ***
@@ -802,7 +876,7 @@ extends TableAdapter<PicturesAdapter>{
 
 		return result.getUrl();
 	}	
-	
+
 	/**
 	 * Return the url to the full size image, else "" if it's not available
 	 * @return
@@ -813,18 +887,20 @@ extends TableAdapter<PicturesAdapter>{
 		else
 			return getString(KEY_FULLSIZE_URL);
 	}
-	
+
 	/**
 	 * Grab the full image data from the server and save it to file. <br>
 	 * *** This is slow, so perform on background thread ***
+	 * @desiredWidth desiredWidth the desired width of the output image
+	 * @desiredHeight The desired height of the output image
 	 * @return The image data
 	 */
-	public byte[] getFullImageServer(){
+	public Bitmap getFullImageServer(int desiredWidth, int desiredHeight){
 		if (!checkCursor()){
 			Log.e(Utils.LOG_TAG, "called getFullImageServer on a bad cursor");
 			return null;
 		}
-		
+
 		// GET THE url of the file
 		String path = getFullImageUrl();
 		if (path == null || path.length() == 0){
@@ -835,7 +911,7 @@ extends TableAdapter<PicturesAdapter>{
 				return null;
 			}
 		}
-		
+
 		// doawnload it
 		DownloadFile downloader = new DownloadFile(path);
 		boolean success = downloader.downloadFile(getFullPicturePath());
@@ -843,7 +919,7 @@ extends TableAdapter<PicturesAdapter>{
 			Log.e(Utils.LOG_TAG, "picture could not be downloaded. view error logs");
 
 		// read the file
-		return com.tools.Tools.readFile(getFullPicturePath());
+		return com.tools.images.ImageLoader.getFullImage(getFullPicturePath(), desiredWidth, desiredHeight);
 	}	
 
 	/**
@@ -879,7 +955,7 @@ extends TableAdapter<PicturesAdapter>{
 	 */
 	public long getRowId(){
 		if (!checkCursor()){
-		//	Log.e(Utils.LOG_TAG, "called getRowId on a bad cursor");
+			//	Log.e(Utils.LOG_TAG, "called getRowId on a bad cursor");
 			return -1;
 		}else
 			return getLong(KEY_ROW_ID);
@@ -925,13 +1001,13 @@ extends TableAdapter<PicturesAdapter>{
 	 */
 	public String getThumbnailPath(){
 		if (!checkCursor()){
-		//	Log.e(Utils.LOG_TAG, "called getThumbnailPath on a bad cursor");
+			//	Log.e(Utils.LOG_TAG, "called getThumbnailPath on a bad cursor");
 			return "";
 		}else{
 			return getString(KEY_THUMBNAIL_PATH);
 		}
 	}
-	
+
 	/**
 	 * Get the row Id of the user who took this picture. -1 if unknown
 	 * @return
@@ -942,7 +1018,7 @@ extends TableAdapter<PicturesAdapter>{
 		else
 			return getLong(KEY_USER_ID_TOOK);
 	}
-	
+
 	/**
 	 * If we are downloading the thumbnail and we haven't timedout, then return true, else false
 	 * @return
@@ -952,7 +1028,7 @@ extends TableAdapter<PicturesAdapter>{
 			Log.e(Utils.LOG_TAG, "called isDownloadingThumbnail on a bad cursor");
 			return false;
 		}
-		
+
 		boolean isDownloading = getBoolean(KEY_IS_THUMBNAIL_DOWNLOADING);
 		boolean isTimeout;
 		try {
@@ -960,11 +1036,11 @@ extends TableAdapter<PicturesAdapter>{
 			String tiem = getString(KEY_LAST_THUMBNAIL_DOWNLOAD_TIME);
 			long b = Utils.parseMilliseconds(getString(KEY_LAST_THUMBNAIL_DOWNLOAD_TIME));
 			long c = Utils.parseMilliseconds(Utils.getNowTime()) - 
-			Utils.parseMilliseconds(getString(KEY_LAST_THUMBNAIL_DOWNLOAD_TIME));
+					Utils.parseMilliseconds(getString(KEY_LAST_THUMBNAIL_DOWNLOAD_TIME));
 			isTimeout = Utils.parseMilliseconds(Utils.getNowTime()) - 
 					Utils.parseMilliseconds(getString(KEY_LAST_THUMBNAIL_DOWNLOAD_TIME))
 					> 1000*TIMEOUT_ON_THUMBNAIL;
-			
+
 		}catch (ParseException e) {
 			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 			return false;
@@ -973,7 +1049,7 @@ extends TableAdapter<PicturesAdapter>{
 		// we must be downloading and not timeout
 		return (isDownloading && !isTimeout);
 	}
-	
+
 	/**
 	 * Get a cursor for all the pictures that are linked to the group groupId
 	 * in PicturesInGroup table
@@ -1012,7 +1088,7 @@ extends TableAdapter<PicturesAdapter>{
 		}else
 			return true;
 	}
-	
+
 	/**
 	 * Is the given picture based on the serverId present in the database
 	 * @param serverId is the picture present
@@ -1035,7 +1111,7 @@ extends TableAdapter<PicturesAdapter>{
 		cursor.close();
 		return value;
 	}
-	
+
 	/**
 	 * Determine if we are currently updating by looking at database. If last update time was too long ago, then we are no longer updating.
 	 * @return
@@ -1045,7 +1121,7 @@ extends TableAdapter<PicturesAdapter>{
 			Log.e(Utils.LOG_TAG, "called isUpdating on a bad cursor");
 			return false;
 		}
-		
+
 		// if the last time we updated is too long ago, then we are not updating any more
 		boolean timeout;
 		try {
@@ -1059,7 +1135,7 @@ extends TableAdapter<PicturesAdapter>{
 		else
 			return getBoolean(KEY_IS_UPDATING);
 	}
-	
+
 	/**
 	 * Set that we are done downloading thumbnail data for this picture
 	 * @param rowId the rowId of the picture
@@ -1126,7 +1202,7 @@ extends TableAdapter<PicturesAdapter>{
 				KEY_ROW_ID + "='" + rowId + "'", null) > 0;	
 	}
 
-	
+
 
 	/**
 	 * If we are updating to the server, then set this field to true.
@@ -1191,7 +1267,7 @@ extends TableAdapter<PicturesAdapter>{
 				TABLE_NAME,
 				values,
 				KEY_ROW_ID + "='" + rowId + "'", null) > 0;	
-				
+
 				if (!success)
 					Log.e(Utils.LOG_TAG, "picture with rowId " + rowId + " could not be updated for unknown reason: " + values.toString());
 	}

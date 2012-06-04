@@ -406,10 +406,6 @@ extends TableAdapter <GroupsAdapter>{
 		// grab the cursor over all groups
 		Cursor cursor = getAllGroupsCursor();
 
-		// check null
-		if (cursor == null)
-			return;
-
 		setCursor(cursor);
 	}
 
@@ -804,6 +800,13 @@ extends TableAdapter <GroupsAdapter>{
 			return -1;
 		else
 			return getLong(KEY_ROW_ID);
+	}
+	
+	public long getServerId(){
+		if (!checkCursor())
+			return -1;
+		else
+			return getLong(KEY_SERVER_ID);
 	}
 
 	public boolean isAccessibleGroup(){

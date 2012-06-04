@@ -37,7 +37,7 @@ public class Utils {
 	public static final String BASE_PICTURE_EXTENSION = ".jpg";
 	public static final String PICTURE_PATH = "pictures/";
 	public static final String THUMBNAIL_PATH = "thumbnails/";
-	public static final long SECONDS_SINCE_UPDATE_RESET = 15;
+	public static final long SECONDS_SINCE_UPDATE_RESET = 30;
 	public static final String DELIM = ",";
 	public static final int MAX_THUMBNAIL_DIMENSION = 128;
 	public static final boolean FORCE_BASE2_THUMBNAIL_RESIZE = false;

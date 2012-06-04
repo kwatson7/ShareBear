@@ -176,6 +176,7 @@ public final class R {
         public static final int single_picture_item=0x7f030011;
         public static final int spinner_layout=0x7f030012;
         public static final int take_picture=0x7f030013;
+        public static final int transparant=0x7f030014;
     }
     public static final class raw {
         public static final int camera_click=0x7f050000;

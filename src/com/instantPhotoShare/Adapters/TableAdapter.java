@@ -58,16 +58,18 @@ extends CursorWrapper<TYPE>{
 			ArrayList <TYPE2> columnValues){
 
 		// create the selection string, and the selection args
-		String selection = "";
+		StringBuilder builder = new StringBuilder();
 		String[] selectionArgs = new String[columnValues.size()];
 		for (int i = 0; i < columnValues.size(); i++){
-			selection += 
-				columnName + " = ? OR ";
+			builder.append(columnName);
+			if (i < columnValues.size() -1)
+				builder.append(" = ? OR ");
+			else
+				builder.append(" = ?");
 			selectionArgs[i] = columnValues.get(i).toString();
 		}
-		if (selection.length() >= 3)
-			selection = selection.substring(0, selection.length()-3);
-
+		String selection = builder.toString();
+		
 		// return the output
 		return new TwoObjects<String, String[]>(selection, selectionArgs);
 	}

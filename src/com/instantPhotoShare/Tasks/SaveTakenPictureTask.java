@@ -28,7 +28,7 @@ import com.tools.TwoObjects;
 import com.tools.TwoStrings;
 
 public class SaveTakenPictureTask <ACTIVITY_TYPE extends CustomActivity>
-extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask<ACTIVITY_TYPE>.ReturnFromPostPicture>{
+extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPostPicture>{
 
 	// private task variables
 	private byte[] camData; 			// The byte data for the picture 
@@ -125,14 +125,14 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask<ACTIVITY_TYPE>
 
 		// save the data
 		SuccessReason pictureSave = 
-			com.tools.Tools.saveByteDataToFile(
-					applicationCtx,
-					camData,
-					caption,
-					false,
-					picName.mObject1,
-					rotation,
-					true);
+				com.tools.Tools.saveByteDataToFile(
+						applicationCtx,
+						camData,
+						caption,
+						false,
+						picName.mObject1,
+						rotation,
+						true);
 
 		// break out if we didn't save successfully
 		if (!pictureSave.getSuccess()){
@@ -154,14 +154,14 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask<ACTIVITY_TYPE>
 
 		// save the thumbnail
 		SuccessReason thumbnailSave = 
-			com.tools.Tools.saveByteDataToFile(
-					applicationCtx,
-					thumbnail,
-					caption,
-					false,
-					picName.mObject2,
-					ExifInterface.ORIENTATION_NORMAL,
-					false);
+				com.tools.Tools.saveByteDataToFile(
+						applicationCtx,
+						thumbnail,
+						caption,
+						false,
+						picName.mObject2,
+						ExifInterface.ORIENTATION_NORMAL,
+						false);
 
 		// break out if we didn't save successfully
 		if (!thumbnailSave.getSuccess()){
@@ -258,9 +258,9 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask<ACTIVITY_TYPE>
 
 			// default values
 			toastMessage = "Picture not saved on server because:\n" + result.getDetailErrorMessage() +
-			".\nPictre is still saved on device, but is not shared!";
+					".\nPictre is still saved on device, but is not shared!";
 			notesMessage = "Picture with rowId " + result.getPictureRowId() + " not created on server because:\n"
-			+ result.getDetailErrorMessage() + ".\nPicture is still saved on device, but is not shared!";
+					+ result.getDetailErrorMessage() + ".\nPicture is still saved on device, but is not shared!";
 			notesType = NOTIFICATION_TYPES.SERVER_ERROR;
 
 			// show the toast
@@ -275,28 +275,36 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask<ACTIVITY_TYPE>
 		}
 	}
 
+	/**
+	 * Show an alert window if we can, else just show a toast
+	 * @param message
+	 */
 	private void showAlert(String message){
 		try{
-			AlertDialog.Builder dlgAlert  = new AlertDialog.Builder(callingActivity);
+			if (!callingActivity.isFinishing()){
+				AlertDialog.Builder dlgAlert  = new AlertDialog.Builder(callingActivity);
 
-			dlgAlert.setMessage(message);
-			dlgAlert.setTitle("Message");
-			dlgAlert.setCancelable(true);
-			dlgAlert.setPositiveButton("OK",
-					new DialogInterface.OnClickListener() {
-				public void onClick(DialogInterface dialog, int which) {
-					//dismiss the dialog  
-				}
-			});
-			dlgAlert.create().show();
+				dlgAlert.setMessage(message);
+				dlgAlert.setTitle("Message");
+				dlgAlert.setCancelable(true);
+				dlgAlert.setPositiveButton("OK",
+						new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int which) {
+						//dismiss the dialog  
+					}
+				});
+				dlgAlert.create().show();
+			}else{
+				Intent intent = new Intent(applicationCtx, com.tools.MessageDialog.class);
+				intent.putExtra(com.tools.MessageDialog.TITLE_BUNDLE, "Message");
+				intent.putExtra(com.tools.MessageDialog.DEFAULT_TEXT, message);
+				intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+				applicationCtx.startActivity(intent);
+
+				//Toast.makeText(applicationCtx, message, Toast.LENGTH_LONG);
+			}
 		}catch(Exception e){
-			Intent intent = new Intent(applicationCtx, com.tools.MessageDialog.class);
-			intent.putExtra(com.tools.MessageDialog.TITLE_BUNDLE, "Message");
-			intent.putExtra(com.tools.MessageDialog.DEFAULT_TEXT, message);
-			intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-			applicationCtx.startActivity(intent);
-
-			//Toast.makeText(applicationCtx, message, Toast.LENGTH_LONG);
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 		}
 	}
 
@@ -353,7 +361,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask<ACTIVITY_TYPE>
 	 * @throws JSONException 
 	 */
 	private TwoObjects<JSONObject, ArrayList<Long>> getDataToPost()
-	throws JSONException{	
+			throws JSONException{	
 
 		// build a list of group ids
 		String ids = "";
@@ -384,7 +392,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask<ACTIVITY_TYPE>
 		// do nothing, we don't want a dialog
 	}
 
-	class ReturnFromPostPicture
+	static class ReturnFromPostPicture
 	extends ShareBearServerReturn{
 
 		// other private variables

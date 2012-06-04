@@ -135,6 +135,14 @@ extends CustomActivity {
     				Toast.LENGTH_LONG).show();
     		return;
     	}
+    	
+    	// check valid email
+    	if (!com.tools.Tools.isValidEmail(email)){
+    		Toast.makeText(this,
+    				"Invalid email address",
+    				Toast.LENGTH_LONG).show();
+    		return;
+    	}
     			
     	// create the account on the server
     	Person me = new Person();

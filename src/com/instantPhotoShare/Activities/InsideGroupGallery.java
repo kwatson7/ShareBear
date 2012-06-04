@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.text.Html;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -33,7 +34,7 @@ import com.tools.images.MemoryCache;
 public class InsideGroupGallery 
 extends CustomActivity{
 
-	// graphcis
+	// graphics
 	private GridView gridView; 					// the gridview to show pictures
 	private ImageView screen; 					// The background screen image
 	private ImageView takePictureButton; 		// the pointer to the take picture button
@@ -188,20 +189,29 @@ extends CustomActivity{
 		new PicturesFetchedCallback<InsideGroupGallery>() {
 
 			@Override
-			public void OnPicturesFetchedBackground(
+			public void onPicturesFetchedBackground(
 					InsideGroupGallery act,
-					int nNewPictures) {
+					int nNewPictures,
+					String errorCode) {
 				// store the pictures
 				act.nNewPictures = nNewPictures;
 			}
 
 			@Override
-			public void OnPicturesFetchedUiThread(InsideGroupGallery act) {
+			public void onPicturesFetchedUiThread(InsideGroupGallery act, String errorCode) {
 				// update adatper if there are new pictures
 				if (act.nNewPictures > 0){
 					Toast.makeText(act, act.nNewPictures + " new pictures!", Toast.LENGTH_SHORT).show();
 					act.getPictures();
 					act.fillPictures();
+				}
+				
+				// if there was an error
+				if (errorCode != null){
+					if (errorCode.compareToIgnoreCase(GroupsAdapter.GROUP_ACCESS_ERROR) != 0){
+						Toast.makeText(ctx, "Not in group", Toast.LENGTH_LONG);
+					}else
+						Log.e(Utils.LOG_TAG, "Error code when fetching pictures in this group (: " + groupId + ") " + errorCode);
 				}
 			}
 		};

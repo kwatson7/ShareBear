@@ -32,6 +32,9 @@ extends ServerPost.ServerReturn{
 	private static final String NO_JSON_DATA_MESSAGE = "No return from the server";
 	private static final String INCORRECT_FORMAT_CODE = "INCORRECT_FORMAT_CODE";
 	private static final String INCORRECT_FORMAT_CODE_STRING = "Server Error";
+	
+	// member variables
+	private JSONObject messageObject = null;
 
 	/**
 	 * Initialize a ShareBearServerReturn object with a generic ServerReturn object.
@@ -128,6 +131,9 @@ extends ServerPost.ServerReturn{
 	 * @return
 	 */
 	public JSONObject getMessageObject(){
+		if (messageObject != null)
+			return messageObject;
+		
 		JSONObject json;
 		try {
 			json = new JSONObject(getMessage());
@@ -135,6 +141,7 @@ extends ServerPost.ServerReturn{
 			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 			return null;
 		}
+		messageObject = json;
 		return json;
 	}
 

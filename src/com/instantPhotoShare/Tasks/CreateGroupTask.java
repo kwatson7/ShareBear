@@ -18,7 +18,7 @@ import com.tools.CustomAsyncTask;
 import com.tools.ServerPost.ServerReturn;
 
 public class CreateGroupTask <ACTIVITY_TYPE extends CustomActivity>  
-extends CustomAsyncTask<ACTIVITY_TYPE, Integer, CreateGroupTask<ACTIVITY_TYPE>.ReturnFromCreateGroupTask>{
+extends CustomAsyncTask<ACTIVITY_TYPE, Integer, CreateGroupTask.ReturnFromCreateGroupTask>{
 
 	// private variables
 	private String groupName;
@@ -289,7 +289,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, CreateGroupTask<ACTIVITY_TYPE>.R
 		}
 	}
 
-	public class ReturnFromCreateGroupTask
+	public static class ReturnFromCreateGroupTask
 	extends ShareBearServerReturn{
 
 		// other private variables

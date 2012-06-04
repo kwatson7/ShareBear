@@ -3,15 +3,12 @@
  */
 package com.instantPhotoShare.Activities;
 
-import java.util.ArrayList;
-
 import com.instantPhotoShare.R;
-import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.PicturesAdapter;
 import com.instantPhotoShare.Tasks.CreatePrivateGroup;
+import com.instantPhotoShare.Tasks.SyncGroupsThatNeedIt;
 import com.tools.CustomActivity;
-import com.tools.DownloadFile;
 import com.tools.TwoObjects;
 import com.tools.images.MemoryCache;
 
@@ -84,6 +81,10 @@ extends CustomActivity{
 		// check for private group and make it if need be
 		CreatePrivateGroup<MainScreen> task = new CreatePrivateGroup<MainScreen>(this, ASYNC_TASKS.MAKE_PRIVATE_GROUP.ordinal());
 		task.execute();
+		
+		// check for any groups that need to be synced
+		SyncGroupsThatNeedIt<MainScreen> task2 = new SyncGroupsThatNeedIt<MainScreen>(this);
+		task2.execute();
 	}
 	
 	

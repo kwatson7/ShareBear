@@ -56,4 +56,23 @@ extends ShareBearServerReturn{
 			return null;
 		}
 	}
+	
+	/**
+	 * Return the url return from server, or null if bad return
+	 * @return
+	 */
+	public String getUrl(){
+		if (!isSuccess())
+			return null;
+		
+		String url = null;
+		try {
+			url = getMessageObject().getString(KEY_DATA);
+		} catch (JSONException e) {
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			return null;
+		}
+		
+		return url;
+	}
 }

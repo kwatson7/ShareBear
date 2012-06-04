@@ -148,8 +148,10 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 				long id = array.optLong(i, 0);
 				if (id != 0){
 					users.setIsSynced(iterator.next(), true, id);
-				}else
+				}else{
 					users.setIsUpdating(iterator.next(), false);
+					Log.e(Utils.LOG_TAG, "user did not update for unknown reason: " + serverResponse.getErrorCode());
+				}
 			}
 		}
 

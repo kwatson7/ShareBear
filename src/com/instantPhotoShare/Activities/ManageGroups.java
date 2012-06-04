@@ -117,8 +117,8 @@ extends CustomActivity{
 		case MAKE_GROUP_ON_SERVER:
 			switch (asyncTypeCall){
 			case POST:
-				CreateGroupTask<ManageGroups>.ReturnFromCreateGroupTask value = 
-					(CreateGroupTask<ManageGroups>.ReturnFromCreateGroupTask) data;
+				CreateGroupTask.ReturnFromCreateGroupTask value = 
+					(CreateGroupTask.ReturnFromCreateGroupTask) data;
 				fillViewsWithGroupValues();
 				break;
 			}

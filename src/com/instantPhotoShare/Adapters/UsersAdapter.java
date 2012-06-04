@@ -50,25 +50,25 @@ extends TableAdapter <UsersAdapter>{
 
 	/** Table creation string */
 	public static String TABLE_CREATE = 
-			"create table "
-					+TABLE_NAME +" ("
-					+KEY_ROW_ID +" integer primary key autoincrement, "
-					+KEY_FIRST_NAME +" text DEFAULT '', "
-					+KEY_LAST_NAME +" text DEFAULT '', "
-					+KEY_SERVER_ID +" integer DEFAULT '-1', "
-					+KEY_EMAILS +" text, "
-					+KEY_PHONES +" text, "
-					+KEY_PICTURE_ID +" integer DEFAULT '-1', "
-					+KEY_DATE_JOINED +" text, "
-					+KEY_HAS_ACCOUNT +" boolean DEFAULT 'FALSE', "
-					+KEY_IS_UPDATING +" boolean DEFAULT 'FALSE', "
-					+KEY_LAST_UPDATE_ATTEMPT_TIME +" text not null DEFAULT '1900-01-01 01:00:00', "
-					+KEY_IS_SYNCED +" boolean DEFAULT 'FALSE', "
-					+KEY_DEFAULT_CONTACT + " TEXT, "
-					+KEY_CONTACTS_ROW_ID + " integer DEFAULT '-1', "
-					+KEY_LOOKUP_KEY + " " + LOOKUP_KEY_TYPE + ", "
-					+"foreign key(" +KEY_PICTURE_ID +") references " +PicturesAdapter.TABLE_NAME +"(" +PicturesAdapter.KEY_ROW_ID + ")" 
-					+");";
+		"create table "
+		+TABLE_NAME +" ("
+		+KEY_ROW_ID +" integer primary key autoincrement, "
+		+KEY_FIRST_NAME +" text DEFAULT '', "
+		+KEY_LAST_NAME +" text DEFAULT '', "
+		+KEY_SERVER_ID +" integer DEFAULT '-1', "
+		+KEY_EMAILS +" text, "
+		+KEY_PHONES +" text, "
+		+KEY_PICTURE_ID +" integer DEFAULT '-1', "
+		+KEY_DATE_JOINED +" text, "
+		+KEY_HAS_ACCOUNT +" boolean DEFAULT 'FALSE', "
+		+KEY_IS_UPDATING +" boolean DEFAULT 'FALSE', "
+		+KEY_LAST_UPDATE_ATTEMPT_TIME +" text not null DEFAULT '1900-01-01 01:00:00', "
+		+KEY_IS_SYNCED +" boolean DEFAULT 'FALSE', "
+		+KEY_DEFAULT_CONTACT + " TEXT, "
+		+KEY_CONTACTS_ROW_ID + " integer DEFAULT '-1', "
+		+KEY_LOOKUP_KEY + " " + LOOKUP_KEY_TYPE + ", "
+		+"foreign key(" +KEY_PICTURE_ID +") references " +PicturesAdapter.TABLE_NAME +"(" +PicturesAdapter.KEY_ROW_ID + ")" 
+		+");";
 
 	public UsersAdapter(Context context) {
 		super(context);
@@ -85,10 +85,10 @@ extends TableAdapter <UsersAdapter>{
 		ArrayList<String> out = new ArrayList<String>(1);
 		if (oldVersion < 4 && newVersion >= 4){
 			String upgradeQuery = 
-					"ALTER TABLE " +
-							TABLE_NAME + " ADD COLUMN " + 
-							KEY_LOOKUP_KEY + " "+
-							LOOKUP_KEY_TYPE;
+				"ALTER TABLE " +
+				TABLE_NAME + " ADD COLUMN " + 
+				KEY_LOOKUP_KEY + " "+
+				LOOKUP_KEY_TYPE;
 			out.add(upgradeQuery);
 		}
 
@@ -128,7 +128,7 @@ extends TableAdapter <UsersAdapter>{
 		// find emails, phones, and names
 		TwoStrings fullName = null;
 		ThreeObjects<HashSet<TwoStrings>, HashSet<TwoStrings>, TwoStrings>  phoneEmailName = 
-				com.tools.CustomCursors.getContactPhoneArrayEmailArrayAndName(ctx, contactId);
+			com.tools.CustomCursors.getContactPhoneArrayEmailArrayAndName(ctx, contactId);
 		if (phoneEmailName != null){
 			String phone = phoneEmailName.mObject1.toString();
 			String email = phoneEmailName.mObject2.toString();
@@ -152,7 +152,7 @@ extends TableAdapter <UsersAdapter>{
 
 		// The where clause
 		String where = 
-				KEY_CONTACTS_ROW_ID + " = ?";
+			KEY_CONTACTS_ROW_ID + " = ?";
 
 		// The selection args
 		String[] selectionArgs = {String.valueOf(contactId)};
@@ -168,13 +168,58 @@ extends TableAdapter <UsersAdapter>{
 		if (affected == 1){
 			UsersAdapter users = new UsersAdapter(ctx);
 			users.fetchUserByContactsId(contactId);
-			newRow = users.getContactDatabaseRowId(ctx);
+			newRow = users.getRowId();
 			users.close();
 		}
 		if (affected > 1 && !Prefs.debug.allowMultipleUpdates)
 			throw new IllegalArgumentException("attempting to update more than one row. This should never happen");
 
 		return newRow;
+	}
+
+	/**
+	 * Make a new contact in the database for a given serverId
+	 * If the user already exists, then don't nothing happens adn the original rowId is returned
+	 * @param serverId The server id 
+	 * @return The row id added or updated.
+	 */
+	public long makeNewUser(
+			long serverId){
+
+		synchronized (UsersAdapter.class) {
+
+			// initialize items to insert.
+			ContentValues values = new ContentValues();
+
+			// misc values
+			values.put(KEY_SERVER_ID, serverId);
+
+			// The where clause
+			String where = 
+				KEY_SERVER_ID + " = ?";
+
+			// The selection args
+			String[] selectionArgs = {String.valueOf(serverId)};
+
+			// update the row, insert it if not possible
+			long newRow = -1;
+			int affected = database.update(TABLE_NAME,
+					values,
+					where,
+					selectionArgs);
+			if (affected == 0)
+				newRow = database.insert(TABLE_NAME, null, values);
+			if (affected == 1){
+				UsersAdapter users = new UsersAdapter(ctx);
+				users.fetchUserByServerId(serverId);
+				newRow = users.getRowId();
+				users.close();
+			}
+			if (affected > 1 && !Prefs.debug.allowMultipleUpdates)
+				throw new IllegalArgumentException("attempting to update more than one row. This should never happen");
+
+			return newRow;
+		}
 	}
 
 	/**
@@ -240,16 +285,16 @@ extends TableAdapter <UsersAdapter>{
 		// grab the cursor
 		Cursor cursor =
 
-				database.query(
-						true,
-						TABLE_NAME,
-						null,
-						KEY_ROW_ID + "='" + rowId +"'",
-						null,
-						null,
-						null,
-						null,
-						null);
+			database.query(
+					true,
+					TABLE_NAME,
+					null,
+					KEY_ROW_ID + "='" + rowId +"'",
+					null,
+					null,
+					null,
+					null,
+					null);
 
 		// check null
 		if (cursor == null || !cursor.moveToFirst())
@@ -361,7 +406,7 @@ extends TableAdapter <UsersAdapter>{
 
 		// The where clause
 		String where = 
-				KEY_ROW_ID + " = ?";
+			KEY_ROW_ID + " = ?";
 
 		// The selection args
 		String[] selectionArgs = {String.valueOf(usersRowId)};
@@ -415,7 +460,7 @@ extends TableAdapter <UsersAdapter>{
 
 		// The where clause
 		String where = 
-				KEY_CONTACTS_ROW_ID + " = ?";
+			KEY_CONTACTS_ROW_ID + " = ?";
 
 		// The selection args
 		String[] selectionArgs = {String.valueOf(contactsRowId)};
@@ -447,7 +492,7 @@ extends TableAdapter <UsersAdapter>{
 		// check if we have a row that we can update
 		// The where clause
 		String where = 
-				KEY_ROW_ID + " = ?";
+			KEY_ROW_ID + " = ?";
 
 		// The selection args
 		String[] selectionArgs = {String.valueOf(rowId)};
@@ -478,7 +523,7 @@ extends TableAdapter <UsersAdapter>{
 
 		// create the query
 		String selection = 
-				KEY_CONTACTS_ROW_ID+ " = ?";
+			KEY_CONTACTS_ROW_ID+ " = ?";
 
 		// the selection args
 		String[] selectionArgs = {String.valueOf(contactId)};
@@ -519,7 +564,7 @@ extends TableAdapter <UsersAdapter>{
 
 		// The where clause
 		String where = 
-				KEY_ROW_ID + " = ?";
+			KEY_ROW_ID + " = ?";
 
 		// The selection args
 		String[] selectionArgs = {String.valueOf(rowId)};
@@ -550,16 +595,39 @@ extends TableAdapter <UsersAdapter>{
 		// grab the cursor
 		Cursor cursor =
 
-				database.query(
-						true,
-						TABLE_NAME,
-						null,
-						KEY_ROW_ID + "='" + rowId +"'",
-						null,
-						null,
-						null,
-						null,
-						null);
+			database.query(
+					true,
+					TABLE_NAME,
+					null,
+					KEY_ROW_ID + "='" + rowId +"'",
+					null,
+					null,
+					null,
+					null,
+					null);
+
+		setCursor(cursor);
+		moveToFirst();
+	}
+
+	/**
+	 * Move the cursor to the correct location based on the serverId
+	 * @param serverId
+	 */
+	public void fetchUserByServerId(long serverId){
+		// grab the cursor
+		Cursor cursor =
+
+			database.query(
+					true,
+					TABLE_NAME,
+					null,
+					KEY_SERVER_ID + "='" + serverId +"'",
+					null,
+					null,
+					null,
+					null,
+					null);
 
 		setCursor(cursor);
 		moveToFirst();
@@ -576,16 +644,16 @@ extends TableAdapter <UsersAdapter>{
 		// grab the cursor
 		Cursor cursor =
 
-				database.query(
-						true,
-						TABLE_NAME,
-						null,
-						KEY_CONTACTS_ROW_ID + "='" + rowId +"'",
-						null,
-						null,
-						null,
-						null,
-						null);
+			database.query(
+					true,
+					TABLE_NAME,
+					null,
+					KEY_CONTACTS_ROW_ID + "='" + rowId +"'",
+					null,
+					null,
+					null,
+					null,
+					null);
 
 		setCursor(cursor);
 		moveToFirst();
@@ -621,16 +689,16 @@ extends TableAdapter <UsersAdapter>{
 
 		// create the query where we match up all the pictures that are in the group
 		String query = 
-				"SELECT users.* FROM "
-						+UsersAdapter.TABLE_NAME + " users "
-						+" INNER JOIN "
-						+UsersInGroupsAdapter.TABLE_NAME + " groups "
-						+" ON "
-						+"users." + UsersAdapter.KEY_ROW_ID + " = "
-						+"groups." + UsersInGroupsAdapter.KEY_USER_ID
-						+" WHERE "
-						+"groups." + UsersInGroupsAdapter.KEY_GROUP_ID
-						+"=?";
+			"SELECT users.* FROM "
+			+UsersAdapter.TABLE_NAME + " users "
+			+" INNER JOIN "
+			+UsersInGroupsAdapter.TABLE_NAME + " groups "
+			+" ON "
+			+"users." + UsersAdapter.KEY_ROW_ID + " = "
+			+"groups." + UsersInGroupsAdapter.KEY_USER_ID
+			+" WHERE "
+			+"groups." + UsersInGroupsAdapter.KEY_GROUP_ID
+			+"=?";
 
 		// do the query
 		Cursor cursor = database.rawQuery(
@@ -804,7 +872,7 @@ extends TableAdapter <UsersAdapter>{
 
 		// create the query
 		String selection = 
-				KEY_ROW_ID + " = ?";
+			KEY_ROW_ID + " = ?";
 
 		// the selection args
 		String[] selectionArgs = {String.valueOf(contactId)};
@@ -848,7 +916,7 @@ extends TableAdapter <UsersAdapter>{
 
 		// create the query
 		String selection = 
-				KEY_ROW_ID + " = ?";
+			KEY_ROW_ID + " = ?";
 
 		// the selection args
 		String[] selectionArgs = {String.valueOf(rowId)};
@@ -899,7 +967,7 @@ extends TableAdapter <UsersAdapter>{
 
 		// create the query
 		String selection = 
-				columnName + " = ?";
+			columnName + " = ?";
 
 		// the selection args
 		String[] selectionArgs = {columnValue};
@@ -951,7 +1019,7 @@ extends TableAdapter <UsersAdapter>{
 
 		// create the query
 		String selection = 
-				columnName + " = ?";
+			columnName + " = ?";
 
 		// the selection args
 		String[] selectionArgs = {columnValue};
@@ -995,7 +1063,7 @@ extends TableAdapter <UsersAdapter>{
 
 		// create the query
 		String selection = 
-				KEY_ROW_ID + " = ?";
+			KEY_ROW_ID + " = ?";
 
 		// the selection args
 		String[] selectionArgs = {String.valueOf(rowId)};

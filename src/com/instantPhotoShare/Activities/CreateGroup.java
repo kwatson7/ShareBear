@@ -93,8 +93,8 @@ extends CustomActivity{
 		case MAKE_GROUP_TASK:
 			switch (asyncTypeCall){
 			case POST:
-				CreateGroupTask<CreateGroup>.ReturnFromCreateGroupTask value = 
-					(CreateGroupTask<CreateGroup>.ReturnFromCreateGroupTask) data;
+				CreateGroupTask.ReturnFromCreateGroupTask value = 
+					(CreateGroupTask.ReturnFromCreateGroupTask) data;
 
 				// if we successfully made the group, now add member to it
 				if (value.isLocalSuccess()){

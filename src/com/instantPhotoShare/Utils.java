@@ -337,6 +337,6 @@ public class Utils {
 	public static long parseMilliseconds(String date)
 			throws ParseException{
 		DateFormat formatter = new SimpleDateFormat(Utils.DATE_FORMAT);
-		return formatter.parse(Utils.getNowTime()).getTime();
+		return formatter.parse(date).getTime();
 	}
 }

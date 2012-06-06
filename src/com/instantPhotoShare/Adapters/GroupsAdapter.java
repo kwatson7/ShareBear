@@ -531,6 +531,7 @@ extends TableAdapter <GroupsAdapter>{
 
 							synchronized (GroupsAdapter.class) {
 								// determine the path to store files
+								group = adapter.getGroupByServerId(groupServerId);
 								TwoStrings picNames = group.getNextPictureName();
 								try {
 
@@ -1330,8 +1331,11 @@ extends TableAdapter <GroupsAdapter>{
 		}
 		/**
 		 * Write the folders that need to be created before writing a picture to file.
+		 * @throws IOException if we can't create the folders
 		 */
-		public void writeFoldersIfNeeded(){
+		public void writeFoldersIfNeeded()
+				throws IOException{
+			
 			// get the folders
 			String topFolder = getGroupFolderName();
 			String picFolder = getPicturePath();
@@ -1341,17 +1345,17 @@ extends TableAdapter <GroupsAdapter>{
 			File dir1 = new File(topFolder);
 			if (!dir1.exists())
 				if(!dir1.mkdirs())
-					throw new IllegalAccessError("Cannot create folder " + topFolder);
+					throw new IOException("Cannot create folder " + topFolder);
 
 			File dir2 = new File(picFolder);
 			if (!dir2.exists())
 				if(!dir2.mkdirs())
-					throw new IllegalAccessError("Cannot create folder " + picFolder);
+					throw new IOException("Cannot create folder " + picFolder);
 
 			File dir3 = new File(thumbFolder);
 			if (!dir3.exists())
 				if(!dir3.mkdirs())
-					throw new IllegalAccessError("Cannot create folder " + thumbFolder);
+					throw new IOException("Cannot create folder " + thumbFolder);
 
 			// the no media file
 			File nomedia = new File(dir3, ".nomedia");
@@ -1359,7 +1363,7 @@ extends TableAdapter <GroupsAdapter>{
 				try {
 					nomedia.createNewFile();
 				} catch (IOException e) {
-					throw new IllegalAccessError("Cannot create file .nomeida");
+					throw new IOException("Cannot create file .nomeida");
 				}
 			}
 		}

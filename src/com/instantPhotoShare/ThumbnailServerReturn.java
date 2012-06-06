@@ -17,7 +17,6 @@ extends ShareBearServerReturn{
 	private static final int BASE64_FORMAT = Base64.DEFAULT; 				// type of encoding
 	private static final String KEY_THUMBNAIL_DATA = "thumbnail_data";
 	private static final String KEY_OWNER_ID = "owner_id";
-	private static final String KEY_FULLSIZE_PATH = "fullsize_path";
 	private static final String KEY_DATE_UPLOADED = "date_uploaded";
 	
 	// member
@@ -64,28 +63,6 @@ extends ShareBearServerReturn{
 			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 			return null;
 		}
-	}
-	
-	/**
-	 * Get the path of the fullsize picture or null if not there
-	 * @param serverId The serverId to query
-	 * @return The path, or null
-	 */
-	public String getFullsizePath(long serverId){
-		// return null if unsuccessful
-		if (!isSuccess())
-			return "";
-		
-		// grab the base64 data
-		JSONObject json = getItemObject(serverId);
-		if(json == null)
-			return "";
-		String path = json.optString(KEY_FULLSIZE_PATH);
-		
-		if (path == null)
-			return "";
-		else
-			return path;
 	}
 	
 	/**

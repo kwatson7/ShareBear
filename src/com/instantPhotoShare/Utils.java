@@ -236,6 +236,31 @@ public class Utils {
 		// convert to ServerJSON
 		return new ShareBearServerReturn(result);
 	}
+	
+	/**
+	 * Post data to the server helper
+	 * @param action the action to take
+	 * @param jsonData the data to post
+	 * @param fileSavePath the path we save the returned file to.
+	 * @return the result of the post
+	 */
+	public static ServerReturn postToServerToGetFile(
+			String action,
+			String jsonData,
+			String fileSavePath){
+		//TODO: determine if we should create the folder to save to if we need it. or do it in the calling function
+				
+		// make the post
+		com.tools.ServerPost post = new ServerPost(Prefs.BASE_URL + Prefs.REQUEST_PAGE);
+		
+		// set values
+		post.addData(KEY_ACTION, action);
+		post.addData(KEY_DATA, jsonData);
+		post.setSaveFilePath(fileSavePath);
+		
+		// post to server
+		return post.post();
+	}
 
 	/**
 	 * Post data to the server helper

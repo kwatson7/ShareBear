@@ -1,5 +1,6 @@
 package com.instantPhotoShare.Tasks;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
 import org.json.JSONException;
@@ -120,8 +121,18 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 		// get the folder in which we are going to save
 		TwoStrings picName = groups.get(0).getNextPictureName();	
 
-		// write the folders
-		groups.get(0).writeFoldersIfNeeded();	
+		// write the folders if we can
+		try {
+			groups.get(0).writeFoldersIfNeeded();
+		} catch (IOException e) {
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			NotificationsAdapter not = new NotificationsAdapter(applicationCtx);
+			not.createNotification("could not create proper folders for group " + groups.get(0).getName(), NOTIFICATION_TYPES.DEVICE_ERROR);
+			ReturnFromPostPicture result = new ReturnFromPostPicture();
+			result.setError(LOCAL_CREATION_ERROR, "could not crate proper folders for group " + groups.get(0).getName());
+			result.setPictureRowId(-1);
+			return result;
+		}	
 
 		// save the data
 		SuccessReason pictureSave = 

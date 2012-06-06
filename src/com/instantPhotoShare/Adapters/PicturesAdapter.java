@@ -1,5 +1,6 @@
 package com.instantPhotoShare.Adapters;
 
+import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import org.json.JSONArray;
@@ -11,9 +12,9 @@ import com.instantPhotoShare.Prefs;
 import com.instantPhotoShare.ThumbnailServerReturn;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter.Group;
-import com.tools.DownloadFile;
 import com.tools.SuccessReason;
 import com.tools.TwoObjects;
+import com.tools.ServerPost.ServerReturn;
 import com.tools.images.ImageLoader.LoadImage;
 
 import android.content.ContentValues;
@@ -39,8 +40,8 @@ extends TableAdapter<PicturesAdapter>{
 	// picture table keys
 	public static final String KEY_ROW_ID = "_id";
 	private static final String KEY_SERVER_ID = "serverId";
-	public static final String KEY_PATH = "picturePath";
-	public static final String KEY_THUMBNAIL_PATH = "pictureThumbnailPath";	
+	private static final String KEY_PATH = "picturePath";
+	private static final String KEY_THUMBNAIL_PATH = "pictureThumbnailPath";	
 	private static final String KEY_DATE_TAKEN = "dateTaken";
 	private static final String KEY_USER_ID_TOOK = "userIdWhoTookPicture";
 	private static final String KEY_LATITUDE = "pictureLatitude";
@@ -53,7 +54,6 @@ extends TableAdapter<PicturesAdapter>{
 	private static final String KEY_LAST_THUMBNAIL_DOWNLOAD_TIME = "KEY_LAST_THUMBNAIL_DOWNLOAD_TIME";
 	private static final String KEY_LAST_UPDATE_ATTEMPT_TIME = "KEY_LAST_UPDATE_ATTEMPT_TIME";
 	private static final String KEY_HAS_THUMBNAIL_DATA = "HAS_THUMBNAIL_DATA";
-	private static final String KEY_FULLSIZE_URL = "KEY_FULLSIZE_URL";
 
 	// types for some of the keys
 	private static final String LAST_UPDATE_ATTEMPT_TIME_TYPE = " text not null DEFAULT '1900-01-01 01:00:00'";
@@ -62,7 +62,6 @@ extends TableAdapter<PicturesAdapter>{
 	private static final String IS_THUMBNAIL_DOWNLOADING_TYPE = " text not null DEFAULT 'FALSE'";
 	private static final String LAST_THUMBNAIL_DOWNLOAD_ATTEMPT_TIME_TYPE = " text not null DEFAULT '1900-01-01 01:00:00'";
 	private static final String HAS_THUMBNAIL_DATA_TYPE = " BOOLEAN not null DEFAULT 'FALSE'";
-	private static final String FULLSIZE_URL_TYPE = "TEXT";
 
 	// some other constants
 	private static String SORT_ORDER = KEY_DATE_TAKEN + " DESC"; 			// sort the picture by most recent
@@ -85,7 +84,6 @@ extends TableAdapter<PicturesAdapter>{
 					+KEY_LAST_FULLSIZE_DOWNLOAD_TIME + LAST_FULLSIZE_DOWNLOAD_ATTEMPT_TIME_TYPE + ", "
 					+KEY_IS_THUMBNAIL_DOWNLOADING + IS_THUMBNAIL_DOWNLOADING_TYPE + ", "
 					+KEY_LAST_THUMBNAIL_DOWNLOAD_TIME + LAST_THUMBNAIL_DOWNLOAD_ATTEMPT_TIME_TYPE + ", "
-					+KEY_FULLSIZE_URL + FULLSIZE_URL_TYPE + ", "
 					+KEY_HAS_THUMBNAIL_DATA + HAS_THUMBNAIL_DATA_TYPE + ", "
 					+KEY_IS_SYNCED +" boolean DEFAULT 'FALSE', "
 					+"foreign key(" +KEY_USER_ID_TOOK +") references " +UsersAdapter.TABLE_NAME +"(" +UsersAdapter.KEY_ROW_ID + ")"
@@ -209,20 +207,31 @@ extends TableAdapter<PicturesAdapter>{
 		// grab the group serverId
 		long groupServerId = -1;
 		if (groupRowId != -1){
-		GroupsAdapter groups = new GroupsAdapter(appCtx);
-		Group group = groups.getGroup(groupRowId);
-		groupServerId = group.getServerId();
+			GroupsAdapter groups = new GroupsAdapter(appCtx);
+			Group group = groups.getGroup(groupRowId);
+			groupServerId = group.getServerId();
 		}else{
 			GroupsAdapter groups = new GroupsAdapter(appCtx);
 			groups.fetchGroupsContainPicture(pictureRowId);
-			while(groupServerId == -1 && groups.moveToNext())
+			while(groupServerId == -1 && groups.moveToNext()){
 				groupServerId = groups.getServerId();
+				groupRowId = groups.getRowId();
+			}
 			groups.close();
 		}
-		
+
 		// no group, can't get picture
 		if (groupServerId == -1){
 			Log.e(Utils.LOG_TAG, "bad group serverId, so we can't grab the thumbnail");
+			return null;
+		}
+
+		// write the required folders
+		Group group = (new GroupsAdapter(appCtx)).getGroup(groupRowId);
+		try {
+			group.writeFoldersIfNeeded();
+		} catch (IOException e1) {
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e1));
 			return null;
 		}
 
@@ -249,6 +258,7 @@ extends TableAdapter<PicturesAdapter>{
 
 		// loop over return grabbing thumbnail data
 		for (int i = 0; i < array.length(); i++){
+
 			// grab the thumbnail data
 			byte[] data;
 			try {
@@ -309,9 +319,11 @@ extends TableAdapter<PicturesAdapter>{
 				}
 
 				// update the picture in the database
-				pics.updatePicture(rowIds.get(i), userRowId, result.getDateCreated(
-						pictureServerId),
-						result.getFullsizePath(pictureServerId));
+				pics.updatePicture(
+						rowIds.get(i),
+						userRowId,
+						result.getDateCreated(
+								pictureServerId));
 
 				if (result2.getSuccess())
 					synchronized (PicturesAdapter.class) {
@@ -403,7 +415,7 @@ extends TableAdapter<PicturesAdapter>{
 					pics.close();
 					return null;
 				}
-				Bitmap bmp = pics.getFullImageServer((int)(desiredWidth*PICTURE_OVERSIZE), (int)(desiredHeight*PICTURE_OVERSIZE));
+				Bitmap bmp = pics.getFullImageServer((int)(desiredWidth*PICTURE_OVERSIZE), (int)(desiredHeight*PICTURE_OVERSIZE), fullSizeData.mObject2);
 				pics.close();
 				return bmp;
 			}
@@ -475,14 +487,6 @@ extends TableAdapter<PicturesAdapter>{
 							KEY_HAS_THUMBNAIL_DATA + " "+
 							HAS_THUMBNAIL_DATA_TYPE;
 			out.add(upgradeQuery3);
-		}
-		if (oldVersion < 7 && newVersion >= 7){
-			String upgradeQuery = 
-					"ALTER TABLE " +
-							TABLE_NAME + " ADD COLUMN " + 
-							KEY_FULLSIZE_URL + " "+
-							FULLSIZE_URL_TYPE;
-			out.add(upgradeQuery);
 		}
 
 		return out;
@@ -875,18 +879,7 @@ extends TableAdapter<PicturesAdapter>{
 		}
 
 		return result.getUrl();
-	}	
-
-	/**
-	 * Return the url to the full size image, else "" if it's not available
-	 * @return
-	 */
-	public String getFullImageUrl(){
-		if (!checkCursor())
-			return "";
-		else
-			return getString(KEY_FULLSIZE_URL);
-	}
+	}		
 
 	/**
 	 * Grab the full image data from the server and save it to file. <br>
@@ -895,29 +888,46 @@ extends TableAdapter<PicturesAdapter>{
 	 * @desiredHeight The desired height of the output image
 	 * @return The image data
 	 */
-	public Bitmap getFullImageServer(int desiredWidth, int desiredHeight){
+	public Bitmap getFullImageServer(int desiredWidth, int desiredHeight, long groupRowId){
 		if (!checkCursor()){
 			Log.e(Utils.LOG_TAG, "called getFullImageServer on a bad cursor");
 			return null;
+		}		
+
+		// grab the server Id
+		long serverId = getServerId();
+		long groupServerId = (new GroupsAdapter(ctx)).getGroup(groupRowId).getServerId();
+		if (serverId == -1 || groupRowId == -1 || groupServerId == -1 || serverId == 0 || groupRowId == 0 || groupServerId == 0){
+			Log.e(Utils.LOG_TAG, "tried to get image url from server for picture with no serverId and/or group with no");
+			return null;
 		}
 
-		// GET THE url of the file
-		String path = getFullImageUrl();
-		if (path == null || path.length() == 0){
-			Log.e(Utils.LOG_TAG, "attempting to get full size image, but no url available. so fetching");
-			path = getFullImageServerUrl();
-			if (path == null || path.length() == 0){
-				Log.e(Utils.LOG_TAG, " server return a bad url");
-				return null;
-			}
+		// create the data required to post to server
+		JSONObject json = new JSONObject();
+		try{
+			json.put("user_id", Prefs.getUserServerId(ctx));
+			json.put("secret_code", Prefs.getSecretCode(ctx));
+			json.put("image_id", serverId);
+			json.put("group_id", groupServerId);
+		}catch (JSONException e) {
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			return null;
 		}
 
-		// doawnload it
-		DownloadFile downloader = new DownloadFile(path);
-		boolean success = downloader.downloadFile(getFullPicturePath());
-		if (!success)
-			Log.e(Utils.LOG_TAG, "picture could not be downloaded. view error logs");
+		// write the required folders
+		Group group = (new GroupsAdapter(ctx)).getGroup(groupRowId);
+		try {
+			group.writeFoldersIfNeeded();
+		} catch (IOException e1) {
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e1));
+			return null;
+		}
 
+		// post to the server
+		ServerReturn result = Utils.postToServerToGetFile("get_fullsize", json.toString(), getFullPicturePath());
+		if (!result.isSuccess()){
+			Log.e(Utils.LOG_TAG, result.getDetailErrorMessage());
+		}
 		// read the file
 		return com.tools.images.ImageLoader.getFullImage(getFullPicturePath(), desiredWidth, desiredHeight);
 	}	
@@ -1032,11 +1042,6 @@ extends TableAdapter<PicturesAdapter>{
 		boolean isDownloading = getBoolean(KEY_IS_THUMBNAIL_DOWNLOADING);
 		boolean isTimeout;
 		try {
-			long a = Utils.parseMilliseconds(Utils.getNowTime());
-			String tiem = getString(KEY_LAST_THUMBNAIL_DOWNLOAD_TIME);
-			long b = Utils.parseMilliseconds(getString(KEY_LAST_THUMBNAIL_DOWNLOAD_TIME));
-			long c = Utils.parseMilliseconds(Utils.getNowTime()) - 
-					Utils.parseMilliseconds(getString(KEY_LAST_THUMBNAIL_DOWNLOAD_TIME));
 			isTimeout = Utils.parseMilliseconds(Utils.getNowTime()) - 
 					Utils.parseMilliseconds(getString(KEY_LAST_THUMBNAIL_DOWNLOAD_TIME))
 					> 1000*TIMEOUT_ON_THUMBNAIL;
@@ -1255,13 +1260,11 @@ extends TableAdapter<PicturesAdapter>{
 	public void updatePicture(
 			long rowId,
 			long userIdWhoCreated,
-			String dateTaken,
-			String fullSizeUrl){		
+			String dateTaken){		
 
 		ContentValues values = new ContentValues();
 		values.put(KEY_DATE_TAKEN, dateTaken);
 		values.put(KEY_USER_ID_TOOK, userIdWhoCreated);
-		values.put(KEY_FULLSIZE_URL, fullSizeUrl);	
 
 		boolean success =  database.update(
 				TABLE_NAME,

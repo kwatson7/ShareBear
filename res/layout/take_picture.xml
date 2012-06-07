@@ -79,7 +79,7 @@
 	android:src="@drawable/shutter_button"
 	android:background="@null"
 />
-<ImageButton
+<ImageView
 	android:id="@+id/goToGallery"
 	android:layout_width="64dp"
 	android:layout_height="64dp"

@@ -24,7 +24,9 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.ExifInterface;
 import android.util.Log;
+import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.ImageView.ScaleType;
 
 public class PicturesAdapter 
 extends TableAdapter<PicturesAdapter>{

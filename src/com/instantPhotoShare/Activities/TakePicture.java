@@ -60,7 +60,7 @@ implements SurfaceHolder.Callback{
 	private SurfaceView surfaceView; 		 											// The surface view for camera
 	private ImageView goButton; 														// the take picture button
 	private LinearLayout bottomLinearLayout; 											// the layout holding keep and retake
-	private ImageButton lastPictureButton; 												// button for last picture taken
+	private ImageView lastPictureButton; 												// button for last picture taken
 	private ImageButton goHomeButton; 													// button to send us home
 	
 	// private constants
@@ -210,7 +210,7 @@ implements SurfaceHolder.Callback{
         surfaceView = (SurfaceView) findViewById(R.id.surface_camera);
         goButton = (ImageView) findViewById(R.id.goButton);
         bottomLinearLayout = (LinearLayout) findViewById(R.id.linearLayoutBottom);
-        lastPictureButton = (ImageButton) findViewById(R.id.goToGallery);
+        lastPictureButton = (ImageView) findViewById(R.id.goToGallery);
         goHomeButton = (ImageButton) findViewById(R.id.homeButton);
 
         // read the last groups

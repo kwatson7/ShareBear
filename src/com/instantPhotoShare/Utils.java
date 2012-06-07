@@ -1,6 +1,7 @@
 package com.instantPhotoShare;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.text.DateFormat;
@@ -24,6 +25,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Environment;
+import android.util.Log;
 import android.widget.ImageView;
 
 public class Utils {
@@ -238,7 +240,7 @@ public class Utils {
 	}
 	
 	/**
-	 * Post data to the server helper
+	 * Post data to the server to get a file.
 	 * @param action the action to take
 	 * @param jsonData the data to post
 	 * @param fileSavePath the path we save the returned file to.
@@ -248,7 +250,14 @@ public class Utils {
 			String action,
 			String jsonData,
 			String fileSavePath){
-		//TODO: determine if we should create the folder to save to if we need it. or do it in the calling function
+		
+		// write the required folders
+		try {
+			com.tools.Tools.writeRequiredFolders(fileSavePath);
+		} catch (IOException e) {
+			ServerReturn result = new ServerReturn();
+			result.setError(e);
+		}
 				
 		// make the post
 		com.tools.ServerPost post = new ServerPost(Prefs.BASE_URL + Prefs.REQUEST_PAGE);

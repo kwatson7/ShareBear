@@ -778,110 +778,7 @@ extends TableAdapter<PicturesAdapter>{
 		else{
 			return getString(KEY_DATE_TAKEN);
 		}
-	}
-
-	/**
-	 * Grab the full image data from the server and save it to file. <br>
-	 * *** This is slow, so perform on background thread ***
-	 * @return The image data
-	 */
-	public byte[] getFullImageServerDONTUSE(){
-		if (!checkCursor()){
-			Log.e(Utils.LOG_TAG, "called getFullImageServer on a bad cursor");
-			return null;
-		}
-
-		// grab the server Id
-		long serverId = getServerId();
-		if (serverId == -1){
-			Log.e(Utils.LOG_TAG, "tried to get image from server for picture with no serverId");
-			return null;
-		}
-
-		// create the data required to post to server
-		JSONObject json = new JSONObject();
-		try{
-			json.put("user_id", Prefs.getUserServerId(ctx));
-			json.put("secret_code", Prefs.getSecretCode(ctx));
-			json.put("image_id", serverId);
-		}catch (JSONException e) {
-			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
-			return null;
-		}
-
-		// post to the server
-		FullSizeServerReturn result = new FullSizeServerReturn(Utils.postToServer("get_fullsize", json, null, null));
-
-		// check success
-		if (!result.isSuccess()){
-			Log.e(Utils.LOG_TAG, result.getDetailErrorMessage());
-			return null;
-		}
-
-		// grab the image data
-		byte[] data = result.getImageBytes();
-
-		// no data, return
-		if (data == null || data.length == 0)
-			return null;
-
-		// determine where to save it
-		String fullPath = getFullPicturePath();
-
-		// write to file
-		com.tools.Tools.saveByteDataToFile(
-				ctx,
-				data,
-				"",
-				false,
-				fullPath,
-				ExifInterface.ORIENTATION_NORMAL,
-				false);
-
-		// return the data
-		return data;
 	}	
-
-	/**
-	 * Grab the full image data from the server and save it to file. <br>
-	 * *** This is slow, so perform on background thread ***
-	 * @return The image data
-	 */
-	public String getFullImageServerUrl(){
-		if (!checkCursor()){
-			Log.e(Utils.LOG_TAG, "called getFullImageServerUrl on a bad cursor");
-			return null;
-		}
-
-		// grab the server Id
-		long serverId = getServerId();
-		if (serverId == -1){
-			Log.e(Utils.LOG_TAG, "tried to get image url from server for picture with no serverId");
-			return null;
-		}
-
-		// create the data required to post to server
-		JSONObject json = new JSONObject();
-		try{
-			json.put("user_id", Prefs.getUserServerId(ctx));
-			json.put("secret_code", Prefs.getSecretCode(ctx));
-			json.put("image_id", serverId);
-		}catch (JSONException e) {
-			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
-			return null;
-		}
-
-		// post to the server
-		FullSizeServerReturn result = new FullSizeServerReturn(Utils.postToServer("get_fullsize", json, null, null));
-
-		// check success
-		if (!result.isSuccess()){
-			Log.e(Utils.LOG_TAG, result.getDetailErrorMessage());
-			return null;
-		}
-
-		return result.getUrl();
-	}		
 
 	/**
 	 * Grab the full image data from the server and save it to file. <br>
@@ -926,6 +823,8 @@ extends TableAdapter<PicturesAdapter>{
 		}
 
 		// post to the server
+		//TODO: need to be able to handle errors returned from server
+		//TODO: would be nice to show status of download
 		ServerReturn result = Utils.postToServerToGetFile("get_fullsize", json.toString(), getFullPicturePath());
 		if (!result.isSuccess()){
 			Log.e(Utils.LOG_TAG, result.getDetailErrorMessage());

@@ -31,6 +31,7 @@ import android.widget.BaseAdapter;
 import android.widget.FrameLayout;
 import android.widget.Gallery;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -440,19 +441,6 @@ extends CustomActivity{
 			View vi=convertView;
 			if(convertView==null){
 				vi = inflater.inflate(R.layout.single_picture_item, null);
-				/*
-	            ImageView image2 = (ImageView)vi.findViewById(R.id.picture);
-	            vi.setLayoutParams(new Gallery.LayoutParams(
-						WindowManager.LayoutParams.FILL_PARENT,
-						WindowManager.LayoutParams.FILL_PARENT));
-	           FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) image2.getLayoutParams();
-	            params.height = pictureWindowHeight;
-	            params.width = pictureWindowWidth;
-	            params.gravity = Gravity.CENTER;
-	            image2.setLayoutParams(params);
-	            image2.setBackgroundColor(Color.BLACK);
-				 */
-
 				ImageView image2 = (ImageView)vi.findViewById(R.id.picture);
 				FrameLayout.LayoutParams params = (android.widget.FrameLayout.LayoutParams) image2.getLayoutParams();
 				params.height = pictureWindowHeight;
@@ -463,11 +451,12 @@ extends CustomActivity{
 			// grab the items to display
 			ImageViewTouch image = (ImageViewTouch)vi.findViewById(R.id.picture);
 			TextView name = (TextView) vi.findViewById(R.id.personWhoTookPicture);
+			ProgressBar progress = (ProgressBar)vi.findViewById(R.id.fullPictureProgressBar);
 
 			// move to correct location and fill views
 			if (data.moveToPosition(position)){
 				TwoObjects<Long, Long> loaderData = new TwoObjects<Long, Long>(data.getRowId(), groupId);
-				imageLoader.DisplayImage(data.getRowId(), loaderData, loaderData, image);
+				imageLoader.DisplayImage(data.getRowId(), loaderData, loaderData, image, progress);
 				nameLoader.DisplayView(data.getRowId(), data.getUserIdWhoTook(), name);
 			}
 

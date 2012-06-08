@@ -6,13 +6,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.ref.WeakReference;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.tools.CustomActivity;
@@ -20,8 +20,6 @@ import com.tools.ServerPost;
 import com.tools.SuccessReason;
 import com.tools.ServerPost.FileType;
 import com.tools.ServerPost.ServerReturn;
-import com.tools.TwoObjects;
-
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -30,7 +28,9 @@ import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Environment;
 import android.util.Log;
+import android.view.View;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 
 public class Utils {
 
@@ -188,6 +188,7 @@ public class Utils {
 	 * @param jsonData the "data" key json data to post
 	 * @param fullFilePath the path to the image file with rotation data stored in exif, null if none
 	 * @param rotatedThumbnailData thumbnail data that has been rotated already, null if none
+	 * @param progressBar to show progress is we are downloading file data.
 	 * @param act The activity that calls the background task, can be null
 	 * @param callback callback to run when return from server
 	 */
@@ -197,6 +198,7 @@ public class Utils {
 			String jsonData,
 			String fullFilePath,
 			byte[] rotatedThumbnailData,
+			ProgressBar progressBar,
 			ACTIVITY_TYPE act,
 			com.tools.ServerPost.PostCallback<ACTIVITY_TYPE> callback){
 
@@ -212,7 +214,7 @@ public class Utils {
 			post.addFile(KEY_FULLSIZE, fullFilePath, FileType.JPEG);
 		
 		// post to server
-		post.postInBackground(act, callback);
+		post.postInBackground(act, progressBar, callback);
 	}
 	
 	/**
@@ -241,7 +243,7 @@ public class Utils {
 			post.addFile(KEY_FULLSIZE, fullFilePath, FileType.JPEG);
 		
 		// post to server
-		ServerReturn result = post.post();
+		ServerReturn result = post.post(null);
 		
 		// convert to ServerJSON
 		return new ShareBearServerReturn(result);
@@ -252,7 +254,9 @@ public class Utils {
 		@Override
 		public SuccessReason readInputStream(
 				InputStream inputStream,
-				String filePath)
+				String filePath,
+				long dataLength,
+				WeakReference<ProgressBar> weakProgress)
 				throws IOException {
 			
 			// if there was a bad input file
@@ -281,6 +285,7 @@ public class Utils {
 				final int firstBytes = 5;
 				byte[] jsonLength = new byte[firstBytes]; 
 				count = inputStream.read(jsonLength);
+				dataLength += -5;
 				
 				// if not enough read, then error
 				if (count != firstBytes){
@@ -290,6 +295,7 @@ public class Utils {
 				
 				// convert jsonLength to an int
 				int jsonLengthInt = Integer.parseInt(new String(jsonLength));
+				dataLength += -jsonLengthInt;
 				
 				// now read the json
 				byte[] jsonData = new byte[jsonLengthInt];
@@ -310,12 +316,29 @@ public class Utils {
 				}
 				
 				// now we read the rest of the data and write to file
-				int total = 0;
+				long total = 0;
+				final long dataLength2 = dataLength;
 
 				// write in buffered increments
 				while ((count = inputStream.read(data)) != -1) {
 					output.write(data, 0, count);
 					total += count;
+					
+					// show the progress bar
+					final ProgressBar prog = weakProgress.get();
+					if (prog != null && dataLength > 0){
+						prog.setVisibility(View.VISIBLE);
+						Activity act = (Activity)prog.getContext();
+						final long total2 = total;
+						act.runOnUiThread(new Runnable() {
+							
+							@Override
+							public void run() {
+								prog.setProgress((int) (100 * total2 / dataLength2));
+								
+							}
+						});
+					}
 				}
 				
 				// no file read
@@ -325,6 +348,13 @@ public class Utils {
 				}
 			}finally{
 
+				try{
+					final ProgressBar prog = weakProgress.get();
+					prog.setVisibility(View.INVISIBLE);
+				}catch(Exception e){
+					Log.e(LOG_TAG, Log.getStackTraceString(e));
+				}
+				
 				// perform cleanup
 				if (output != null){
 					try{ 
@@ -357,12 +387,17 @@ public class Utils {
 	 * @param action the action to take
 	 * @param jsonData the data to post
 	 * @param fileSavePath the path we save the returned file to.
+	 * @param progressBar a progress bar to post file download data to. null if none
 	 * @return the result of the post
 	 */
 	public static ShareBearServerReturn postToServerToGetFile(
 			String action,
 			String jsonData,
-			String fileSavePath){
+			String fileSavePath,
+			ProgressBar progressBar){
+		
+		WeakReference<ProgressBar> weakProgress = new WeakReference<ProgressBar>(progressBar);
+		progressBar = null;
 		
 		// write the required folders
 		try {
@@ -382,7 +417,7 @@ public class Utils {
 		post.setCustomBinaryDownloader(fileDownloader);
 		
 		// post to server
-		return new ShareBearServerReturn(post.post());
+		return new ShareBearServerReturn(post.post(weakProgress.get()));
 	}
 
 	/**

@@ -24,4 +24,14 @@
 	android:layout_height="wrap_content"
 	android:layout_gravity="center_horizontal|bottom"
 />
+<ProgressBar
+    android:id="@+id/fullPictureProgressBar"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:indeterminate="false"
+    android:visibility="invisible"
+    android:layout_gravity="bottom|center"
+    android:max="100"
+     style="@android:style/Widget.ProgressBar.Horizontal"
+/>
 </FrameLayout>

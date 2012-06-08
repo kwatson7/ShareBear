@@ -1,6 +1,7 @@
 package com.instantPhotoShare.Activities;
 
 import java.io.File;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 
 import android.app.Activity;
@@ -19,6 +20,7 @@ import android.widget.AdapterView.OnItemClickListener;
 import android.widget.BaseAdapter;
 import android.widget.GridView;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.instantPhotoShare.R;
@@ -203,7 +205,7 @@ extends CustomActivity{
 
 						@Override
 						public Bitmap onFullSizeWeb(Group fullSizeData,
-								int desiredWidth, int desiredHeight) {
+								int desiredWidth, int desiredHeight, WeakReference<ProgressBar> weakProgress) {
 							return null;
 						}
 
@@ -242,7 +244,7 @@ extends CustomActivity{
 			ImageView image=(ImageView)vi.findViewById(R.id.groupImage);
 			text.setText(Html.fromHtml(group.toString()));
 
-			imageLoader.DisplayImage(group.getPictureId(act), group, null, image);
+			imageLoader.DisplayImage(group.getPictureId(act), group, null, image, null);
 			return vi;
 		}
 	}

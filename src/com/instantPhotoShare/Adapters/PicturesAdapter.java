@@ -1,13 +1,13 @@
 package com.instantPhotoShare.Adapters;
 
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.text.ParseException;
 import java.util.ArrayList;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.instantPhotoShare.FullSizeServerReturn;
 import com.instantPhotoShare.Prefs;
 import com.instantPhotoShare.ShareBearServerReturn;
 import com.instantPhotoShare.ThumbnailServerReturn;
@@ -15,7 +15,6 @@ import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter.Group;
 import com.tools.SuccessReason;
 import com.tools.TwoObjects;
-import com.tools.ServerPost.ServerReturn;
 import com.tools.images.ImageLoader.LoadImage;
 
 import android.content.ContentValues;
@@ -25,9 +24,9 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.ExifInterface;
 import android.util.Log;
-import android.widget.ImageButton;
+import android.view.View;
 import android.widget.ImageView;
-import android.widget.ImageView.ScaleType;
+import android.widget.ProgressBar;
 
 public class PicturesAdapter 
 extends TableAdapter<PicturesAdapter>{
@@ -36,6 +35,7 @@ extends TableAdapter<PicturesAdapter>{
 	private static final float PICTURE_OVERSIZE = 2f;
 	private static final int THUMBNAILS_TO_GRAB_AT_ONCE = 10;
 	private static final int TIMEOUT_ON_THUMBNAIL = 60;
+	private static final int TIMEOUT_ON_FULLSIZE = 90;
 
 	/** Table name */
 	public static final String TABLE_NAME = "pictureInfo";
@@ -98,6 +98,121 @@ extends TableAdapter<PicturesAdapter>{
 	 */
 	public PicturesAdapter(Context context) {
 		super(context);
+	}
+
+	/**
+	 * Grab the full image data from the server and save it to file. <br>
+	 * *** This is slow, so perform on background thread ***
+	 * @context Context required to do the searching
+	 * @pictureRowId the row id we want to get from the server
+	 * @desiredWidth desiredWidth the desired width of the output image
+	 * @desiredHeight The desired height of the output image
+	 * @groupRowId the group row Id this picture is in
+	 * @progressBar the progress bar we want to update as we download, null if none
+	 * @return The image data
+	 */
+	public static Bitmap getFullImageServer(Context context, long pictureRowId, int desiredWidth, int desiredHeight, long groupRowId, ProgressBar progressBar){
+		//TODO: this and getThumbnailImageServer are both really bad - need better sync logic. Don't know how to do it at the moment.
+		
+		WeakReference<ProgressBar> weakProgess = new WeakReference<ProgressBar>(progressBar);
+		progressBar = null;
+		
+		// grab the app context and make a picture object
+		Context appCtx = context.getApplicationContext();
+		context = null;
+		PicturesAdapter pic = new PicturesAdapter(appCtx);
+		pic.fetchPicture(pictureRowId);
+		
+		// make sure we have a good cursor
+		if (!pic.checkCursor()){
+			Log.e(Utils.LOG_TAG, "called getFullImageServer on a bad cursor");
+			return null;
+		}		
+
+		// check that we're not currently downloading - wait if so
+		Bitmap bmp = null;
+		while (pic.isDownloadingFullsize() && bmp == null){
+			synchronized (PicturesAdapter.class) {
+				try {
+					PicturesAdapter.class.wait(TIMEOUT_ON_FULLSIZE*1000);
+				} catch (InterruptedException e) {
+					Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+				}
+				bmp = pic.getFullImage(desiredWidth, desiredHeight);
+			}
+		}
+		
+		// check if we had an update while we were waiting
+		if (bmp == null)
+			bmp = pic.getFullImage(desiredWidth, desiredHeight);
+		if (bmp != null){
+			pic.close();
+			synchronized (PicturesAdapter.class) {
+				pic.setFinishedDownloadingFullsize(pictureRowId);
+			}
+			return bmp;
+		}
+		
+		// grab the server Id and path
+		long serverId = pic.getServerId();
+		String path = pic.getFullPicturePath();
+		pic.close();
+		long groupServerId = (new GroupsAdapter(appCtx)).getGroup(groupRowId).getServerId();
+		if (serverId == -1 || groupRowId == -1 || groupServerId == -1 || serverId == 0 || groupRowId == 0 || groupServerId == 0){
+			Log.e(Utils.LOG_TAG, "tried to get image url from server for picture with no serverId and/or group with no");
+			return null;
+		}
+		
+		synchronized (PicturesAdapter.class) {
+			pic.setIsDownloadingFullsize(pictureRowId);
+		}
+
+		// create the data required to post to server
+		JSONObject json = new JSONObject();
+		try{
+			json.put("user_id", Prefs.getUserServerId(appCtx));
+			json.put("secret_code", Prefs.getSecretCode(appCtx));
+			json.put("image_id", serverId);
+			json.put("group_id", groupServerId);
+		}catch (JSONException e) {
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			synchronized (PicturesAdapter.class) {
+				pic.setFinishedDownloadingFullsize(pictureRowId);
+			}
+			return null;
+		}
+
+		// write the required folders
+		Group group = (new GroupsAdapter(appCtx)).getGroup(groupRowId);
+		try {
+			group.writeFoldersIfNeeded();
+		} catch (IOException e1) {
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e1));
+			synchronized (PicturesAdapter.class) {
+				pic.setFinishedDownloadingFullsize(pictureRowId);
+			}
+			return null;
+		}
+
+		// post to the server
+		//TODO: would be nice to show status of download
+		ShareBearServerReturn result = Utils.postToServerToGetFile("get_fullsize", json.toString(), path, weakProgess.get());
+		if (!result.isSuccess()){
+			Log.e(Utils.LOG_TAG, result.getDetailErrorMessage());
+			synchronized (PicturesAdapter.class) {
+				pic.setFinishedDownloadingFullsize(pictureRowId);
+			}
+			return null;
+		}else{
+			synchronized (PicturesAdapter.class) {
+				pic.setIsDownloadingFullsize(pictureRowId);
+				PicturesAdapter.class.notifyAll();
+			}
+		}
+		
+		// read the file
+		pic.fetchPicture(pictureRowId);
+		return pic.getFullImage(desiredWidth, desiredHeight);
 	}
 
 	/**
@@ -172,7 +287,9 @@ extends TableAdapter<PicturesAdapter>{
 		if (!(serverId == -1 || serverId == 0)){
 			array.put(serverId);
 			rowIds.add(pictureRowId);
-			pics.setIsDownloadingThumbnail(pictureRowId);
+			synchronized (PicturesAdapter.class) {
+				pics.setIsDownloadingThumbnail(pictureRowId);
+			}
 		}
 
 		// grab the 9 other pictures
@@ -396,20 +513,19 @@ extends TableAdapter<PicturesAdapter>{
 				// figure out the correct path
 				PicturesAdapter pics = new PicturesAdapter(ctx);
 				pics.fetchPicture(fullSizeData.mObject1);
-				String path = pics.getFullPicturePath();
-				pics.close();
 
 				// read the data from the path
-				return com.tools.images.ImageLoader.getFullImage(path,
-						(int)(desiredWidth*PICTURE_OVERSIZE),
-						(int)(desiredHeight*PICTURE_OVERSIZE));
+				Bitmap bmp = pics.getFullImage(desiredWidth, desiredHeight);
+				pics.close();
+				return bmp;
 			}
 
 			@Override
 			public Bitmap onFullSizeWeb(
 					TwoObjects<Long, Long> fullSizeData,
 					int desiredWidth,
-					int desiredHeight) {
+					int desiredHeight,
+					WeakReference<ProgressBar> weakProgress) {
 
 				// grab the picture from the server
 				PicturesAdapter pics = new PicturesAdapter(ctx);
@@ -418,7 +534,7 @@ extends TableAdapter<PicturesAdapter>{
 					pics.close();
 					return null;
 				}
-				Bitmap bmp = pics.getFullImageServer((int)(desiredWidth*PICTURE_OVERSIZE), (int)(desiredHeight*PICTURE_OVERSIZE), fullSizeData.mObject2);
+				Bitmap bmp = getFullImageServer(ctx, fullSizeData.mObject1, desiredWidth, desiredHeight, fullSizeData.mObject2, weakProgress.get());
 				pics.close();
 				return bmp;
 			}
@@ -582,6 +698,71 @@ extends TableAdapter<PicturesAdapter>{
 	}
 
 	/**
+	 * Fetch the pictures that still need to be uploaded to the server for a given group.
+	 * @param groupRowId
+	 */
+	public void fetchPicturesNeedUploading(long groupRowId){
+		// pictures that haven't been synced but need to be have the following
+		// serverId == 0, -1, or null
+		// part of a group that has keepLocal = 0
+		// isUpdating = 0
+		// last_update is old
+		// isSynced = 0
+		// KEY_HAS_THUMBNAIL_DATA is true
+
+		// first find the group and make sure it isn't keep local
+		GroupsAdapter groups = new GroupsAdapter(ctx);
+		groups.fetchGroup(groupRowId);
+		if (groups.getRowId() == -1 || groups.getRowId() == 0 || groups.isKeepLocal())
+			return;
+
+		// now we query the pictures in this group that match our criteria
+
+		// GRAB current time
+		String timeAgo = Utils.getTimeSecondsAgo((int) Utils.SECONDS_SINCE_UPDATE_RESET);
+
+		// build the where clause
+		String where = "(pics." + KEY_SERVER_ID + " =? OR pics." + KEY_SERVER_ID + " =? OR pics." + KEY_SERVER_ID + " IS NULL ) AND " +
+				"((pics." + KEY_IS_UPDATING + " =? OR UPPER(pics." + KEY_IS_UPDATING + ") =?) OR " + 
+				"(Datetime(" + KEY_LAST_UPDATE_ATTEMPT_TIME + ") < Datetime('" + timeAgo + "'))) AND " +
+				"(pics." + KEY_IS_SYNCED + " =? OR UPPER(pics." + KEY_IS_SYNCED + ") =?) AND " +
+				"(" + KEY_HAS_THUMBNAIL_DATA + " =? OR UPPER(" + KEY_HAS_THUMBNAIL_DATA + ") =?)";
+
+		// where args
+		String[] whereArgs = {String.valueOf(groupRowId),
+				String.valueOf(-1), String.valueOf(0),
+				String.valueOf(0), "FALSE",
+				String.valueOf(0), "FALSE",
+				String.valueOf(1), "TRUE"};
+
+		// create the query where we match up all the pictures that are in the group
+		String query = 
+				"SELECT pics.* FROM "
+						+PicturesAdapter.TABLE_NAME + " pics "
+						+" INNER JOIN "
+						+PicturesInGroupsAdapter.TABLE_NAME + " joinner "
+						+" ON "
+						+"pics." + PicturesAdapter.KEY_ROW_ID + " = "
+						+"joinner." + PicturesInGroupsAdapter.KEY_PICTURE_ID
+						+" WHERE "
+						+"joinner." + PicturesInGroupsAdapter.KEY_GROUP_ID
+						+"=?"
+						+" AND "
+						+where
+						+" ORDER BY " + SORT_ORDER;
+
+
+
+		// do the query
+		Cursor cursor = database.rawQuery(
+				query,
+				whereArgs);
+
+		// set cursor
+		setCursor(cursor);
+	}
+
+	/**
 	 * Fetch random pictures. <br>
 	 * If nPictures <= 1, then we start of positioned at the first (and only)
 	 * item. If nPictures > 1, then we are positioned before the first item, and moveToFirst()
@@ -653,71 +834,6 @@ extends TableAdapter<PicturesAdapter>{
 	}
 
 	/**
-	 * Fetch the pictures that still need to be uploaded to the server for a given group.
-	 * @param groupRowId
-	 */
-	public void fetchPicturesNeedUploading(long groupRowId){
-		// pictures that haven't been synced but need to be have the following
-		// serverId == 0, -1, or null
-		// part of a group that has keepLocal = 0
-		// isUpdating = 0
-		// last_update is old
-		// isSynced = 0
-		// KEY_HAS_THUMBNAIL_DATA is true
-
-		// first find the group and make sure it isn't keep local
-		GroupsAdapter groups = new GroupsAdapter(ctx);
-		groups.fetchGroup(groupRowId);
-		if (groups.getRowId() == -1 || groups.getRowId() == 0 || groups.isKeepLocal())
-			return;
-
-		// now we query the pictures in this group that match our criteria
-
-		// GRAB current time
-		String timeAgo = Utils.getTimeSecondsAgo((int) Utils.SECONDS_SINCE_UPDATE_RESET);
-
-		// build the where clause
-		String where = "(pics." + KEY_SERVER_ID + " =? OR pics." + KEY_SERVER_ID + " =? OR pics." + KEY_SERVER_ID + " IS NULL ) AND " +
-				"((pics." + KEY_IS_UPDATING + " =? OR UPPER(pics." + KEY_IS_UPDATING + ") =?) OR " + 
-				"(Datetime(" + KEY_LAST_UPDATE_ATTEMPT_TIME + ") < Datetime('" + timeAgo + "'))) AND " +
-				"(pics." + KEY_IS_SYNCED + " =? OR UPPER(pics." + KEY_IS_SYNCED + ") =?) AND " +
-				"(" + KEY_HAS_THUMBNAIL_DATA + " =? OR UPPER(" + KEY_HAS_THUMBNAIL_DATA + ") =?)";
-
-		// where args
-		String[] whereArgs = {String.valueOf(groupRowId),
-				String.valueOf(-1), String.valueOf(0),
-				String.valueOf(0), "FALSE",
-				String.valueOf(0), "FALSE",
-				String.valueOf(1), "TRUE"};
-
-		// create the query where we match up all the pictures that are in the group
-		String query = 
-				"SELECT pics.* FROM "
-						+PicturesAdapter.TABLE_NAME + " pics "
-						+" INNER JOIN "
-						+PicturesInGroupsAdapter.TABLE_NAME + " joinner "
-						+" ON "
-						+"pics." + PicturesAdapter.KEY_ROW_ID + " = "
-						+"joinner." + PicturesInGroupsAdapter.KEY_PICTURE_ID
-						+" WHERE "
-						+"joinner." + PicturesInGroupsAdapter.KEY_GROUP_ID
-						+"=?"
-						+" AND "
-						+where
-						+" ORDER BY " + SORT_ORDER;
-
-
-
-		// do the query
-		Cursor cursor = database.rawQuery(
-				query,
-				whereArgs);
-
-		// set cursor
-		setCursor(cursor);
-	}
-
-	/**
 	 * Fetch the pictures that need thumbnails downloaded and aren't currently downloading from the given group
 	 * @param groupId The group to focus on when grabbing pictures
 	 * @param howManyPics how many pictures to grab, use -1 to grab all
@@ -767,8 +883,8 @@ extends TableAdapter<PicturesAdapter>{
 
 		// set cursor
 		setCursor(cursor);
-	}
-
+	}	
+	
 	/**
 	 * Return the date taken as a string, or "" if not accessible.
 	 * @return
@@ -779,58 +895,16 @@ extends TableAdapter<PicturesAdapter>{
 		else{
 			return getString(KEY_DATE_TAKEN);
 		}
-	}	
+	}
 
 	/**
-	 * Grab the full image data from the server and save it to file. <br>
-	 * *** This is slow, so perform on background thread ***
-	 * @desiredWidth desiredWidth the desired width of the output image
-	 * @desiredHeight The desired height of the output image
-	 * @return The image data
+	 * Return the full size image, or null if there is none locally. It will be resize to the desired size, with an oversize factor (helps for zooming)
+	 * @param desiredWidth The desired width
+	 * @param desiredHeight The desired height
+	 * @return The bitmap, or null if none
 	 */
-	public Bitmap getFullImageServer(int desiredWidth, int desiredHeight, long groupRowId){
-		if (!checkCursor()){
-			Log.e(Utils.LOG_TAG, "called getFullImageServer on a bad cursor");
-			return null;
-		}		
-
-		// grab the server Id
-		long serverId = getServerId();
-		long groupServerId = (new GroupsAdapter(ctx)).getGroup(groupRowId).getServerId();
-		if (serverId == -1 || groupRowId == -1 || groupServerId == -1 || serverId == 0 || groupRowId == 0 || groupServerId == 0){
-			Log.e(Utils.LOG_TAG, "tried to get image url from server for picture with no serverId and/or group with no");
-			return null;
-		}
-
-		// create the data required to post to server
-		JSONObject json = new JSONObject();
-		try{
-			json.put("user_id", Prefs.getUserServerId(ctx));
-			json.put("secret_code", Prefs.getSecretCode(ctx));
-			json.put("image_id", serverId);
-			json.put("group_id", 1847);//groupServerId);
-		}catch (JSONException e) {
-			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
-			return null;
-		}
-
-		// write the required folders
-		Group group = (new GroupsAdapter(ctx)).getGroup(groupRowId);
-		try {
-			group.writeFoldersIfNeeded();
-		} catch (IOException e1) {
-			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e1));
-			return null;
-		}
-
-		// post to the server
-		//TODO: would be nice to show status of download
-		ShareBearServerReturn result = Utils.postToServerToGetFile("get_fullsize", json.toString(), getFullPicturePath());
-		if (!result.isSuccess()){
-			Log.e(Utils.LOG_TAG, result.getDetailErrorMessage());
-		}
-		// read the file
-		return com.tools.images.ImageLoader.getFullImage(getFullPicturePath(), desiredWidth, desiredHeight);
+	public Bitmap getFullImage(int desiredWidth, int desiredHeight){
+		return com.tools.images.ImageLoader.getFullImage(getFullPicturePath(), (int)(desiredWidth*PICTURE_OVERSIZE), (int)(desiredHeight*PICTURE_OVERSIZE));
 	}	
 
 	/**
@@ -930,6 +1004,32 @@ extends TableAdapter<PicturesAdapter>{
 			return getLong(KEY_USER_ID_TOOK);
 	}
 
+	/**
+	 * If we are downloading the fullsize picture and we haven't timed out, then return true, else false
+	 * @return
+	 */
+	public boolean isDownloadingFullsize(){
+		if (!checkCursor()){
+			Log.e(Utils.LOG_TAG, "called idDownloadingFullsize on a bad cursor");
+			return false;
+		}
+
+		boolean isDownloading = getBoolean(KEY_IS_FULLSIZE_DOWNLOADING);
+		boolean isTimeout;
+		try {
+			isTimeout = Utils.parseMilliseconds(Utils.getNowTime()) - 
+					Utils.parseMilliseconds(getString(KEY_LAST_FULLSIZE_DOWNLOAD_TIME))
+					> 1000*TIMEOUT_ON_FULLSIZE;
+
+		}catch (ParseException e) {
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			return false;
+		}
+
+		// we must be downloading and not timeout
+		return (isDownloading && !isTimeout);
+	}
+	
 	/**
 	 * If we are downloading the thumbnail and we haven't timedout, then return true, else false
 	 * @return
@@ -1043,6 +1143,24 @@ extends TableAdapter<PicturesAdapter>{
 	}
 
 	/**
+	 * Set that we are done downloading the fullsize data for this picture
+	 * @param rowId the rowId of the picture
+	 */
+	public void setFinishedDownloadingFullsize(long rowId){
+
+		// the values
+		ContentValues values = new ContentValues();
+		values.put(KEY_IS_FULLSIZE_DOWNLOADING, false);	
+
+		// update the values to the table
+		if (database.update(
+				TABLE_NAME,
+				values,
+				KEY_ROW_ID + "='" + rowId + "'", null) <=0)
+			Log.e(Utils.LOG_TAG, "setFinishedDownloadingFullsize did not update properly");
+	}
+	
+	/**
 	 * Set that we are done downloading thumbnail data for this picture
 	 * @param rowId the rowId of the picture
 	 * @param didWeReceiveData If we successfully received data.
@@ -1064,9 +1182,28 @@ extends TableAdapter<PicturesAdapter>{
 	}
 
 	/**
+	 * If we are downlaiding the fullsize picture from the server, then set this field to true.
+	 * When we are done updating, make sure to set to false. <br>
+	 * @param rowId the rowId of the picture to update.
+	 */
+	public void setIsDownloadingFullsize(long rowId){
+
+		// the values
+		ContentValues values = new ContentValues();
+		values.put(KEY_IS_FULLSIZE_DOWNLOADING, true);	
+		values.put(KEY_LAST_FULLSIZE_DOWNLOAD_TIME, Utils.getNowTime());
+
+		// update the values to the table
+		if (database.update(
+				TABLE_NAME,
+				values,
+				KEY_ROW_ID + "='" + rowId + "'", null) <=0)
+			Log.e(Utils.LOG_TAG, "setIsDownloadingFullsize did not update properly");
+	}	
+	
+	/**
 	 * If we are downlaiding thumbnail from the server, then set this field to true.
 	 * When we are done updating, make sure to set to false. <br>
-	 * If isDownlading is true, then we know we are not synced, so we will set sync to false as well.
 	 * @param rowId the rowId of the picture to update.
 	 */
 	public void setIsDownloadingThumbnail(long rowId){
@@ -1107,8 +1244,6 @@ extends TableAdapter<PicturesAdapter>{
 				values,
 				KEY_ROW_ID + "='" + rowId + "'", null) > 0;	
 	}
-
-
 
 	/**
 	 * If we are updating to the server, then set this field to true.

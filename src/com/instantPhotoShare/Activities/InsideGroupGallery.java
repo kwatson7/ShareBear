@@ -350,7 +350,7 @@ extends CustomActivity{
             text.setText("");
             if (data.moveToPosition(position)){
             	TwoObjects<Long, Long> loaderData = new TwoObjects<Long, Long>(data.getRowId(), groupId);
-            	imageLoader.DisplayImage(data.getRowId(), loaderData, loaderData, image);
+            	imageLoader.DisplayImage(data.getRowId(), loaderData, loaderData, image, null);
             }
 
             return vi;

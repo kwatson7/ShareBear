@@ -336,7 +336,7 @@ extends CustomActivity{
 			// move to correct location and fill views
 			if (data.moveToPosition(position)){
             	TwoObjects<Long, Long> loaderData = new TwoObjects<Long, Long>(data.getRowId(), (long) -1);
-            	imageLoader.DisplayImage(data.getRowId(), loaderData, loaderData, imageView);
+            	imageLoader.DisplayImage(data.getRowId(), loaderData, loaderData, imageView, null);
             }
 
 			return imageView;

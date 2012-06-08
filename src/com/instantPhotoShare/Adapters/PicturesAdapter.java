@@ -9,6 +9,7 @@ import org.json.JSONObject;
 
 import com.instantPhotoShare.FullSizeServerReturn;
 import com.instantPhotoShare.Prefs;
+import com.instantPhotoShare.ShareBearServerReturn;
 import com.instantPhotoShare.ThumbnailServerReturn;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter.Group;
@@ -807,7 +808,7 @@ extends TableAdapter<PicturesAdapter>{
 			json.put("user_id", Prefs.getUserServerId(ctx));
 			json.put("secret_code", Prefs.getSecretCode(ctx));
 			json.put("image_id", serverId);
-			json.put("group_id", groupServerId);
+			json.put("group_id", 1847);//groupServerId);
 		}catch (JSONException e) {
 			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 			return null;
@@ -823,9 +824,8 @@ extends TableAdapter<PicturesAdapter>{
 		}
 
 		// post to the server
-		//TODO: need to be able to handle errors returned from server
 		//TODO: would be nice to show status of download
-		ServerReturn result = Utils.postToServerToGetFile("get_fullsize", json.toString(), getFullPicturePath());
+		ShareBearServerReturn result = Utils.postToServerToGetFile("get_fullsize", json.toString(), getFullPicturePath());
 		if (!result.isSuccess()){
 			Log.e(Utils.LOG_TAG, result.getDetailErrorMessage());
 		}

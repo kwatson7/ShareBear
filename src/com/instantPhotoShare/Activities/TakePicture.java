@@ -299,6 +299,7 @@ implements SurfaceHolder.Callback{
 	protected void onResume() {
 	    super.onResume();
 	    cameraHelper.onResume(this);
+	    cameraHelper.setRotationCallback(onRotate);
 	    
 	    setupForNewPicture();
 	    
@@ -367,6 +368,7 @@ implements SurfaceHolder.Callback{
 		// other pauses that need to be called.
 		super.onPause();
 		cameraHelper.onPause();
+		cameraHelper.setRotationCallback(null);
 	}
 	
 	@Override
@@ -611,7 +613,7 @@ implements SurfaceHolder.Callback{
 			camera.setPreviewDisplay(previewHolder);  
 		}
 		catch (Throwable t) {
-			Log.e("InstantPhotoShare-surfaceCreated",
+			Log.e(Utils.LOG_TAG,
 					"Exception in setPreviewDisplay()", t);
 			Toast.makeText(this,
 					t.getMessage(),
@@ -692,6 +694,7 @@ implements SurfaceHolder.Callback{
 		
 		// keep track if we are waiting for the picture to be saved
 		isWaitingForPictureSave = false;
+		isTryingToTakePicture = false;
 
 		// start preview again
 		cameraHelper.startPreview();

@@ -128,8 +128,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 			NotificationsAdapter not = new NotificationsAdapter(applicationCtx);
 			not.createNotification("could not create proper folders for group " + groups.get(0).getName(), NOTIFICATION_TYPES.DEVICE_ERROR);
-			ReturnFromPostPicture result = new ReturnFromPostPicture();
-			result.setError(LOCAL_CREATION_ERROR, "could not crate proper folders for group " + groups.get(0).getName());
+			ReturnFromPostPicture result = new ReturnFromPostPicture(LOCAL_CREATION_ERROR, "could not crate proper folders for group " + groups.get(0).getName());
 			result.setPictureRowId(-1);
 			return result;
 		}	
@@ -149,8 +148,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 		if (!pictureSave.getSuccess()){
 			NotificationsAdapter not = new NotificationsAdapter(applicationCtx);
 			not.createNotification(pictureSave.getReason(), NOTIFICATION_TYPES.DEVICE_ERROR);
-			ReturnFromPostPicture result = new ReturnFromPostPicture();
-			result.setError(LOCAL_CREATION_ERROR, pictureSave.getReason());
+			ReturnFromPostPicture result = new ReturnFromPostPicture(LOCAL_CREATION_ERROR, pictureSave.getReason());
 			result.setPictureRowId(-1);
 			return result;
 		}
@@ -178,8 +176,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 		if (!thumbnailSave.getSuccess()){
 			NotificationsAdapter not = new NotificationsAdapter(applicationCtx);
 			not.createNotification(thumbnailSave.getReason(), NOTIFICATION_TYPES.DEVICE_ERROR);
-			ReturnFromPostPicture result = new ReturnFromPostPicture();
-			result.setError(LOCAL_CREATION_ERROR, thumbnailSave.getReason());
+			ReturnFromPostPicture result = new ReturnFromPostPicture(LOCAL_CREATION_ERROR, thumbnailSave.getReason());
 			result.setPictureRowId(-1);
 			return result;
 		}
@@ -202,8 +199,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 			String msg = "Saving picture into database could not be completed for unknown reason";
 			NotificationsAdapter not = new NotificationsAdapter(applicationCtx);
 			not.createNotification(msg, NOTIFICATION_TYPES.DEVICE_ERROR);
-			ReturnFromPostPicture result = new ReturnFromPostPicture();
-			result.setError(LOCAL_CREATION_ERROR, msg);
+			ReturnFromPostPicture result = new ReturnFromPostPicture(LOCAL_CREATION_ERROR, msg);
 			result.setPictureRowId(-1);
 			return result;
 		}
@@ -216,8 +212,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 				String msg = "link between picture and group could be made for unknown reason";
 				NotificationsAdapter not = new NotificationsAdapter(applicationCtx);
 				not.createNotification(msg, NOTIFICATION_TYPES.DEVICE_ERROR);
-				ReturnFromPostPicture result = new ReturnFromPostPicture();
-				result.setError(LOCAL_CREATION_ERROR, msg);
+				ReturnFromPostPicture result = new ReturnFromPostPicture(LOCAL_CREATION_ERROR, msg);
 				result.setPictureRowId(-1);
 				return result;
 			}
@@ -416,12 +411,17 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 		 * Intiailize a ReturnFromCreateGroupTask object from a ServerJSON object.
 		 * @param toCopy
 		 */
-		protected ReturnFromPostPicture(ServerReturn toCopy) {
+		public ReturnFromPostPicture(ServerReturn toCopy) {
 			super(toCopy);
 		}
 
-		protected ReturnFromPostPicture(){
+		private ReturnFromPostPicture(){
 			super();
+		}
+		
+		private ReturnFromPostPicture(String errorCode, String detailErrorMessage){
+			super();
+			setError(errorCode, detailErrorMessage);
 		}
 
 		/**

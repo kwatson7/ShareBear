@@ -117,8 +117,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 		// if we errored, then stop
 		if (!localResult.getSuccess()){
 			ReturnFromAddUsersToGroupTask serverResponse = 
-					new ReturnFromAddUsersToGroupTask();
-			serverResponse.setError(LOCAL_CREATION_ERROR, ERROR_MESSAGE);
+					new ReturnFromAddUsersToGroupTask(LOCAL_CREATION_ERROR, ERROR_MESSAGE);
 			return serverResponse;
 		}
 
@@ -380,12 +379,17 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 	public static class ReturnFromAddUsersToGroupTask
 	extends ShareBearServerReturn{
 
-		public ReturnFromAddUsersToGroupTask(ServerReturn toCopy) {
+		private ReturnFromAddUsersToGroupTask(ServerReturn toCopy) {
 			super(toCopy);
 		}
 
-		public ReturnFromAddUsersToGroupTask() {
+		private ReturnFromAddUsersToGroupTask() {
 			super();
+		}
+		
+		private ReturnFromAddUsersToGroupTask(String errorCode, String detailErrorMessage){
+			super();
+			setError(errorCode, detailErrorMessage);
 		}
 
 		@Override

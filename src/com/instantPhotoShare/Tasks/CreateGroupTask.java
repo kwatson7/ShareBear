@@ -120,16 +120,14 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, CreateGroupTask.ReturnFromCreate
 
 			// if we were not successful
 			if (rowId == - 1){
-				ReturnFromCreateGroupTask result = new ReturnFromCreateGroupTask();
-				result.setError(LOCAL_CREATION_ERROR, ERROR_MESSAGE);
+				ReturnFromCreateGroupTask result = new ReturnFromCreateGroupTask(LOCAL_CREATION_ERROR, ERROR_MESSAGE);
 				result.setRowId(rowId);
 				return result;
 			}
 
 			// no need to add to server if local
 			if (isLocal){
-				ReturnFromCreateGroupTask result = new ReturnFromCreateGroupTask();
-				result.setError(LOCAL_ONLY, LOCAL_ONLY);
+				ReturnFromCreateGroupTask result = new ReturnFromCreateGroupTask(LOCAL_ONLY, LOCAL_ONLY);
 				result.setRowId(rowId);
 				return result;
 			}
@@ -304,6 +302,11 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, CreateGroupTask.ReturnFromCreate
 		 */
 		protected ReturnFromCreateGroupTask(ServerReturn toCopy) {
 			super(toCopy);
+		}
+		
+		private ReturnFromCreateGroupTask(String errorCode, String detailErrorMessage){
+			super();
+			setError(errorCode, detailErrorMessage);
 		}
 		
 		protected ReturnFromCreateGroupTask(){

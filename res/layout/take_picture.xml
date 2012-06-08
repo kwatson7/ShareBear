@@ -89,6 +89,7 @@
 	android:src="@drawable/stub"
 	android:background="@drawable/blue_selector"
 	android:padding="5dp"
+	android:cropToPadding="true"
 />
 </FrameLayout>
 <LinearLayout

@@ -68,7 +68,7 @@ extends com.tools.CustomAsyncTask <ACTIVITY_TYPE, Integer, CreateNewAccountTask<
 
 		// SAVE to users database
 		if(serverResponse.isSuccess() && !saveValuesFromServer(serverResponse))
-			serverResponse.setError(COULD_NOT_STORE_LOCALLY, "Could not save user into database");
+			serverResponse = new ReturnFromCreateNewAccountTask(COULD_NOT_STORE_LOCALLY, "Could not save user into database");
 		return serverResponse;
 	}
 
@@ -160,11 +160,16 @@ extends com.tools.CustomAsyncTask <ACTIVITY_TYPE, Integer, CreateNewAccountTask<
 		 * Intiailize a ReturnFromLoginTask object from a ServerJSON object.
 		 * @param toCopy
 		 */
-		protected ReturnFromCreateNewAccountTask(ServerReturn toCopy) {
+		private ReturnFromCreateNewAccountTask(ServerReturn toCopy) {
 			super(toCopy);
 		}
+		
+		private ReturnFromCreateNewAccountTask(String errorCode, String detailErrorMessage){
+			super();
+			setError(errorCode, detailErrorMessage);
+		}
 
-		public ReturnFromCreateNewAccountTask() {
+		private ReturnFromCreateNewAccountTask() {
 			super();
 		}
 

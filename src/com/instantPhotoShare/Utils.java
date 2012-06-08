@@ -1,6 +1,8 @@
 package com.instantPhotoShare;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -10,10 +12,12 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.tools.CustomActivity;
 import com.tools.ServerPost;
+import com.tools.SuccessReason;
 import com.tools.ServerPost.FileType;
 import com.tools.ServerPost.ServerReturn;
 import com.tools.TwoObjects;
@@ -57,6 +61,10 @@ public class Utils {
 	private static final String KEY_FULLSIZE = "fullsize";
 	/** key for the thumbnail */
 	private static final String KEY_THUMBNAIL = "thumbnail";
+	
+	// file download errors
+	public static final String CODE_SERVER_ERROR = "CODE_SERVER_ERROR";
+	public static final String SERVER_ERROR_MESSAGE = "Server error";
 			
 	public static void clearApplicationData(Context ctx) {
 		File cache = ctx.getCacheDir();
@@ -239,6 +247,111 @@ public class Utils {
 		return new ShareBearServerReturn(result);
 	}
 	
+	private static ServerPost.BinarayDownloader fileDownloader = new ServerPost.BinarayDownloader() {
+		
+		@Override
+		public SuccessReason readInputStream(
+				InputStream inputStream,
+				String filePath)
+				throws IOException {
+			
+			// if there was a bad input file
+			if (filePath == null)
+				throw(new FileNotFoundException());
+			
+			// default output
+			SuccessReason defaultOutput = new SuccessReason(false, "Unknown failure");
+			
+			// write the required directories to the file
+			com.tools.Tools.writeRequiredFolders(filePath);
+
+			// initialize some variables
+			OutputStream output = null;
+
+			// wrap in try-catch, so we can perform cleanup
+			try{
+				// make sure the save file path is accessible
+				output = new FileOutputStream(filePath);
+
+				// setup for downloading
+				byte data[] = new byte[com.tools.Tools.BUFFER_SIZE];
+				int count;
+
+				// first read how many bytes are for json
+				final int firstBytes = 5;
+				byte[] jsonLength = new byte[firstBytes]; 
+				count = inputStream.read(jsonLength);
+				
+				// if not enough read, then error
+				if (count != firstBytes){
+					Log.e(Utils.LOG_TAG, "not enough bytes read for json length");	
+					return (new SuccessReason(false, SERVER_ERROR_MESSAGE));
+				}
+				
+				// convert jsonLength to an int
+				int jsonLengthInt = Integer.parseInt(new String(jsonLength));
+				
+				// now read the json
+				byte[] jsonData = new byte[jsonLengthInt];
+				count = inputStream.read(jsonData);
+				if (count != jsonLengthInt){
+					Log.e(Utils.LOG_TAG, "not enout bytes read from json");
+					return (new SuccessReason(false, SERVER_ERROR_MESSAGE));
+				}
+				
+				// convert the json bytes to string and serverReturn
+				String jsonString = new String(jsonData);
+				defaultOutput = new SuccessReason(true, jsonString);
+				ShareBearServerReturn tmp = new ShareBearServerReturn(new ServerReturn(jsonString, jsonString));
+				
+				// bad return so exit
+				if (!tmp.isSuccess()){
+					return (new SuccessReason(true, jsonString));
+				}
+				
+				// now we read the rest of the data and write to file
+				int total = 0;
+
+				// write in buffered increments
+				while ((count = inputStream.read(data)) != -1) {
+					output.write(data, 0, count);
+					total += count;
+				}
+				
+				// no file read
+				if (total == 0){
+					Log.e(Utils.LOG_TAG, "no file data read");
+					return (new SuccessReason(false, SERVER_ERROR_MESSAGE));
+				}
+			}finally{
+
+				// perform cleanup
+				if (output != null){
+					try{ 
+						output.flush();
+					}catch(Exception e){
+						Log.e(LOG_TAG, Log.getStackTraceString(e));
+					}
+				}
+				if (output != null){
+					try{ 
+						output.close();
+					}catch(Exception e){
+						Log.e(LOG_TAG, Log.getStackTraceString(e));
+					}
+				}
+				try {
+					if (inputStream != null)
+						inputStream.close();
+				} catch (IOException e) {
+					Log.e(LOG_TAG, Log.getStackTraceString(e));
+				}
+			}
+			
+			return defaultOutput;
+		}
+	};
+	
 	/**
 	 * Post data to the server to get a file.
 	 * @param action the action to take
@@ -246,7 +359,7 @@ public class Utils {
 	 * @param fileSavePath the path we save the returned file to.
 	 * @return the result of the post
 	 */
-	public static ServerReturn postToServerToGetFile(
+	public static ShareBearServerReturn postToServerToGetFile(
 			String action,
 			String jsonData,
 			String fileSavePath){
@@ -266,9 +379,10 @@ public class Utils {
 		post.addData(KEY_ACTION, action);
 		post.addData(KEY_DATA, jsonData);
 		post.setSaveFilePath(fileSavePath);
+		post.setCustomBinaryDownloader(fileDownloader);
 		
 		// post to server
-		return post.post();
+		return new ShareBearServerReturn(post.post());
 	}
 
 	/**

@@ -61,11 +61,11 @@ public class Utils {
 	private static final String KEY_FULLSIZE = "fullsize";
 	/** key for the thumbnail */
 	private static final String KEY_THUMBNAIL = "thumbnail";
-	
+
 	// file download errors
 	public static final String CODE_SERVER_ERROR = "CODE_SERVER_ERROR";
 	public static final String SERVER_ERROR_MESSAGE = "Server error";
-			
+
 	public static void clearApplicationData(Context ctx) {
 		File cache = ctx.getCacheDir();
 		File appDir = new File(cache.getParent());
@@ -119,7 +119,7 @@ public class Utils {
 		Date date = new Date();
 		return dateFormat.format(date);
 	}
-	
+
 	/**
 	 * Get the current date with the given millisecondsAgo and time formatted as "yyyy-MM-dd HH:mm:ss"
 	 * For example, if it is currently "2012-06-18 12:54:48" and we enter 3, then output would be "2012-06-18 12:54:45"
@@ -212,11 +212,11 @@ public class Utils {
 			post.addFile(KEY_THUMBNAIL, rotatedThumbnailData, FileType.JPEG);
 		if (fullFilePath != null && fullFilePath.length() != 0)
 			post.addFile(KEY_FULLSIZE, fullFilePath, FileType.JPEG);
-		
+
 		// post to server
 		post.postInBackground(act, progressBar, callback);
 	}
-	
+
 	/**
 	 * Post data to the server helper
 	 * @param action the action to take
@@ -230,10 +230,10 @@ public class Utils {
 			String jsonData,
 			String fullFilePath,
 			byte[] rotatedThumbnailData){
-				
+
 		// make the post
 		com.tools.ServerPost post = new ServerPost(Prefs.BASE_URL + Prefs.REQUEST_PAGE);
-		
+
 		// set values
 		post.addData(KEY_ACTION, action);
 		post.addData(KEY_DATA, jsonData);
@@ -241,31 +241,31 @@ public class Utils {
 			post.addFile(KEY_THUMBNAIL, rotatedThumbnailData, FileType.JPEG);
 		if (fullFilePath != null && fullFilePath.length() != 0)
 			post.addFile(KEY_FULLSIZE, fullFilePath, FileType.JPEG);
-		
+
 		// post to server
 		ServerReturn result = post.post(null);
-		
+
 		// convert to ServerJSON
 		return new ShareBearServerReturn(result);
 	}
-	
+
 	private static ServerPost.BinarayDownloader fileDownloader = new ServerPost.BinarayDownloader() {
-		
+
 		@Override
 		public SuccessReason readInputStream(
 				InputStream inputStream,
 				String filePath,
 				long dataLength,
 				WeakReference<ProgressBar> weakProgress)
-				throws IOException {
-			
+		throws IOException {
+
 			// if there was a bad input file
 			if (filePath == null)
 				throw(new FileNotFoundException());
-			
+
 			// default output
 			SuccessReason defaultOutput = new SuccessReason(false, "Unknown failure");
-			
+
 			// write the required directories to the file
 			com.tools.Tools.writeRequiredFolders(filePath);
 
@@ -286,17 +286,17 @@ public class Utils {
 				byte[] jsonLength = new byte[firstBytes]; 
 				count = inputStream.read(jsonLength);
 				dataLength += -5;
-				
+
 				// if not enough read, then error
 				if (count != firstBytes){
 					Log.e(Utils.LOG_TAG, "not enough bytes read for json length");	
 					return (new SuccessReason(false, SERVER_ERROR_MESSAGE));
 				}
-				
+
 				// convert jsonLength to an int
 				int jsonLengthInt = Integer.parseInt(new String(jsonLength));
 				dataLength += -jsonLengthInt;
-				
+
 				// now read the json
 				byte[] jsonData = new byte[jsonLengthInt];
 				count = inputStream.read(jsonData);
@@ -304,17 +304,17 @@ public class Utils {
 					Log.e(Utils.LOG_TAG, "not enout bytes read from json");
 					return (new SuccessReason(false, SERVER_ERROR_MESSAGE));
 				}
-				
+
 				// convert the json bytes to string and serverReturn
 				String jsonString = new String(jsonData);
 				defaultOutput = new SuccessReason(true, jsonString);
 				ShareBearServerReturn tmp = new ShareBearServerReturn(new ServerReturn(jsonString, jsonString));
-				
+
 				// bad return so exit
 				if (!tmp.isSuccess()){
 					return (new SuccessReason(true, jsonString));
 				}
-				
+
 				// now we read the rest of the data and write to file
 				long total = 0;
 				final long dataLength2 = dataLength;
@@ -323,39 +323,54 @@ public class Utils {
 				while ((count = inputStream.read(data)) != -1) {
 					output.write(data, 0, count);
 					total += count;
-					
+
 					// show the progress bar
 					final ProgressBar prog = weakProgress.get();
 					if (prog != null && dataLength > 0){
-						prog.setVisibility(View.VISIBLE);
 						Activity act = (Activity)prog.getContext();
 						final long total2 = total;
 						act.runOnUiThread(new Runnable() {
-							
+
 							@Override
 							public void run() {
+								prog.setVisibility(View.VISIBLE);
 								prog.setProgress((int) (100 * total2 / dataLength2));
-								
+
 							}
 						});
 					}
 				}
-				
+
 				// no file read
 				if (total == 0){
 					Log.e(Utils.LOG_TAG, "no file data read");
 					return (new SuccessReason(false, SERVER_ERROR_MESSAGE));
 				}
+				
 			}finally{
 
+				// perform cleanup
+
+				// close progress bar
 				try{
+
 					final ProgressBar prog = weakProgress.get();
-					prog.setVisibility(View.INVISIBLE);
+					if (prog != null){
+						Activity act = (Activity)prog.getContext();
+						act.runOnUiThread(new Runnable() {
+
+							@Override
+							public void run() {
+								prog.setVisibility(View.INVISIBLE);								
+							}
+						});
+					}
+
 				}catch(Exception e){
 					Log.e(LOG_TAG, Log.getStackTraceString(e));
 				}
-				
-				// perform cleanup
+
+
 				if (output != null){
 					try{ 
 						output.flush();
@@ -377,11 +392,11 @@ public class Utils {
 					Log.e(LOG_TAG, Log.getStackTraceString(e));
 				}
 			}
-			
+
 			return defaultOutput;
 		}
 	};
-	
+
 	/**
 	 * Post data to the server to get a file.
 	 * @param action the action to take
@@ -395,10 +410,10 @@ public class Utils {
 			String jsonData,
 			String fileSavePath,
 			ProgressBar progressBar){
-		
+
 		WeakReference<ProgressBar> weakProgress = new WeakReference<ProgressBar>(progressBar);
 		progressBar = null;
-		
+
 		// write the required folders
 		try {
 			com.tools.Tools.writeRequiredFolders(fileSavePath);
@@ -406,16 +421,16 @@ public class Utils {
 			ServerReturn result = new ServerReturn();
 			result.setError(e);
 		}
-				
+
 		// make the post
 		com.tools.ServerPost post = new ServerPost(Prefs.BASE_URL + Prefs.REQUEST_PAGE);
-		
+
 		// set values
 		post.addData(KEY_ACTION, action);
 		post.addData(KEY_DATA, jsonData);
 		post.setSaveFilePath(fileSavePath);
 		post.setCustomBinaryDownloader(fileDownloader);
-		
+
 		// post to server
 		return new ShareBearServerReturn(post.post(weakProgress.get()));
 	}
@@ -436,7 +451,7 @@ public class Utils {
 
 		return postToServerHelper(action, data.toString(), fullFilePath, rotatedThumbnailData);
 	}
-	
+
 	/**
 	 * Post data to the server helper
 	 * @param action the action to take
@@ -510,7 +525,7 @@ public class Utils {
 			}
 		}).start();
 	}
-	
+
 	/**
 	 * Parse milliseconds from a correctly formatted date string
 	 * @param date The data string of format Utils.DATE_FORMAT
@@ -518,7 +533,7 @@ public class Utils {
 	 * @throws ParseException
 	 */
 	public static long parseMilliseconds(String date)
-			throws ParseException{
+	throws ParseException{
 		DateFormat formatter = new SimpleDateFormat(Utils.DATE_FORMAT);
 		return formatter.parse(date).getTime();
 	}

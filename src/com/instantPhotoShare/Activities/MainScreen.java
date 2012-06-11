@@ -4,6 +4,7 @@
 package com.instantPhotoShare.Activities;
 
 import com.instantPhotoShare.R;
+import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.PicturesAdapter;
 import com.instantPhotoShare.Tasks.CreatePrivateGroup;
@@ -16,6 +17,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -24,6 +26,7 @@ import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.Gallery;
 import android.widget.ImageView;
+import android.widget.Toast;
 import android.widget.AdapterView.OnItemClickListener;
 
 /**
@@ -38,6 +41,7 @@ extends CustomActivity{
 	private Gallery gallery; 				// the gallery to show pictures
 	private PicturesGridAdapter adapter; 		// the adapter to show pictures
 	private PicturesAdapter picturesAdapater;	// An array of all the pictures
+	private int nNewGroups = 0;
 	
 	// misc private variables
 	private CustomActivity act = this;
@@ -85,8 +89,43 @@ extends CustomActivity{
 		// check for any groups that need to be synced
 		SyncGroupsThatNeedIt<MainScreen> task2 = new SyncGroupsThatNeedIt<MainScreen>(this);
 		task2.execute();
+		
+		fetchNewGroups();
 	}
 	
+	private void fetchNewGroups(){
+		GroupsAdapter groups = new GroupsAdapter(ctx);
+		groups.fetchAllGroupsFromServer(this, new GroupsAdapter.ItemsFetchedCallback<MainScreen>() {
+
+			@Override
+			public void onItemsFetchedBackground(
+					MainScreen act,
+					int nNewItems,
+					String errorCode) {
+				
+				act.nNewGroups = nNewItems;
+				
+			}
+
+			@Override
+			public void onItemsFetchedUiThread(
+					MainScreen act,
+					String errorCode) {
+				
+				// update adatper if there are new pictures
+				if (act.nNewGroups > 0){
+					Toast.makeText(act, "You've been added to " + act.nNewGroups + " new groups!", Toast.LENGTH_SHORT).show();
+					act.getPictures();
+					act.fillPictures();
+				}
+				
+				// if there was an error
+				if (errorCode != null){
+					Log.e(Utils.LOG_TAG, "Error code when fetching groups " + errorCode);
+				}	
+			}
+		});
+	}
 	
 	/**
 	 * Find the cursor required for pictures

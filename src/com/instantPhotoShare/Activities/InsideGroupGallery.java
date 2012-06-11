@@ -25,7 +25,7 @@ import com.instantPhotoShare.R;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.GroupsAdapter.Group;
-import com.instantPhotoShare.Adapters.GroupsAdapter.PicturesFetchedCallback;
+import com.instantPhotoShare.Adapters.GroupsAdapter.ItemsFetchedCallback;
 import com.instantPhotoShare.Adapters.PicturesAdapter;
 import com.tools.CustomActivity;
 import com.tools.TwoObjects;
@@ -185,20 +185,20 @@ extends CustomActivity{
 	/**
 	 * The callback to run when we are done grabbing the pictures from the server
 	 */
-	private PicturesFetchedCallback<InsideGroupGallery> fetchPictureIdsCallback = 
-		new PicturesFetchedCallback<InsideGroupGallery>() {
+	private ItemsFetchedCallback<InsideGroupGallery> fetchPictureIdsCallback = 
+		new ItemsFetchedCallback<InsideGroupGallery>() {
 
 			@Override
-			public void onPicturesFetchedBackground(
+			public void onItemsFetchedBackground(
 					InsideGroupGallery act,
-					int nNewPictures,
+					int nNewItems,
 					String errorCode) {
 				// store the pictures
-				act.nNewPictures = nNewPictures;
+				act.nNewPictures = nNewItems;
 			}
 
 			@Override
-			public void onPicturesFetchedUiThread(InsideGroupGallery act, String errorCode) {
+			public void onItemsFetchedUiThread(InsideGroupGallery act, String errorCode) {
 				// update adatper if there are new pictures
 				if (act.nNewPictures > 0){
 					Toast.makeText(act, act.nNewPictures + " new pictures!", Toast.LENGTH_SHORT).show();
@@ -209,9 +209,9 @@ extends CustomActivity{
 				// if there was an error
 				if (errorCode != null){
 					if (errorCode.compareToIgnoreCase(GroupsAdapter.GROUP_ACCESS_ERROR) != 0){
-						Toast.makeText(ctx, "Not in group", Toast.LENGTH_LONG);
+						Toast.makeText(act, "Not in group", Toast.LENGTH_LONG);
 					}else
-						Log.e(Utils.LOG_TAG, "Error code when fetching pictures in this group (: " + groupId + ") " + errorCode);
+						Log.e(Utils.LOG_TAG, "Error code when fetching pictures in this group (: " + act.groupId + ") " + errorCode);
 				}
 			}
 		};

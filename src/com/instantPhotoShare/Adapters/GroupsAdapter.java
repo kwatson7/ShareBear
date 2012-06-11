@@ -5,11 +5,13 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.Iterator;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.instantPhotoShare.GetGroupsServerReturn;
 import com.instantPhotoShare.Prefs;
 import com.instantPhotoShare.ShareBearServerReturn;
 import com.instantPhotoShare.Utils;
@@ -63,9 +65,11 @@ extends TableAdapter <GroupsAdapter>{
 	private static final String PRIVATE_GROUP_COLOR = "#ADD8E6"; 			// color for private groups when toString is called
 	private static final String NON_SYNCED_PUBLIC_GROUPS_COLOR = "red"; 	// color for non-synced groups when toString is called
 	private static final String SORT_ORDER = KEY_DATE_CREATED + " DESC"; 			// sort the picture by most recent
-	private static final String ADDITIONAL_QUERY_NO_AND = KEY_AM_I_MEMBER + " ='TRUE' AND " + KEY_MARK_FOR_DELETION + " = 'FALSE'";
+	private static final String ADDITIONAL_QUERY_NO_AND = 
+		"(" + KEY_AM_I_MEMBER + " ='TRUE' OR " + KEY_AM_I_MEMBER + " = '1') AND (" 
+		+ KEY_MARK_FOR_DELETION + " = 'FALSE' OR " + KEY_MARK_FOR_DELETION + " = '0')";
 	private static final String ADDITIONAL_QUERY = " AND " + ADDITIONAL_QUERY_NO_AND;
-	
+
 	// error codes
 	public static final String GROUP_ACCESS_ERROR = "GROUP_ACCESS_ERROR";
 
@@ -100,72 +104,6 @@ extends TableAdapter <GroupsAdapter>{
 
 	public GroupsAdapter(Context context) {
 		super(context);
-	}
-	
-	/**
-	 * Insert a new group into the database. Return the new rowId or -1 if unsuccessful.
-	 * This group will not have a serverId attached
-	 * to it, and its isSynced column will be false. Use setIsSynced to set these.
-	 * @param ctx Context used for various calls
-	 * @param groupName The groupName, must not be null or empty.
-	 * @param groupPictureId The picture id to the main picture for this group, -1 or null if not known
-	 * @param dateCreated The date this group was created, use Utils.getNowTime() if now, or pass null and this will be called for you.
-	 * @param userIdWhoCreated The userId who created this group, if null or -1 is passed, the phones userId will be used.
-	 * @param allowOthersToAddMembers boolean to allow others to add members. 
-	 * @param latitude The latitude of this group location pass null for no location
-	 * @param longitude The longitude of this group location pass null for no location
-	 * @param allowPublicWithinDistance allow anybody to join group if there are within this many miles of group (pass -1) to not allow
-	 * @param keepLocal boolean to keep these pictures local
-	 * @return The rowId of the group, -1 if it failed.
-	 */
-	public long makeNewGroup(
-			Context ctx,
-			String groupName,
-			Long groupPictureId,
-			String dateCreated,
-			Long userIdWhoCreated,
-			boolean allowOthersToAddMembers,
-			Double latitude,
-			Double longitude,
-			double allowPublicWithinDistance,
-			boolean keepLocal){
-
-		// override some values and/or check
-		if (dateCreated == null || dateCreated.length() == 0)
-			dateCreated = Utils.getNowTime();
-		if (groupName == null || groupName.length() ==0)
-			throw new IllegalArgumentException("groupName must not be null length > 0");
-		if (userIdWhoCreated == null || userIdWhoCreated == -1)
-			userIdWhoCreated = Prefs.getUserRowId(ctx);
-		if ((latitude == null || longitude == null) &&
-				allowPublicWithinDistance >= 0)
-			throw new IllegalArgumentException("cannot allow public within a distance >= 0 if lat or long are null");
-
-		// find the allowable folder name and create it
-		ThreeObjects<String, String, String> folderNames = makeRequiredFolders(ctx, groupName, dateCreated);
-
-		// create values
-		ContentValues values = new ContentValues();
-		values.put(KEY_NAME, groupName);
-		values.put(KEY_PICTURE_ID, groupPictureId);
-		values.put(KEY_DATE_CREATED, dateCreated);
-		values.put(KEY_USER_ID_CREATED, userIdWhoCreated);
-		values.put(KEY_ALLOW_OTHERS_ADD_MEMBERS, allowOthersToAddMembers);
-		values.put(KEY_LATITUDE, latitude);
-		values.put(KEY_LATITUDE, longitude);
-		values.put(KEY_ALLOW_PUBLIC_WITHIN_DISTANCE, allowPublicWithinDistance);
-		values.put(KEY_KEEP_LOCAL, keepLocal);
-		values.put(KEY_GROUP_TOP_LEVEL_PATH, folderNames.mObject1);
-		values.put(KEY_PICTURE_PATH, folderNames.mObject2);
-		values.put(KEY_THUMBNAIL_PATH, folderNames.mObject3);
-
-		// create new row
-		long newRow = database.insert(
-				TABLE_NAME,
-				null,
-				values);
-
-		return newRow;
 	}
 
 	/**
@@ -204,7 +142,7 @@ extends TableAdapter <GroupsAdapter>{
 	private static TwoStrings generatePicturePath(String groupFolderFullPath, String groupName){
 		return new TwoStrings(groupFolderFullPath + Utils.getAllowableFileName(groupName) + Utils.pathsep,
 				groupFolderFullPath + Utils.THUMBNAIL_PATH);
-	}	
+	}
 
 	/**
 	 * Determine the allowable folder name for a given group name. Will start with simple groupName. <br>
@@ -250,57 +188,31 @@ extends TableAdapter <GroupsAdapter>{
 
 		// the paht
 		return path;
-	}
-	
+	}	
+
 	/**
-	 * Fetch the groups that still need to be synced to the server
+	 * Is the given group based on the serverId present in the database
+	 * @param serverId teh serverId to search
+	 * @return is the group present
 	 */
-	public void fetchGroupsToBeSynced(){
-		// groups that haven't been synced but need to be have the following
-		// serverId == 0, -1, or null
-		// keepLocal = 0
-		// isUpdating = 0
-		// last_update is old
-		// isSynced = 0
-		// markfor deletion = 0
-		
-		// GRAB current time
-		String timeAgo = Utils.getTimeSecondsAgo((int) Utils.SECONDS_SINCE_UPDATE_RESET);
-		
-		// build the where clause
-		String where = "(" + KEY_SERVER_ID + " =? OR " + KEY_SERVER_ID + " =? OR " + KEY_SERVER_ID + " IS NULL ) AND " +
-			"(" + KEY_KEEP_LOCAL + " =? OR UPPER(" + KEY_KEEP_LOCAL + ") =?) AND " +
-			"((" + KEY_IS_UPDATING + " =? OR UPPER(" + KEY_IS_UPDATING + ") =?) OR " + 
-			"(Datetime(" + KEY_LAST_UPDATE_ATTEMPT_TIME + ") < Datetime('" + timeAgo + "'))) AND " +
-			"(" + KEY_IS_SYNCED + " =? OR UPPER(" + KEY_IS_SYNCED + ") =?) AND " +
-			"(" + KEY_MARK_FOR_DELETION + " =? OR UPPER(" + KEY_MARK_FOR_DELETION + ") =?)";
-		
-		// where args
-		String[] whereArgs = {
-				String.valueOf(-1), String.valueOf(0),
-				String.valueOf(0), "FALSE",
-				String.valueOf(0), "FALSE",
-				String.valueOf(0), "FALSE",
-				String.valueOf(0), "FALSE"};
-		
-		// grab the cursor
+	public boolean isGroupPresent(long serverId){
 		Cursor cursor =
 
 			database.query(
 					true,
 					TABLE_NAME,
-					null,
-					where,
-					whereArgs,
+					new String[] {KEY_ROW_ID},
+					KEY_SERVER_ID + "=?",
+					new String[] {String.valueOf(serverId)},
 					null,
 					null,
 					SORT_ORDER,
 					null);
-		
-		// set the cursor
-		setCursor(cursor);
+		boolean value = cursor.moveToFirst();
+		cursor.close();
+		return value;
 	}
-	
+
 	public boolean canIRemoveMembers(Context ctx){
 		return false;
 		//return didIMakeGroup(ctx);
@@ -463,6 +375,55 @@ extends TableAdapter <GroupsAdapter>{
 	}
 
 	/**
+	 * Fetch the groups that still need to be synced to the server
+	 */
+	public void fetchGroupsToBeSynced(){
+		// groups that haven't been synced but need to be have the following
+		// serverId == 0, -1, or null
+		// keepLocal = 0
+		// isUpdating = 0
+		// last_update is old
+		// isSynced = 0
+		// markfor deletion = 0
+
+		// GRAB current time
+		String timeAgo = Utils.getTimeSecondsAgo((int) Utils.SECONDS_SINCE_UPDATE_RESET);
+
+		// build the where clause
+		String where = "(" + KEY_SERVER_ID + " =? OR " + KEY_SERVER_ID + " =? OR " + KEY_SERVER_ID + " IS NULL ) AND " +
+		"(" + KEY_KEEP_LOCAL + " =? OR UPPER(" + KEY_KEEP_LOCAL + ") =?) AND " +
+		"((" + KEY_IS_UPDATING + " =? OR UPPER(" + KEY_IS_UPDATING + ") =?) OR " + 
+		"(Datetime(" + KEY_LAST_UPDATE_ATTEMPT_TIME + ") < Datetime('" + timeAgo + "'))) AND " +
+		"(" + KEY_IS_SYNCED + " =? OR UPPER(" + KEY_IS_SYNCED + ") =?) AND " +
+		"(" + KEY_MARK_FOR_DELETION + " =? OR UPPER(" + KEY_MARK_FOR_DELETION + ") =?)";
+
+		// where args
+		String[] whereArgs = {
+				String.valueOf(-1), String.valueOf(0),
+				String.valueOf(0), "FALSE",
+				String.valueOf(0), "FALSE",
+				String.valueOf(0), "FALSE",
+				String.valueOf(0), "FALSE"};
+
+		// grab the cursor
+		Cursor cursor =
+
+			database.query(
+					true,
+					TABLE_NAME,
+					null,
+					where,
+					whereArgs,
+					null,
+					null,
+					SORT_ORDER,
+					null);
+
+		// set the cursor
+		setCursor(cursor);
+	}
+
+	/**
 	 * Fetch all the pictures from the server for a given groupID and then create holding pictures
 	 * for any pictures not present in database. Done a a background thread
 	 * @param <ACTIVITY_TYPE>
@@ -475,7 +436,8 @@ extends TableAdapter <GroupsAdapter>{
 	void fetchPictureIdsFromServer(
 			ACTIVITY_TYPE act,
 			final long groupServerId,
-			final PicturesFetchedCallback<ACTIVITY_TYPE> callback){
+			final ItemsFetchedCallback<ACTIVITY_TYPE> callback){
+		//TODO: this shouldn't be synced. Will cause hanging, also doesn't even gaurantee thread safe, as multiple objects cann access this
 
 		// bad serverId
 		if (groupServerId == -1 || groupServerId == 0)
@@ -547,7 +509,7 @@ extends TableAdapter <GroupsAdapter>{
 												null,
 												null,
 												false);
-										
+
 										pics.setIsSynced(rowId, true, array.getLong(i));
 									}
 
@@ -561,7 +523,7 @@ extends TableAdapter <GroupsAdapter>{
 										comboAdapter.addPictureToGroup(ctx, pics.getRowId(), group.getRowId());
 										counter++;
 									}
-									
+
 								} catch (NumberFormatException e) {
 									Log.e("TAG", Log.getStackTraceString(e));
 									continue;
@@ -582,10 +544,10 @@ extends TableAdapter <GroupsAdapter>{
 
 						// send callback back to activity
 						if (callback != null){
-							if (result.isSuccess())
-								callback.onPicturesFetchedBackground(act, counter, null);
+							if (data.isSuccess())
+								callback.onItemsFetchedBackground(act, counter, null);
 							else
-								callback.onPicturesFetchedBackground(act, counter, result.getErrorCode());
+								callback.onItemsFetchedBackground(act, counter, result.getErrorCode());
 						}
 					}
 
@@ -593,11 +555,136 @@ extends TableAdapter <GroupsAdapter>{
 					public void onPostFinishedUiThread(
 							ACTIVITY_TYPE act,
 							ServerReturn result) {
+						ShareBearServerReturn result2 = new ShareBearServerReturn(result);
 						if (callback != null)
-							if (result.isSuccess())
-								callback.onPicturesFetchedUiThread(act, null);
+							if (result2.isSuccess())
+								callback.onItemsFetchedUiThread(act, null);
 							else
-								callback.onPicturesFetchedUiThread(act, result.getErrorCode());
+								callback.onItemsFetchedUiThread(act, result2.getErrorCode());
+					}
+				});
+	}
+
+	/**
+	 * Fetch all the groups from the server for a given user and then create for any new groups. 
+	 * Done a a background thread
+	 * @param <ACTIVITY_TYPE>
+	 * @param act The activity that will be attached to callback on return.
+	 * @param groupServerId the server id of the group in question
+	 * @param callback The callback to be called when we are done. Can be null.
+	 * callback 3rd return will be how many new groups there are
+	 */
+	public synchronized <ACTIVITY_TYPE extends CustomActivity>
+	void fetchAllGroupsFromServer(
+			ACTIVITY_TYPE act,
+			final ItemsFetchedCallback<ACTIVITY_TYPE> callback){
+
+		// make json data to post
+		JSONObject json = new JSONObject();
+		try{
+			json.put("user_id", Prefs.getUserServerId(ctx));
+			json.put("secret_code", Prefs.getSecretCode(ctx));
+		}catch (JSONException e) {
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			return;
+		}
+
+		Utils.postToServer(
+				"get_groups",
+				json.toString(),
+				null,
+				null,
+				null,
+				act,
+				new PostCallback<ACTIVITY_TYPE>() {
+
+					@Override
+					public void onPostFinished(
+							ACTIVITY_TYPE act,
+							ServerReturn result) {
+
+						// convert to custom return object
+						GetGroupsServerReturn data = new GetGroupsServerReturn(result);
+
+						// not a good return
+						if (!data.isSuccess()){
+							Log.e(Utils.LOG_TAG, result.getDetailErrorMessage());
+							return;
+						}
+
+						// loop checking the pictures and creating in database if we don't have
+						GroupsAdapter adapter = new GroupsAdapter(ctx);
+						UsersAdapter users = new UsersAdapter(ctx);
+						int counter = 0;
+						Iterator<String> iterator = data.getMessageObject().keys();
+						while (iterator.hasNext()){
+							synchronized (GroupsAdapter.class) {
+								long groupServerId = Long.valueOf(iterator.next());
+								if (groupServerId == 0)
+									continue;
+
+								// check if group is present
+								if (!adapter.isGroupPresent(groupServerId)){
+									// see if the user exists, if it doesn't then add it
+									long userServerId = data.getUserServerIdWhoCreated(groupServerId);
+									users.fetchUserByServerId(userServerId);
+									long userRowId = users.getRowId();
+									if(userRowId == 0 ||userRowId == -1){
+										users.close();
+										userRowId = users.makeNewUser(userServerId);
+									}else
+										users.close();
+
+									// create a new group
+									//TODO: read allowOthersToAddMembers
+									//TODO: read allow within distance
+									//TODO: read lat and long
+									//TODO: read picture id for group
+									long groupRowId = adapter.makeNewGroup(ctx,
+											data.getName(groupServerId),
+											-1l,
+											data.getDateCreated(groupServerId),
+											userRowId,
+											true, 
+											null,
+											null,
+											-1,
+											false);
+
+									adapter.setIsSynced(groupRowId, true, groupServerId);
+									
+									counter++;
+								}
+							}
+						}
+
+						// notification for new groups
+						if (counter > 0){
+							NotificationsAdapter notes = new NotificationsAdapter(ctx);
+							notes.createNotification(
+									counter + " new groups you've been added to.",
+									NotificationsAdapter.NOTIFICATION_TYPES.ADD_TO_NEW_GROUP);
+						}
+
+						// send callback back to activity
+						if (callback != null){
+							if (data.isSuccess())
+								callback.onItemsFetchedBackground(act, counter, null);
+							else
+								callback.onItemsFetchedBackground(act, counter, result.getErrorCode());
+						}
+					}
+
+					@Override
+					public void onPostFinishedUiThread(
+							ACTIVITY_TYPE act,
+							ServerReturn result) {
+						GetGroupsServerReturn result2 = new GetGroupsServerReturn(result);
+						if (callback != null)
+							if (result2.isSuccess())
+								callback.onItemsFetchedUiThread(act, null);
+							else
+								callback.onItemsFetchedUiThread(act, result2.getErrorCode());
 					}
 				});
 	}
@@ -803,7 +890,7 @@ extends TableAdapter <GroupsAdapter>{
 		else
 			return getLong(KEY_ROW_ID);
 	}
-	
+
 	public long getServerId(){
 		if (!checkCursor())
 			return -1;
@@ -864,7 +951,73 @@ extends TableAdapter <GroupsAdapter>{
 				true);
 	}
 
-	
+	/**
+	 * Insert a new group into the database. Return the new rowId or -1 if unsuccessful.
+	 * This group will not have a serverId attached
+	 * to it, and its isSynced column will be false. Use setIsSynced to set these.
+	 * @param ctx Context used for various calls
+	 * @param groupName The groupName, must not be null or empty.
+	 * @param groupPictureId The picture id to the main picture for this group, -1 or null if not known
+	 * @param dateCreated The date this group was created, use Utils.getNowTime() if now, or pass null and this will be called for you.
+	 * @param userIdWhoCreated The userId who created this group, if null or -1 is passed, the phones userId will be used.
+	 * @param allowOthersToAddMembers boolean to allow others to add members. 
+	 * @param latitude The latitude of this group location pass null for no location
+	 * @param longitude The longitude of this group location pass null for no location
+	 * @param allowPublicWithinDistance allow anybody to join group if there are within this many miles of group (pass -1) to not allow
+	 * @param keepLocal boolean to keep these pictures local
+	 * @return The rowId of the group, -1 if it failed.
+	 */
+	public long makeNewGroup(
+			Context ctx,
+			String groupName,
+			Long groupPictureId,
+			String dateCreated,
+			Long userIdWhoCreated,
+			boolean allowOthersToAddMembers,
+			Double latitude,
+			Double longitude,
+			double allowPublicWithinDistance,
+			boolean keepLocal){
+
+		// override some values and/or check
+		if (dateCreated == null || dateCreated.length() == 0)
+			dateCreated = Utils.getNowTime();
+		if (groupName == null || groupName.length() ==0)
+			throw new IllegalArgumentException("groupName must not be null length > 0");
+		if (userIdWhoCreated == null || userIdWhoCreated == -1)
+			userIdWhoCreated = Prefs.getUserRowId(ctx);
+		if ((latitude == null || longitude == null) &&
+				allowPublicWithinDistance >= 0)
+			throw new IllegalArgumentException("cannot allow public within a distance >= 0 if lat or long are null");
+
+		// find the allowable folder name and create it
+		ThreeObjects<String, String, String> folderNames = makeRequiredFolders(ctx, groupName, dateCreated);
+
+		// create values
+		ContentValues values = new ContentValues();
+		values.put(KEY_NAME, groupName);
+		values.put(KEY_PICTURE_ID, groupPictureId);
+		values.put(KEY_DATE_CREATED, dateCreated);
+		values.put(KEY_USER_ID_CREATED, userIdWhoCreated);
+		values.put(KEY_ALLOW_OTHERS_ADD_MEMBERS, allowOthersToAddMembers);
+		values.put(KEY_LATITUDE, latitude);
+		values.put(KEY_LATITUDE, longitude);
+		values.put(KEY_ALLOW_PUBLIC_WITHIN_DISTANCE, allowPublicWithinDistance);
+		values.put(KEY_KEEP_LOCAL, keepLocal);
+		values.put(KEY_GROUP_TOP_LEVEL_PATH, folderNames.mObject1);
+		values.put(KEY_PICTURE_PATH, folderNames.mObject2);
+		values.put(KEY_THUMBNAIL_PATH, folderNames.mObject3);
+
+		// create new row
+		long newRow = database.insert(
+				TABLE_NAME,
+				null,
+				values);
+
+		return newRow;
+	}
+
+
 
 	/**
 	 * If we are synced to the server, then set this field to true.
@@ -1335,8 +1488,8 @@ extends TableAdapter <GroupsAdapter>{
 		 * @throws IOException if we can't create the folders
 		 */
 		public void writeFoldersIfNeeded()
-				throws IOException{
-			
+		throws IOException{
+
 			// get the folders
 			String topFolder = getGroupFolderName();
 			String picFolder = getPicturePath();
@@ -1480,21 +1633,21 @@ extends TableAdapter <GroupsAdapter>{
 		}
 	}
 
-	public interface PicturesFetchedCallback <ACTIVITY_TYPE>{
+	public interface ItemsFetchedCallback <ACTIVITY_TYPE>{
 		/**
-		 * This is called when the pictures are done being fetched and placeholders have been put into database for new pictures.
-		 * This is called before OnPicturesFetchedUiThread
+		 * This is called when the items are done being fetched and placeholders have been put into database for new items.
+		 * This is called before onItemsFetchedUiThread
 		 * @param act The current activity that is active
-		 * @param nNewPictures The number of new pictures
+		 * @param nNewItems The number of new items fetched
 		 * @param errorCode, null if no error, otherwise the error message
 		 */
-		public void onPicturesFetchedBackground(ACTIVITY_TYPE act, int nNewPictures, String errorCode);
+		public void onItemsFetchedBackground(ACTIVITY_TYPE act, int nNewItems, String errorCode);
 		/**
-		 * This is called on the UI thread when we are done getting the pictures. and after OnPicturesFetchedBackground
-		 * @param act The current activity, not guaranteed to be the same activity as in OnPicturesFetchedBackground
+		 * This is called on the UI thread when we are done getting the items. and after onItemsFetchedBackground
+		 * @param act The current activity, not guaranteed to be the same activity as in onItemsFetchedBackground
 		 * @param errorCode null if no error, otherwise the error message
 		 */
-		public void onPicturesFetchedUiThread(ACTIVITY_TYPE act, String errorCode);
+		public void onItemsFetchedUiThread(ACTIVITY_TYPE act, String errorCode);
 	}
 }
 

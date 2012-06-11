@@ -127,7 +127,6 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 				
 		// now add users to server
 		//TODO: set the links and users to be updating
-		//TODO: convert non json server return to proper error
 		ReturnFromAddUsersToGroupTask serverResponse = new ReturnFromAddUsersToGroupTask();
 		try {
 			serverResponse = new ReturnFromAddUsersToGroupTask(Utils.postToServer(ACTION, getDataToPost(newUsers, deletions), null, null));

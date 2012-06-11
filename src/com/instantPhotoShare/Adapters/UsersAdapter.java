@@ -6,7 +6,12 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import com.instantPhotoShare.Prefs;
+import com.instantPhotoShare.ShareBearServerReturn;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.NotificationsAdapter.NOTIFICATION_TYPES;
 import com.tools.ThreeObjects;
@@ -730,7 +735,7 @@ extends TableAdapter <UsersAdapter>{
 	}
 
 	/**
-	 * Return the users name. Usually first + last
+	 * Return the users name. Usually first + last. Will query the server if not available
 	 * @return
 	 */
 	public String getName(){
@@ -743,6 +748,38 @@ extends TableAdapter <UsersAdapter>{
 			if (name.length() > 0)
 				name += " ";
 			name+=last;
+		}
+
+		//TODO: this is sloppy and doesn't save data locally. Fix.
+		//TODO: make new user with server id, should check that there isn't a server id already present
+		//TODO: when adding new users to group, verify that we didn't already have that server id somewhere else
+		// no name, so grab user from the server
+		if (name.length() == 0){
+			ArrayList<Long> userIds = new ArrayList<Long>();
+			userIds.add(getServerId());
+			UsersAdapter users = new UsersAdapter(ctx);
+			long rowId = getRowId();
+			JSONArray array = new JSONArray();
+			array.put(getServerId());
+			JSONObject json = new JSONObject();
+			try {
+				json.put("user_id", Prefs.getUserServerId(ctx));
+				json.put("secret_code", Prefs.getSecretCode(ctx));
+				json.put("user_ids", array);
+			} catch (JSONException e) {
+				// TODO Auto-generated catch block
+				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			}
+			ShareBearServerReturn result = Utils.postToServer("get_users", json, null, null);
+			JSONObject message = result.getMessageObject();
+			try {
+				name = message.optJSONObject(String.valueOf(getServerId())).optString("first_name") + " " +
+					message.getJSONObject(String.valueOf(getServerId())).optString("last_name");
+			} catch (JSONException e) {
+				// TODO Auto-generated catch block
+				Log.e("TAG", Log.getStackTraceString(e));
+			}
+			users.close();
 		}
 		return name;
 	}

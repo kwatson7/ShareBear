@@ -11,6 +11,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
 import android.database.Cursor;
+import android.database.StaleDataException;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -1049,18 +1050,25 @@ extends CustomActivity{
 		@Override
 		public void bindView(View view, Context context, Cursor cursor){
 
+			// checkbox look at hashtable
+			
+			long contactId = -1;
+			try{
+				contactId = contactCursorWrapper.getId();
+			}catch(StaleDataException e){
+				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+				return;
+			}
+			if (contactId == -1){
+				Log.e(Utils.LOG_TAG, "id = -1");
+				return;
+			}
+			//TODO: background query is giving the above, fix
+			
 			// name text
 			TextView name = (TextView)view.findViewById(R.id.name);
 			String displayName = contactCursorWrapper.getName();
 			name.setText(displayName);
-
-			// checkbox look at hashtable
-			long contactId = contactCursorWrapper.getId();
-			if (contactId == -1){
-				Log.e(Utils.LOG_TAG, "id = -1 for " +displayName);
-				return;
-			}
-			//TODO: background query is giving the above, fix
 
 			boolean isChecked = mContactChecked.isChecked(contactId);
 			CheckBox check = (CheckBox)view.findViewById(R.id.contactSelectedCheckBox);

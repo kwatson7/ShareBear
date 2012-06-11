@@ -212,7 +212,9 @@ extends TableAdapter<PicturesAdapter>{
 		
 		// read the file
 		pic.fetchPicture(pictureRowId);
-		return pic.getFullImage(desiredWidth, desiredHeight);
+		bmp =  pic.getFullImage(desiredWidth, desiredHeight);
+		pic.close();
+		return bmp;
 	}
 
 	/**
@@ -341,6 +343,7 @@ extends TableAdapter<PicturesAdapter>{
 		}
 
 		// no group, can't get picture
+		//TODO: for all the returns here and other null returns, we need to turn of setIsDownloading
 		if (groupServerId == -1){
 			Log.e(Utils.LOG_TAG, "bad group serverId, so we can't grab the thumbnail");
 			return null;
@@ -383,6 +386,7 @@ extends TableAdapter<PicturesAdapter>{
 			byte[] data;
 			try {
 				data = result.getThumbnailBytes(array.getLong(i));
+				//TODO: getting 0 re
 			} catch (JSONException e) {
 				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 				synchronized (PicturesAdapter.class) {

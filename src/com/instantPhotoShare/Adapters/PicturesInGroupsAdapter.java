@@ -75,7 +75,7 @@ extends TableAdapter <PicturesInGroupsAdapter>{
 
 		// change the most recent picture number in group
 		GroupsAdapter groups = new GroupsAdapter(ctx);
-		groups.setLastPictureNumber(groupId, newRow);
+		groups.incrementLastPictureNumber(groupId);
 		
 		return newRow;
 	}

@@ -8,6 +8,8 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.text.Html;
 import android.view.LayoutInflater;
@@ -243,6 +245,14 @@ extends CustomActivity{
 			TextView text=(TextView)vi.findViewById(R.id.groupName);
 			ImageView image=(ImageView)vi.findViewById(R.id.groupImage);
 			text.setText(Html.fromHtml(group.toString()));
+
+			// recycle bitmaps
+			if (convertView != null){
+				Drawable toRecycle= image.getDrawable();
+				if (toRecycle != null) {
+					((BitmapDrawable)image.getDrawable()).getBitmap().recycle();
+				}
+			}
 
 			imageLoader.DisplayImage(group.getPictureId(act), group, null, image, null);
 			return vi;

@@ -101,7 +101,8 @@ extends CustomActivity{
 					int nNewItems,
 					String errorCode) {
 				
-				act.nNewGroups = nNewItems;
+				if (act != null)
+					act.nNewGroups = nNewItems;
 				
 			}
 
@@ -111,7 +112,7 @@ extends CustomActivity{
 					String errorCode) {
 				
 				// update adatper if there are new pictures
-				if (act.nNewGroups > 0){
+				if (act!= null && act.nNewGroups > 0){
 					Toast.makeText(act, "You've been added to " + act.nNewGroups + " new groups!", Toast.LENGTH_SHORT).show();
 					act.getPictures();
 					act.fillPictures();

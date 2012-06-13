@@ -46,7 +46,6 @@ extends ShareBearServerReturn{
 		
 		// clear base64
 		base64 = null;
-		System.gc();
 		
 		// now convert to byte
 		try{

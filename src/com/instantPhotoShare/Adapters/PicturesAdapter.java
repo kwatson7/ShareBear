@@ -37,7 +37,7 @@ extends TableAdapter<PicturesAdapter>{
 	// other contants
 	private static final float PICTURE_OVERSIZE = 2f;
 	private static final int THUMBNAILS_TO_GRAB_AT_ONCE = 1;
-	private static final int TIMEOUT_ON_THUMBNAIL = 60;
+	private static final int TIMEOUT_ON_THUMBNAIL = 10;
 	private static final int TIMEOUT_ON_FULLSIZE = 90;
 
 	/** Table name */
@@ -236,6 +236,7 @@ extends TableAdapter<PicturesAdapter>{
 	public static Bitmap getThumbnailFromServer(Context ctx, long pictureRowId, long groupRowId){
 
 		//TODO: we need to be properly notifying on finish here
+		//TODO: not notifying properly is causing too many threads to spawn, and not loading thumbnails from other groups.
 
 		// pictureRowId -1 or 0 break
 		if (pictureRowId == 0 || pictureRowId == -1){

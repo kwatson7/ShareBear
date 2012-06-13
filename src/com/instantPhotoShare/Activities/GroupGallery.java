@@ -247,12 +247,14 @@ extends CustomActivity{
 			text.setText(Html.fromHtml(group.toString()));
 
 			// recycle bitmaps
+			/*
 			if (convertView != null){
 				Drawable toRecycle= image.getDrawable();
 				if (toRecycle != null) {
 					((BitmapDrawable)image.getDrawable()).getBitmap().recycle();
 				}
 			}
+			*/
 
 			imageLoader.DisplayImage(group.getPictureId(act), group, null, image, null);
 			return vi;

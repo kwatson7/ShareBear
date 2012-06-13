@@ -353,12 +353,14 @@ extends CustomActivity{
 			ImageView image=(ImageView)vi.findViewById(R.id.photoImage);
 			
 			// recycle bitmaps
+			/*
 			if (convertView != null){
 				Drawable toRecycle= image.getDrawable();
 				if (toRecycle != null) {
 				    ((BitmapDrawable)image.getDrawable()).getBitmap().recycle();
 				}
 			}
+			*/
 
 			// fill the views
 			text.setText("");

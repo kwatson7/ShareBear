@@ -42,6 +42,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 	private int progressMax = 1;
 	private boolean cancelTask = false;
 	private long groudRowId = -1;
+	private long groupServerId = -1;
 	private int usersAdded = 0;
 	private int usersRemoved = 0;
 	private String dialogTitle = LOCAL_TITLE;
@@ -92,8 +93,11 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 		// make sure group exists
 		GroupsAdapter groups = new GroupsAdapter(applicationCtx);
 		Group group = groups.getGroup(groudRowId);
-		if (group == null)
+		if (group == null || group.getRowId() == 0 || group.getRowId() == -1
+				|| group.getServerId() == 0 || group.getServerId() == -1)
 			throw new IllegalArgumentException("groupRowId input into AddUsersToGroupTask does not exist");
+		//TODO: handle this exception without crashing program
+		groupServerId = group.getServerId();
 	}
 
 	private int getTotalEdits(){
@@ -190,7 +194,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 			json.put(KEY_PHONE_NUMBER, users.getPhones());
 			json.put(KEY_PERSON_EMAIL, users.getEmails());
 			json.put(KEY_CONTACT_METHOD, users.getDefaultContactMethod());
-			json.put(KEY_GROUP_ID, groudRowId);
+			json.put(KEY_GROUP_ID, groupServerId);
 			
 			// add to array
 			jsonArray.put(json);

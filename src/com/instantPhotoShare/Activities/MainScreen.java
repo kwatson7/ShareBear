@@ -89,8 +89,6 @@ extends CustomActivity{
 		// check for any groups that need to be synced
 		SyncGroupsThatNeedIt<MainScreen> task2 = new SyncGroupsThatNeedIt<MainScreen>(this);
 		task2.execute();
-		
-		fetchNewGroups();
 	}
 	
 	private void fetchNewGroups(){
@@ -159,6 +157,7 @@ extends CustomActivity{
 			adapter.imageLoader.restartThreads();
 		super.onResume();
 		adapter.notifyDataSetChanged();
+		fetchNewGroups();
 	}
 
 	/**

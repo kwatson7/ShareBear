@@ -750,6 +750,7 @@ extends TableAdapter <UsersAdapter>{
 			name+=last;
 		}
 
+		//TODO: sometimes returns null null
 		//TODO: this is sloppy and doesn't save data locally. Fix.
 		//TODO: make new user with server id, should check that there isn't a server id already present
 		//TODO: when adding new users to group, verify that we didn't already have that server id somewhere else
@@ -769,6 +770,8 @@ extends TableAdapter <UsersAdapter>{
 			} catch (JSONException e) {
 				// TODO Auto-generated catch block
 				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+				users.close();
+				return name;
 			}
 			ShareBearServerReturn result = Utils.postToServer("get_users", json, null, null);
 			JSONObject message = result.getMessageObject();

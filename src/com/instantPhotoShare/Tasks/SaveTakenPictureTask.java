@@ -221,6 +221,8 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 		Prefs.setLastGroupOfLastPicture(applicationCtx, groups.get(0).getRowId());
 		publishProgress();
 
+		//TODO: verify that pictures have been added to groups. for example, if the group wasn't synced, the picture was not uploaded to the group.
+		//TODO: also check if no groups are synced, we might get an error as there are no groups to upload
 		// post to server
 		return postDataToServer(picId, pictureSave.getReason(), thumbnail);
 	}

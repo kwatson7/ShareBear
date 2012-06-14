@@ -30,7 +30,7 @@
     android:layout_height="wrap_content"
     android:indeterminate="false"
     android:visibility="invisible"
-    android:layout_gravity="bottom|center"
+    android:layout_gravity="bottom|right"
     android:max="100"
      style="@android:style/Widget.ProgressBar.Horizontal"
 />

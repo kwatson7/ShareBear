@@ -293,7 +293,7 @@ extends TableAdapter<PicturesAdapter>{
 
 		// empty array break
 		if (array.length() == 0){
-			Log.e(Utils.LOG_TAG, "no values in array, this shouldn't happen");
+			Log.e(Utils.LOG_TAG, "no values in array, this shouldn't happen for pic " + pictureRowId);
 			pics.setFinishedDownloadingThumbnail(pictureRowId, false);
 			return null;
 		}

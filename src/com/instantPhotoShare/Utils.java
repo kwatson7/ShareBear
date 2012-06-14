@@ -10,6 +10,7 @@ import java.lang.ref.WeakReference;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 
 import org.json.JSONArray;
@@ -190,6 +191,7 @@ public class Utils {
 	 * @param rotatedThumbnailData thumbnail data that has been rotated already, null if none
 	 * @param progressBar to show progress is we are downloading file data.
 	 * @param act The activity that calls the background task, can be null
+	 * @param indeterminateProgressBarTags a Tag to an indeterminate progressbar to show while posting, null if none
 	 * @param callback callback to run when return from server
 	 */
 	public static <ACTIVITY_TYPE extends CustomActivity>
@@ -200,6 +202,7 @@ public class Utils {
 			byte[] rotatedThumbnailData,
 			ProgressBar progressBar,
 			ACTIVITY_TYPE act,
+			ArrayList<String> indeterminateProgressBarTags,
 			com.tools.ServerPost.PostCallback<ACTIVITY_TYPE> callback){
 
 		// make the post
@@ -212,9 +215,9 @@ public class Utils {
 			post.addFile(KEY_THUMBNAIL, rotatedThumbnailData, FileType.JPEG);
 		if (fullFilePath != null && fullFilePath.length() != 0)
 			post.addFile(KEY_FULLSIZE, fullFilePath, FileType.JPEG);
-
+			
 		// post to server
-		post.postInBackground(act, progressBar, callback);
+		post.postInBackground(act, progressBar, indeterminateProgressBarTags, callback);
 	}
 
 	/**

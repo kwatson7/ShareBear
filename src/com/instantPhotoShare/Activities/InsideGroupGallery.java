@@ -1,5 +1,7 @@
 package com.instantPhotoShare.Activities;
 
+import java.util.ArrayList;
+
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -35,6 +37,9 @@ import com.tools.images.MemoryCache;
 public class InsideGroupGallery 
 extends CustomActivity{
 
+	// constants
+	private static final String FETCHING_DATA_TAG = "fetchingData";
+	
 	// graphics
 	private GridView gridView; 					// the gridview to show pictures
 	private ImageView screen; 					// The background screen image
@@ -179,8 +184,11 @@ extends CustomActivity{
 
 		// fetch the list of pictures from server
 		long serverId = group.getServerId();
-		if (serverId != -1)
-			groups.fetchPictureIdsFromServer(this, serverId, fetchPictureIdsCallback);
+		if (serverId != -1){
+			ArrayList<String> bars = new ArrayList<String>(1);
+			bars.add(FETCHING_DATA_TAG);
+			groups.fetchPictureIdsFromServer(this, serverId, bars, fetchPictureIdsCallback);
+		}
 	}
 
 	/**

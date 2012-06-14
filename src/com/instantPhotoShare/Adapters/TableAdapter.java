@@ -1,6 +1,7 @@
 package com.instantPhotoShare.Adapters;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 
 import com.tools.CursorWrapper;
 import com.tools.TwoObjects;
@@ -72,5 +73,39 @@ extends CursorWrapper<TYPE>{
 		
 		// return the output
 		return new TwoObjects<String, String[]>(selection, selectionArgs);
+	}
+	
+	/**
+	 * Query the cursor and return only the values of valuesToCheck that are not present in the database. <br>
+	 * For example, if valuesToCheck is {1, 2, 3, 4} and the database at the column keyToCompare only has {1, 2, 5}, then
+	 * we will return {3, 4}
+	 * @param TABLE_NAME The table to query
+	 * @param keyToCompare The key that valuesToCheck correspond to
+	 * @param valuesToCheck The values to check if they are already in the table
+	 * @return The values that were not already in the table.
+	 */
+	protected HashSet<String> getNewValues(String TABLE_NAME, String keyToCompare, HashSet<String> valuesToCheck){
+		// query the cursor
+		Cursor cursor = database.query(
+				TABLE_NAME,
+				new String[] {keyToCompare},
+				null, null, null, null, null);
+		
+		// null cursor
+		if (cursor == null)
+			return null;
+		
+		// loop over cursor filling values
+		HashSet<String> values = new HashSet<String>(cursor.getCount());
+		while(cursor.moveToNext()){
+			values.add(cursor.getString(0));
+		}
+		cursor.close();
+		
+		// now remove all values that are already present values
+		HashSet<String> workingCopy = new HashSet<String>(valuesToCheck);
+		workingCopy.removeAll(values);
+		
+		return workingCopy;
 	}
 }

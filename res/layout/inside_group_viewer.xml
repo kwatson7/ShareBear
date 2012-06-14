@@ -41,4 +41,11 @@
 	android:layout_gravity="top|right"
 	android:background="@null"
 />
+<ProgressBar
+	android:id="@+id/fetchingData"
+	android:layout_width="18dp"
+	android:layout_height="18dp"
+	android:indeterminate="true"
+	android:layout_gravity="top|left"
+	android:visibility="visible"/>
 </FrameLayout>

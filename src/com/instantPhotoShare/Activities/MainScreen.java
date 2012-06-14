@@ -3,6 +3,8 @@
  */
 package com.instantPhotoShare.Activities;
 
+import java.util.ArrayList;
+
 import com.instantPhotoShare.R;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
@@ -35,20 +37,21 @@ import android.widget.AdapterView.OnItemClickListener;
  */
 public class MainScreen
 extends CustomActivity{
-	
+
+	// constants
+	private static final String FETCHING_DATA_TAG = "fetchingData";
+	private static final int N_RANDOM_PICTURES = 500; 	// number of pictures to fetch on bottom gallery
+
 	// pointers to graphics objects
 	private ImageView createNewGroup;
 	private Gallery gallery; 				// the gallery to show pictures
 	private PicturesGridAdapter adapter; 		// the adapter to show pictures
 	private PicturesAdapter picturesAdapater;	// An array of all the pictures
 	private int nNewGroups = 0;
-	
+
 	// misc private variables
 	private CustomActivity act = this;
-	
-	// constants
-	private static final int N_RANDOM_PICTURES = 500; 	// number of pictures to fetch on bottom gallery
-	
+
 	// enums for menu items
 	private enum MENU_ITEMS { 										
 		CLEAR_APP_DATA;
@@ -58,7 +61,7 @@ extends CustomActivity{
 			return MENU_ITEMS.class.getEnumConstants()[value];
 		}
 	}
-	
+
 	// enums for tasks
 	private enum ASYNC_TASKS { 										
 		MAKE_PRIVATE_GROUP;
@@ -72,52 +75,54 @@ extends CustomActivity{
 	@Override
 	protected void onCreateOverride(Bundle savedInstanceState) {
 		initializeLayout();	
-		
+
 		getPictures();
 		fillPictures();
-		
-	//	DebugUtils.deleteAllNonServerUsersAndGroupLinks(this);
-		
+
+		//	DebugUtils.deleteAllNonServerUsersAndGroupLinks(this);
+
 		// move to correct position
 		if (picturesAdapater.size() > 2)
 			gallery.setSelection(picturesAdapater.size()/2, false);
-		
+
 		// check for private group and make it if need be
 		CreatePrivateGroup<MainScreen> task = new CreatePrivateGroup<MainScreen>(this, ASYNC_TASKS.MAKE_PRIVATE_GROUP.ordinal());
 		task.execute();
-		
+
 		// check for any groups that need to be synced
 		SyncGroupsThatNeedIt<MainScreen> task2 = new SyncGroupsThatNeedIt<MainScreen>(this);
 		task2.execute();
 	}
-	
+
 	private void fetchNewGroups(){
 		GroupsAdapter groups = new GroupsAdapter(ctx);
-		groups.fetchAllGroupsFromServer(this, new GroupsAdapter.ItemsFetchedCallback<MainScreen>() {
+		ArrayList<String> bars = new ArrayList<String>(1);
+		bars.add(FETCHING_DATA_TAG);
+		groups.fetchAllGroupsFromServer(this, bars, new GroupsAdapter.ItemsFetchedCallback<MainScreen>() {
 
 			@Override
 			public void onItemsFetchedBackground(
 					MainScreen act,
 					int nNewItems,
 					String errorCode) {
-				
+
 				if (act != null)
 					act.nNewGroups = nNewItems;
-				
+
 			}
 
 			@Override
 			public void onItemsFetchedUiThread(
 					MainScreen act,
 					String errorCode) {
-				
+
 				// update adatper if there are new pictures
 				if (act!= null && act.nNewGroups > 0){
 					Toast.makeText(act, "You've been added to " + act.nNewGroups + " new groups!", Toast.LENGTH_SHORT).show();
 					act.getPictures();
 					act.fillPictures();
 				}
-				
+
 				// if there was an error
 				if (errorCode != null){
 					Log.e(Utils.LOG_TAG, "Error code when fetching groups " + errorCode);
@@ -125,7 +130,7 @@ extends CustomActivity{
 			}
 		});
 	}
-	
+
 	/**
 	 * Find the cursor required for pictures
 	 */
@@ -134,7 +139,7 @@ extends CustomActivity{
 		picturesAdapater.fetchRandomPicture(this, N_RANDOM_PICTURES);
 		picturesAdapater.startManagingCursor(this);
 	}
-	
+
 	/**
 	 * Fill the list of pictures
 	 */
@@ -143,7 +148,7 @@ extends CustomActivity{
 		adapter = new PicturesGridAdapter(this, picturesAdapater);
 		gallery.setAdapter(adapter);
 	}
-	
+
 	@Override
 	public void onPause(){
 		//overridePendingTransition(0, R.anim.picture_scale_down_animation);
@@ -151,7 +156,7 @@ extends CustomActivity{
 			adapter.imageLoader.stopThreads();
 		super.onPause();
 	}
-	
+
 	@Override
 	public void onResume(){
 		if (adapter != null)
@@ -192,7 +197,7 @@ extends CustomActivity{
 			// move to correct position, if it doesn't exist, do nothing
 			if (position == -1 || !picturesAdapater.moveToPosition(position))
 				return;
-			
+
 			// find what group this picture is in
 			long picId = picturesAdapater.getRowId();
 			GroupsAdapter groups = new GroupsAdapter(act);
@@ -203,7 +208,7 @@ extends CustomActivity{
 					groupId = groups.getRowId();
 			}			
 			groups.close();
-			
+
 			// no group, just go to top level of gallery
 			if (groupId == -1){
 				groups.close();
@@ -212,7 +217,7 @@ extends CustomActivity{
 				startActivity(intent);
 				return;
 			}
-			
+
 			// find position in cursor
 			PicturesAdapter helper = new PicturesAdapter(act);
 			helper.fetchPicturesInGroup(groupId);
@@ -224,7 +229,7 @@ extends CustomActivity{
 				}
 			}
 			helper.close();
-			
+
 			// couldn't find picture, just go to group
 			if (positionForNewAdapter == -1){
 				Intent intent = new Intent(act, InsideGroupGallery.class);
@@ -237,7 +242,7 @@ extends CustomActivity{
 				startActivity(intent);
 				return;
 			}
-			
+
 			// load the intent for this groups gallery
 			Intent intent = new Intent(act, SinglePictureGallery.class);
 			intent.putExtra(
@@ -258,44 +263,44 @@ extends CustomActivity{
 			Object data) {
 		// TODO Auto-generated method stub
 		throw new UnsupportedOperationException("Not supported yet.");
-		
+
 	}
 
 	@Override
 	protected void additionalConfigurationStoring() {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
 	protected void onDestroyOverride() {
 		gallery.setAdapter(null);	
 	}
-	
+
 	public void createNewGroupClicked(View v){
 		Intent intent = new Intent(this, CreateGroup.class);
 		intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 		startActivity(intent);
 	}
-	
+
 	public void takePictureClicked(View v){
 		Intent intent = new Intent(this, TakePicture.class);
 		intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 		startActivity(intent);
 	}
-	
+
 	public void viewPicturesClicked(View v){
 		Intent intent = new Intent(this, GroupGallery.class);
 		intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 		startActivity(intent);
 	}
-	
+
 	public void manageGroupsClicked(View v){
 		Intent intent = new Intent(this, ManageGroups.class);
 		intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 		startActivity(intent);
 	}
-	
+
 	private class PicturesGridAdapter
 	extends BaseAdapter {
 
@@ -331,30 +336,30 @@ extends CustomActivity{
 			else
 				return 0;
 		}
-		
+
 		/**
-	     * Return the memory cache.<br>
-	     * **** This should only be used when storing this memory cache to be passed into again useing restoreMemoryCache
-	     * for example on orientation changes *****
-	     * @return
-	     */
+		 * Return the memory cache.<br>
+		 * **** This should only be used when storing this memory cache to be passed into again useing restoreMemoryCache
+		 * for example on orientation changes *****
+		 * @return
+		 */
 		public MemoryCache getMemoryCache(){
 			return imageLoader.getMemoryCache();
 		}
-		
-		
+
+
 		/**
 		 * Clear cache as we need to reload picture
 		 */
 		public void clearCache(){
 			imageLoader.clearCache();
 		}
-		
+
 		/**
-	     * Set the memory cache to this new value, clearing old one.
-	     * @see getMemoryCache.
-	     * @param mem
-	     */
+		 * Set the memory cache to this new value, clearing old one.
+		 * @see getMemoryCache.
+		 * @param mem
+		 */
 		public void restoreMemoryCache(MemoryCache mem){
 			imageLoader.restoreMemoryCache(mem);
 		}
@@ -371,12 +376,12 @@ extends CustomActivity{
 						height));
 			}else
 				imageView = (ImageView) convertView;
-			
+
 			// move to correct location and fill views
 			if (data.moveToPosition(position)){
-            	TwoObjects<Long, Long> loaderData = new TwoObjects<Long, Long>(data.getRowId(), (long) -1);
-            	imageLoader.DisplayImage(data.getRowId(), loaderData, loaderData, imageView, null);
-            }
+				TwoObjects<Long, Long> loaderData = new TwoObjects<Long, Long>(data.getRowId(), (long) -1);
+				imageLoader.DisplayImage(data.getRowId(), loaderData, loaderData, imageView, null);
+			}
 
 			return imageView;
 		}

@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 
 import org.json.JSONArray;
@@ -73,6 +74,9 @@ extends TableAdapter <GroupsAdapter>{
 
 	// error codes
 	public static final String GROUP_ACCESS_ERROR = "GROUP_ACCESS_ERROR";
+
+	// static variables
+	private static boolean isFetchingGroups = false;
 
 
 	/** Table creation string */
@@ -430,6 +434,7 @@ extends TableAdapter <GroupsAdapter>{
 	 * @param <ACTIVITY_TYPE>
 	 * @param act The activity that will be attached to callback on return.
 	 * @param groupServerId the server id of the group in question
+	 * @param indeterminateProgressBars indetermiante progress bars to show, null if none (the tags to find them)
 	 * @param callback The callback to be called when we are done. Can be null.
 	 * callback 3rd return will be how many new pictures there are
 	 */
@@ -437,6 +442,7 @@ extends TableAdapter <GroupsAdapter>{
 	void fetchPictureIdsFromServer(
 			ACTIVITY_TYPE act,
 			final long groupServerId,
+			ArrayList<String> indeterminateProgressBars,
 			final ItemsFetchedCallback<ACTIVITY_TYPE> callback){
 		//TODO: this shouldn't be synced. Will cause hanging, also doesn't even gaurantee thread safe, as multiple objects cann access this
 
@@ -462,6 +468,7 @@ extends TableAdapter <GroupsAdapter>{
 				null,
 				null,
 				act,
+				indeterminateProgressBars,
 				new PostCallback<ACTIVITY_TYPE>() {
 
 					@Override
@@ -571,12 +578,154 @@ extends TableAdapter <GroupsAdapter>{
 	 * @param <ACTIVITY_TYPE>
 	 * @param act The activity that will be attached to callback on return.
 	 * @param groupServerId the server id of the group in question
+	 * @param indeterminateProgressBars indetermiante progress bars to show, null if none (the tags to find them)
+	 * @param callback The callback to be called when we are done. Can be null.
+	 * callback 3rd return will be how many new groups there are
+	 */
+	public <ACTIVITY_TYPE extends CustomActivity>
+	void fetchAllGroupsFromServer(
+			ACTIVITY_TYPE act,
+			ArrayList<String> indeterminateProgressBars,
+			final ItemsFetchedCallback<ACTIVITY_TYPE> callback){
+
+		// we are already doing it, no need to do it twice
+		if(isFetchingGroups)
+			return;
+		isFetchingGroups = true;
+
+		// make json data to post
+		JSONObject json = new JSONObject();
+		try{
+			json.put("user_id", Prefs.getUserServerId(ctx));
+			json.put("secret_code", Prefs.getSecretCode(ctx));
+		}catch (JSONException e) {
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			return;
+		}
+
+		// post the command to the server
+		Utils.postToServer(
+				"get_groups",
+				json.toString(),
+				null,
+				null,
+				null,
+				act,
+				indeterminateProgressBars,
+				new PostCallback<ACTIVITY_TYPE>() {
+
+					@Override
+					public void onPostFinished(
+							ACTIVITY_TYPE act,
+							ServerReturn result) {
+
+						try{
+							// convert to custom return object
+							GetGroupsServerReturn data = new GetGroupsServerReturn(result);
+
+							// not a good return
+							if (!data.isSuccess()){
+								Log.e(Utils.LOG_TAG, result.getDetailErrorMessage());
+								return;
+							}
+
+							// grab all the group serverIds
+							Iterator<?> iterator = data.getMessageObject().keys();
+							HashSet<String> allServerids = new HashSet<String>(data.getMessageObject().length());
+							while(iterator.hasNext()){
+								String val = (String) iterator.next();
+								long groupServerId = Long.valueOf(val);
+								if (groupServerId != 0)
+									allServerids.add(val);
+							}
+
+							// determine which groups are new
+							GroupsAdapter adapter = new GroupsAdapter(ctx);
+							UsersAdapter users = new UsersAdapter(ctx);
+							HashSet<String> newIds = adapter.getNewValues(TABLE_NAME, KEY_SERVER_ID, allServerids);
+							int nNewGroups = newIds.size();
+
+							// add new groups
+							for (String item : newIds){
+								long groupServerId = Long.valueOf(item);
+
+								// see if the user exists, if it doesn't then add it
+								long userServerId = data.getUserServerIdWhoCreated(groupServerId);
+								users.fetchUserByServerId(userServerId);
+								long userRowId = users.getRowId();
+								if(userRowId == 0 ||userRowId == -1){
+									users.close();
+									userRowId = users.makeNewUser(userServerId);
+								}else
+									users.close();
+
+								// create a new group
+								//TODO: read allowOthersToAddMembers
+								//TODO: read allow within distance
+								//TODO: read lat and long
+								//TODO: read picture id for group
+								long groupRowId = adapter.makeNewGroup(ctx,
+										data.getName(groupServerId),
+										null,
+										data.getDateCreated(groupServerId),
+										userRowId,
+										true, 
+										null,
+										null,
+										-1,
+										false);
+
+								adapter.setIsSynced(groupRowId, true, groupServerId);
+							}
+
+							// notification for new groups
+							if (nNewGroups > 0){
+								NotificationsAdapter notes = new NotificationsAdapter(ctx);
+								notes.createNotification(
+										nNewGroups + " new groups you've been added to.",
+										NotificationsAdapter.NOTIFICATION_TYPES.ADD_TO_NEW_GROUP);
+							}
+
+							// send callback back to activity
+							if (callback != null){
+								if (data.isSuccess())
+									callback.onItemsFetchedBackground(act, nNewGroups, null);
+								else
+									callback.onItemsFetchedBackground(act, nNewGroups, result.getErrorCode());
+							}
+						}finally{
+							isFetchingGroups = false;
+						}
+					}
+
+					@Override
+					public void onPostFinishedUiThread(
+							ACTIVITY_TYPE act,
+							ServerReturn result) {
+						GetGroupsServerReturn result2 = new GetGroupsServerReturn(result);
+						if (callback != null)
+							if (result2.isSuccess())
+								callback.onItemsFetchedUiThread(act, null);
+							else
+								callback.onItemsFetchedUiThread(act, result2.getErrorCode());
+					}
+				});
+	}
+
+	/**
+	 * Fetch all the groups from the server for a given user and then create for any new groups. 
+	 * Done a a background thread
+	 * @param <ACTIVITY_TYPE>
+	 * @param act The activity that will be attached to callback on return.
+	 * @param groupServerId the server id of the group in question
+	 * @param indeterminateProgressBars tags to progress bars to show while posting, null if none
 	 * @param callback The callback to be called when we are done. Can be null.
 	 * callback 3rd return will be how many new groups there are
 	 */
 	public synchronized <ACTIVITY_TYPE extends CustomActivity>
-	void fetchAllGroupsFromServer(
+	void fetchAllGroupsFromServerOld(
 			ACTIVITY_TYPE act,
+			ArrayList<String> indeterminateProgressBars,
 			final ItemsFetchedCallback<ACTIVITY_TYPE> callback){
 
 		// make json data to post
@@ -596,6 +745,7 @@ extends TableAdapter <GroupsAdapter>{
 				null,
 				null,
 				act,
+				indeterminateProgressBars,
 				new PostCallback<ACTIVITY_TYPE>() {
 
 					@Override

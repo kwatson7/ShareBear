@@ -263,9 +263,8 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, CreateGroupTask.ReturnFromCreate
 					toastMessage,
 					Toast.LENGTH_LONG).show();
 
-			// store in notifications
-			NotificationsAdapter notes = new NotificationsAdapter(applicationCtx);
-			notes.createNotification(notesMessage, notesType);
+			// store in log
+			Log.e(Utils.LOG_TAG, notesMessage);
 
 			// change default group
 			if (result.isLocalSuccess())

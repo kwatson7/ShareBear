@@ -14,7 +14,7 @@ extends ShareBearServerReturn{
 	private static final String KEY_USER_COUNT = "user_count";
 	//TODO: read user_count from this return
 	private static final String KEY_PHOTO_COUNT = "photo_count";
-	//TODO: read photo_count from this return	
+	//TODO: save photo_count to the database
 	
 	public GetGroupsServerReturn(ServerReturn toCopy) {
 		super(toCopy);
@@ -52,6 +52,24 @@ extends ShareBearServerReturn{
 		if(json == null)
 			return "";
 		return json.optString(KEY_NAME);
+	}
+	
+	/**
+	 * Return the number of pictures that are in this group on the server
+	 * @param serverId
+	 * @return The number of pictures, -1 if there was an error or unavailable
+	 */
+	public int getNPictures(long serverId){
+
+		// return null if unsuccessful
+		if (!isSuccess())
+			return -1;
+
+		// grab the base64 data
+		JSONObject json = getItemObject(serverId);
+		if(json == null)
+			return -1;
+		return json.optInt(KEY_PHOTO_COUNT);
 	}
 	
 	/**

@@ -255,12 +255,10 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 					+ " on device, but not added to server because:\n" + result.getDetailErrorMessage(),
 					Toast.LENGTH_LONG).show();
 
-			// store in notifications
-			NotificationsAdapter notes = new NotificationsAdapter(applicationCtx);
-			notes.createNotification("Group with name '" + group.getName() + "' and rowId " + groudRowId +
+			// store in log
+			Log.e(Utils.LOG_TAG, "Group with name '" + group.getName() + "' and rowId " + groudRowId +
 					" users not updated successfully on server because:\n"
-					+ result.getDetailErrorMessage() + ".\nUsers are still created on device, but not on server!", 
-					NOTIFICATION_TYPES.SERVER_ERROR);
+					+ result.getDetailErrorMessage() + ".\nUsers are still created on device, but not on server!");
 
 			// send the result back to calling activity
 			sendObjectToActivityFromPostExecute(result);

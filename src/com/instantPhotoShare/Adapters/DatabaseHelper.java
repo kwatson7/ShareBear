@@ -12,7 +12,7 @@ extends SQLiteOpenHelper{
 
 	// database variables
 	private static final String DATABASE_NAME = "data.db";
-	private static final int DATABASE_VERSION = 7;
+	private static final int DATABASE_VERSION = 8;
 
 	// instance of database
 	private static DatabaseHelper instance;
@@ -71,6 +71,9 @@ extends SQLiteOpenHelper{
 			db.execSQL(item);
 		ArrayList<String> usersUpgrades = UsersAdapter.upgradeStrings(oldVersion, newVersion);
 		for (String item : usersUpgrades)
+			db.execSQL(item);
+		ArrayList<String> notificationUpgrades = NotificationsAdapter.upgradeStrings(oldVersion, newVersion);
+		for (String item : notificationUpgrades)
 			db.execSQL(item);
 		
 		

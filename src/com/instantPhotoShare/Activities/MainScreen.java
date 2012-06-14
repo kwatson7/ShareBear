@@ -94,10 +94,19 @@ extends CustomActivity{
 		task2.execute();
 	}
 
+	/**
+	 * Fetch any new groups that the user has been added to
+	 */
 	private void fetchNewGroups(){
+		
+		// the groups adapter needed to fetch groups
 		GroupsAdapter groups = new GroupsAdapter(ctx);
+		
+		// the notification spinning progress bars to update while downloading
 		ArrayList<String> bars = new ArrayList<String>(1);
 		bars.add(FETCHING_DATA_TAG);
+		
+		// fetch the groups
 		groups.fetchAllGroupsFromServer(this, bars, new GroupsAdapter.ItemsFetchedCallback<MainScreen>() {
 
 			@Override
@@ -106,9 +115,26 @@ extends CustomActivity{
 					int nNewItems,
 					String errorCode) {
 
-				if (act != null)
+				// save the number of groups
+				if (act != null && errorCode != null){
 					act.nNewGroups = nNewItems;
-
+					
+					// post a notification
+					Intent intent = new Intent(act, GroupGallery.class);
+					intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+					com.tools.Tools.postNotification(
+							act,
+							R.drawable.icon3,
+							"New Groups!",
+							"Share Bear new Groups!",
+							"You've been added to " + nNewItems + " new groups.",
+							0,
+							intent);
+					
+					//TODO: use appropriate id instead of 0
+					//TODO: we dont' want a toast, an android notification, and a sharebear notification
+					//TODO: should these calls just be insided the calling function instead of out here.
+				}
 			}
 
 			@Override
@@ -119,8 +145,9 @@ extends CustomActivity{
 				// update adatper if there are new pictures
 				if (act!= null && act.nNewGroups > 0){
 					Toast.makeText(act, "You've been added to " + act.nNewGroups + " new groups!", Toast.LENGTH_SHORT).show();
-					act.getPictures();
-					act.fillPictures();
+					//TODO: we should show the new pictures here, but right now they are just random, so off
+					//act.getPictures();
+					//act.fillPictures();
 				}
 
 				// if there was an error

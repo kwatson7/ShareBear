@@ -5,8 +5,10 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map.Entry;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -27,6 +29,7 @@ import com.tools.TwoStrings;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.database.DatabaseUtils;
 import android.database.SQLException;
 import android.util.Log;
 
@@ -546,7 +549,7 @@ extends TableAdapter <GroupsAdapter>{
 							NotificationsAdapter notes = new NotificationsAdapter(ctx);
 							notes.createNotification(
 									counter + " new pictures for " + group.getName(),
-									NotificationsAdapter.NOTIFICATION_TYPES.NEW_PICTURE_IN_GROUP);
+									NotificationsAdapter.NOTIFICATION_TYPES.NEW_PICTURE_IN_GROUP, String.valueOf(group.getRowId()));
 						}
 
 						// send callback back to activity
@@ -629,18 +632,58 @@ extends TableAdapter <GroupsAdapter>{
 								return;
 							}
 
-							// grab all the group serverIds
+							// grab all the group serverIds and also the number of pictures in each group
+							GroupsAdapter adapter = new GroupsAdapter(ctx);
 							Iterator<?> iterator = data.getMessageObject().keys();
 							HashSet<String> allServerids = new HashSet<String>(data.getMessageObject().length());
+							HashMap<Long, Integer> nPicturesInGroupsFromServer = new HashMap<Long, Integer>();
 							while(iterator.hasNext()){
 								String val = (String) iterator.next();
 								long groupServerId = Long.valueOf(val);
 								if (groupServerId != 0)
 									allServerids.add(val);
+								nPicturesInGroupsFromServer.put(groupServerId, data.getNPictures(groupServerId));
+							}
+							
+							// determine if there are new pictures in any of the groups.
+							// how many pictures stored locally
+							HashMap<Long, ThreeObjects<Long, Integer, String>> nPicturesInGroupsLocal = adapter.getNPicturesInGroupsByServerId();
+							HashMap<Long, TwoObjects<Integer, String>> newPictures = new HashMap<Long, TwoObjects<Integer, String>>();
+							
+							// compare to server pictures
+							for (Entry<Long, ThreeObjects<Long, Integer, String>> entry : nPicturesInGroupsLocal.entrySet()) {
+								// grab the row id and pictures stored locally, and serverid
+								ThreeObjects<Long, Integer, String> val = entry.getValue();
+								long rowId = val.mObject1;
+								int localNPics = val.mObject2;
+								String name = val.mObject3;
+								long serverId = entry.getKey();
+								
+								// compare to server
+								Integer serverNPics = nPicturesInGroupsFromServer.get(serverId);
+								if (serverNPics == null)
+									continue;
+								
+								// store if new pictures
+								if (serverNPics > localNPics)
+									newPictures.put(rowId, new TwoObjects<Integer, String>(serverNPics-localNPics, name));
+							}
+							
+							// notifications for new pictures in groups
+							NotificationsAdapter notes = new NotificationsAdapter(ctx);
+							for (Entry<Long, TwoObjects<Integer, String>> entry : newPictures.entrySet()) {
+								long rowId = entry.getKey();
+								TwoObjects<Integer, String> val = entry.getValue();
+								int nNewPictures = val.mObject1;
+								String name = val.mObject2;
+								notes.createNotification(
+										"You have " + nNewPictures + " new pictures in " + name,
+										NotificationsAdapter.NOTIFICATION_TYPES.NEW_PICTURE_IN_GROUP,
+										String.valueOf(rowId));
+								
 							}
 
 							// determine which groups are new
-							GroupsAdapter adapter = new GroupsAdapter(ctx);
 							UsersAdapter users = new UsersAdapter(ctx);
 							HashSet<String> newIds = adapter.getNewValues(TABLE_NAME, KEY_SERVER_ID, allServerids);
 							int nNewGroups = newIds.size();
@@ -680,10 +723,9 @@ extends TableAdapter <GroupsAdapter>{
 
 							// notification for new groups
 							if (nNewGroups > 0){
-								NotificationsAdapter notes = new NotificationsAdapter(ctx);
 								notes.createNotification(
 										nNewGroups + " new groups you've been added to.",
-										NotificationsAdapter.NOTIFICATION_TYPES.ADD_TO_NEW_GROUP);
+										NotificationsAdapter.NOTIFICATION_TYPES.ADD_TO_NEW_GROUP, null);
 							}
 
 							// send callback back to activity
@@ -710,6 +752,48 @@ extends TableAdapter <GroupsAdapter>{
 								callback.onItemsFetchedUiThread(act, result2.getErrorCode());
 					}
 				});
+	}
+
+	/**
+	 * Return a map with the number of pictures in each group as the values, and the keys are the SERVERIDS, NOT ROWIDs
+	 * @return The mapping, null if we couldn't read, the key is the serverId, and value is <RowId, nPictures, groupName>
+	 */
+	public HashMap<Long, ThreeObjects<Long, Integer, String>> getNPicturesInGroupsByServerId(){
+		// grab all the groups
+		GroupsAdapter allGroups = new GroupsAdapter(ctx);
+		allGroups.fetchAllGroups();
+		HashMap<Long, ThreeObjects<Long, Integer, String>> map = new HashMap<Long, ThreeObjects<Long, Integer, String>>(allGroups.size());
+		
+		// loop over groups counting how many pictures are in each group.
+		while(allGroups.moveToNext()){
+			// create the query where we match up all the pictures that are in the group
+			String query = 
+					"SELECT COUNT(*) FROM "
+							+PicturesInGroupsAdapter.TABLE_NAME
+							+" WHERE "
+							+PicturesInGroupsAdapter.KEY_GROUP_ID
+							+"=?";
+
+			// do the query
+			Cursor cursor = database.rawQuery(
+					query,
+					new String[]{String.valueOf(allGroups.getRowId())});
+			if (cursor == null)
+				continue;
+			
+			// grab the number of pictures
+			int nPictures = 0;
+			if (cursor.moveToFirst())
+				nPictures = cursor.getInt(0);
+			cursor.close();
+			
+			// save in map
+			long serverId = allGroups.getServerId();
+			if (serverId != -1 && serverId != 0)
+				map.put(serverId, new ThreeObjects<Long, Integer, String>(allGroups.getRowId(), nPictures, allGroups.getName()));		
+		}
+		
+		return map;
 	}
 
 	/**
@@ -813,7 +897,7 @@ extends TableAdapter <GroupsAdapter>{
 							NotificationsAdapter notes = new NotificationsAdapter(ctx);
 							notes.createNotification(
 									counter + " new groups you've been added to.",
-									NotificationsAdapter.NOTIFICATION_TYPES.ADD_TO_NEW_GROUP);
+									NotificationsAdapter.NOTIFICATION_TYPES.ADD_TO_NEW_GROUP, null);
 						}
 
 						// send callback back to activity

@@ -126,8 +126,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 			groups.get(0).writeFoldersIfNeeded();
 		} catch (IOException e) {
 			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
-			NotificationsAdapter not = new NotificationsAdapter(applicationCtx);
-			not.createNotification("could not create proper folders for group " + groups.get(0).getName(), NOTIFICATION_TYPES.DEVICE_ERROR);
+			Log.e(Utils.LOG_TAG, "could not create proper folders for group " + groups.get(0).getName());
 			ReturnFromPostPicture result = new ReturnFromPostPicture(LOCAL_CREATION_ERROR, "could not crate proper folders for group " + groups.get(0).getName());
 			result.setPictureRowId(-1);
 			return result;
@@ -146,8 +145,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 
 		// break out if we didn't save successfully
 		if (!pictureSave.getSuccess()){
-			NotificationsAdapter not = new NotificationsAdapter(applicationCtx);
-			not.createNotification(pictureSave.getReason(), NOTIFICATION_TYPES.DEVICE_ERROR);
+			Log.e(Utils.LOG_TAG, pictureSave.getReason());
 			ReturnFromPostPicture result = new ReturnFromPostPicture(LOCAL_CREATION_ERROR, pictureSave.getReason());
 			result.setPictureRowId(-1);
 			return result;
@@ -174,8 +172,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 
 		// break out if we didn't save successfully
 		if (!thumbnailSave.getSuccess()){
-			NotificationsAdapter not = new NotificationsAdapter(applicationCtx);
-			not.createNotification(thumbnailSave.getReason(), NOTIFICATION_TYPES.DEVICE_ERROR);
+			Log.e(Utils.LOG_TAG, thumbnailSave.getReason());
 			ReturnFromPostPicture result = new ReturnFromPostPicture(LOCAL_CREATION_ERROR, thumbnailSave.getReason());
 			result.setPictureRowId(-1);
 			return result;
@@ -197,8 +194,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 		// we had an error, so break out
 		if (picId == -1){
 			String msg = "Saving picture into database could not be completed for unknown reason";
-			NotificationsAdapter not = new NotificationsAdapter(applicationCtx);
-			not.createNotification(msg, NOTIFICATION_TYPES.DEVICE_ERROR);
+			Log.e(Utils.LOG_TAG, msg);
 			ReturnFromPostPicture result = new ReturnFromPostPicture(LOCAL_CREATION_ERROR, msg);
 			result.setPictureRowId(-1);
 			return result;
@@ -210,8 +206,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 			long linkRow = picturesInGroups.addPictureToGroup(applicationCtx, picId, item.getRowId());
 			if (linkRow == -1){
 				String msg = "link between picture and group could be made for unknown reason";
-				NotificationsAdapter not = new NotificationsAdapter(applicationCtx);
-				not.createNotification(msg, NOTIFICATION_TYPES.DEVICE_ERROR);
+				Log.e(Utils.LOG_TAG, msg);
 				ReturnFromPostPicture result = new ReturnFromPostPicture(LOCAL_CREATION_ERROR, msg);
 				result.setPictureRowId(-1);
 				return result;
@@ -277,9 +272,8 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 			//		Toast.LENGTH_LONG).show();
 			showAlert(toastMessage);
 
-			// store in notifications
-			NotificationsAdapter notes = new NotificationsAdapter(applicationCtx);
-			notes.createNotification(notesMessage, notesType);		
+			// store in log		
+			Log.e(Utils.LOG_TAG, notesMessage);
 		}
 	}
 

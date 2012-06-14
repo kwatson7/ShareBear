@@ -427,8 +427,7 @@ extends TableAdapter <UsersAdapter>{
 				where,
 				selectionArgs);
 		if (affected == 0){
-			NotificationsAdapter notes = new NotificationsAdapter(ctx);
-			notes.createNotification("Contact info could not be set for rowId = "+rowId, NOTIFICATION_TYPES.DEVICE_ERROR);
+			Log.e(Utils.LOG_TAG, "Contact info could not be set for rowId = "+rowId);
 		}
 		if (affected > 1 && !Prefs.debug.allowMultipleUpdates){
 			throw new IllegalArgumentException("attempting to update more than one row. This should never happen");

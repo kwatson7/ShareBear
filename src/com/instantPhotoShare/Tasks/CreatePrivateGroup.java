@@ -2,9 +2,11 @@ package com.instantPhotoShare.Tasks;
 
 import java.util.ArrayList;
 
+import android.util.Log;
 import android.widget.Toast;
 
 import com.instantPhotoShare.Prefs;
+import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.GroupsAdapter.Group;
 import com.instantPhotoShare.Adapters.NotificationsAdapter;
@@ -59,9 +61,8 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, String>{
 		if (groups.size() == 0){
 			id = groupsAdapter.makeDefaultPrivateGroup(applicationCtx);
 			if (id == -1){
-				NotificationsAdapter notes = new NotificationsAdapter(applicationCtx);
 				String message = "Cannot create default private group for unknown reason.";
-				notes.createNotification(message, NOTIFICATION_TYPES.DEVICE_ERROR);
+				Log.e(Utils.LOG_TAG, message);
 				return message;
 			}
 		}

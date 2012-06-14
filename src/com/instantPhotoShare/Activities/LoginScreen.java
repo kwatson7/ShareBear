@@ -1,6 +1,7 @@
 package com.instantPhotoShare.Activities;
 
 import com.instantPhotoShare.R;
+import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.NotificationsAdapter;
 import com.instantPhotoShare.Adapters.NotificationsAdapter.NOTIFICATION_TYPES;
 import com.instantPhotoShare.Tasks.LoginTask;
@@ -102,9 +103,7 @@ extends CustomActivity {
 				    	finish();
 					}
 				}catch(Exception e){
-					Log.e(getPackageName(), e.getMessage());
-					NotificationsAdapter notes = new NotificationsAdapter(this);
-					notes.createNotification(e.getMessage(), NOTIFICATION_TYPES.DEVICE_ERROR);
+					Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 					return;
 				}
 				break;

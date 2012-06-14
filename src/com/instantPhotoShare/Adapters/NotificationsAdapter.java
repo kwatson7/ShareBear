@@ -19,6 +19,10 @@ extends TableAdapter <NotificationsAdapter>{
 	private static final String KEY_MESSAGE = "message";
 	private static final String KEY_DATE = "date";
 	private static final String KEY_NOTIFICATION_TYPE = "NOTIFICATION_TYPE";
+	private static final String KEY_NOTIFICATION_HELPER_DATA = "KEY_NOTIFICATION_HELPER_DATA";
+	
+	// types
+	private static final String NOTIFICATION_HELPER_DATA_TYPE = " text";
 	
 	// notification types
 	public enum NOTIFICATION_TYPES {
@@ -27,7 +31,9 @@ extends TableAdapter <NotificationsAdapter>{
 		/** Some type of server error */
 		SERVER_ERROR,
 		/** Miscellaneous */
-		MISC, WARNING,
+		MISC,
+		/** Warning */
+		WARNING,
 		/** You have been added to a new group */
 		ADD_TO_NEW_GROUP,
 		/** There is a new picture in one of your groups */
@@ -45,6 +51,7 @@ extends TableAdapter <NotificationsAdapter>{
 		+KEY_ROW_ID +" integer primary key autoincrement, "
 		+KEY_NOTIFICATION_TYPE +" integer not null, "
 		+KEY_MESSAGE +" text not null, "
+		+KEY_NOTIFICATION_HELPER_DATA + NOTIFICATION_HELPER_DATA_TYPE + ", "
 		+KEY_DATE +" text not null"
 		+");";
 	
@@ -55,18 +62,42 @@ extends TableAdapter <NotificationsAdapter>{
 	/**
 	 * Create a notification tagged with the current time
 	 * @param message The message of the notification.
+	 * @param helperData, data that can be accessed later to help further specify this notification.
 	 * @return The id of the row created, -1 if failed.
 	 */
 	public long createNotification(
 			String message,
-			NOTIFICATION_TYPES notificationType){		
+			NOTIFICATION_TYPES notificationType,
+			String helperData){		
 		
 		ContentValues values = new ContentValues();
 		values.put(KEY_MESSAGE, message);
 		values.put(KEY_DATE, Utils.getNowTime());
+		if (helperData != null)
+			values.put(KEY_NOTIFICATION_HELPER_DATA, helperData);
 		values.put(KEY_NOTIFICATION_TYPE, notificationType.ordinal());
 		
 		return database.insert(TABLE_NAME, null, values);
+	}
+	
+	/**
+	 * Return a list of SQL statements to perform upon an upgrade from oldVersion to newVersion.
+	 * @param oldVersion old version of database
+	 * @param newVersion new version of database
+	 * @return The arraylist of sql statements. Will not be null.
+	 */
+	public static ArrayList<String> upgradeStrings(int oldVersion, int newVersion){
+		ArrayList<String> out = new ArrayList<String>(1);
+		if (oldVersion < 8 && newVersion >= 8){
+			String upgradeQuery = 
+					"ALTER TABLE " +
+							TABLE_NAME + " ADD COLUMN " + 
+							KEY_NOTIFICATION_HELPER_DATA + " "+
+							NOTIFICATION_HELPER_DATA_TYPE;
+			out.add(upgradeQuery);
+		}
+
+		return out;
 	}
 
 	/**

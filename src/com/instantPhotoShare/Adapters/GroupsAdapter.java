@@ -16,8 +16,10 @@ import org.json.JSONObject;
 
 import com.instantPhotoShare.GetGroupsServerReturn;
 import com.instantPhotoShare.Prefs;
+import com.instantPhotoShare.R;
 import com.instantPhotoShare.ShareBearServerReturn;
 import com.instantPhotoShare.Utils;
+import com.instantPhotoShare.Activities.GroupGallery;
 import com.instantPhotoShare.Tasks.CreateGroupTask;
 import com.tools.CustomActivity;
 import com.tools.ServerPost.PostCallback;
@@ -28,6 +30,7 @@ import com.tools.TwoStrings;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.SQLException;
@@ -679,9 +682,11 @@ extends TableAdapter <GroupsAdapter>{
 								notes.createNotification(
 										"You have " + nNewPictures + " new pictures in " + name,
 										NotificationsAdapter.NOTIFICATION_TYPES.NEW_PICTURE_IN_GROUP,
-										String.valueOf(rowId));
-								
+										String.valueOf(rowId));								
 							}
+							//TODO: do something with these updates.
+							//TODO: we will keep getting the same update over and over until we actually go into the group.
+							
 
 							// determine which groups are new
 							UsersAdapter users = new UsersAdapter(ctx);

@@ -637,11 +637,12 @@ extends TableAdapter <GroupsAdapter>{
 
 							// grab all the group serverIds and also the number of pictures in each group
 							GroupsAdapter adapter = new GroupsAdapter(ctx);
-							Iterator<?> iterator = data.getMessageObject().keys();
+							@SuppressWarnings("unchecked") //Using legacy API
+							Iterator<String> iterator = data.getMessageObject().keys();
 							HashSet<String> allServerids = new HashSet<String>(data.getMessageObject().length());
 							HashMap<Long, Integer> nPicturesInGroupsFromServer = new HashMap<Long, Integer>();
 							while(iterator.hasNext()){
-								String val = (String) iterator.next();
+								String val = iterator.next();
 								long groupServerId = Long.valueOf(val);
 								if (groupServerId != 0)
 									allServerids.add(val);

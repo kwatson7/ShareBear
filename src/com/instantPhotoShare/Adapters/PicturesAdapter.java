@@ -370,7 +370,7 @@ extends TableAdapter<PicturesAdapter>{
 			// store the important one
 			try {
 				if (data != null && data.length != 0 && array.getLong(i) == serverId)
-					bmp = com.tools.images.ImageLoader.getThumbnail(data, 0);
+					bmp = com.tools.ImageProcessing.getThumbnail(data, 0);
 			} catch (JSONException e) {
 				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 				pics.setFinishedDownloadingThumbnail(pictureRowId, false);
@@ -616,7 +616,7 @@ extends TableAdapter<PicturesAdapter>{
 			// store the important one
 			try {
 				if (data != null && data.length != 0 && array.getLong(i) == serverId)
-					bmp = com.tools.images.ImageLoader.getThumbnail(data, 0);
+					bmp = com.tools.ImageProcessing.getThumbnail(data, 0);
 			} catch (JSONException e) {
 				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 				continue;

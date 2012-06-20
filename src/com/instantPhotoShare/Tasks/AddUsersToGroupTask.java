@@ -1,8 +1,10 @@
 package com.instantPhotoShare.Tasks;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.jar.Attributes.Name;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -11,6 +13,7 @@ import org.json.JSONObject;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
+import android.util.Base64;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -379,9 +382,28 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 
 	public static class ReturnFromAddUsersToGroupTask
 	extends ShareBearServerReturn{
+		
+		// responase codes
+		public enum ResponseCode{
+			Temp_User_Created_Invite_Sent,
+			Temp_User_Exists_Invite_Resent,
+			User_Exists_Already_In_Group,
+			User_Exists_Added_To_Group,
+			Server_Error;
+			
+			public String getName(){
+				return name();
+			}
+		}
+		
+		// response keys
+		private static final String KEY_CODE = "user_message_code";
+		
+		// member fields
+		HashMap<Long, JSONObject> userObjects = new HashMap<Long, JSONObject>(10);
 
 		private ReturnFromAddUsersToGroupTask(ServerReturn toCopy) {
-			super(toCopy);
+			super(toCopy);ResponseCode.Temp_User_Created_Invite_Sent.name();
 		}
 
 		private ReturnFromAddUsersToGroupTask() {
@@ -424,5 +446,78 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 				return false;
 		}
 		
+		/**
+		 * Return the code returned for this user.
+		 * @param serverId The serverId of the thumbnail data
+		 * @return The code returned by the server. Will be null if not present or unsuccessfull
+		 */
+		public ResponseCode getUserCode(long serverId){		
+			
+			// return null if unsuccessful
+			if (!isSuccess())
+				return null;
+
+			// grab the code
+			JSONObject json = getItemObject(serverId);
+			if(json == null)
+				return null;
+			String string = json.optString(KEY_CODE);
+			
+			// convert to responseCode
+			ResponseCode value = ResponseCode.Server_Error;
+			try{
+				value = ResponseCode.valueOf(string);
+			}catch(IllegalArgumentException e){
+				Log.e(Utils.LOG_TAG, "unknown return from server for user: " +serverId + ", "+ string);
+			}catch(NullPointerException e){
+				Log.e(Utils.LOG_TAG, "null return from server for user: " +serverId);
+			}
+			return value;
+		}
+		
+		/**
+		 * Get all the serverIds that were return, will be null if unsuccessful.
+		 * @return
+		 */
+		public Iterator<String> getUserServerIds(){
+			// return null if unsuccessful
+			if (!isSuccess())
+				return null;
+			
+			// grab the message
+			JSONObject json = getMessageObject();
+			if (json == null)
+				return null;
+			
+			// the keys
+			@SuppressWarnings("unchecked") // legacy api
+			Iterator<String> iterator = json.keys();
+			
+			return iterator;
+		}
+		
+		/**
+		 * Get the json object for this given serverId, null if unsuccessful
+		 * @param serverId The serverId of the object to get
+		 * @return The object for this thumbnail, or null
+		 */
+		private JSONObject getItemObject(long serverId){
+			// return null if unsuccessful
+			if (!isSuccess())
+				return null;
+			
+			// see if we've retreived it already
+			JSONObject message = userObjects.get(serverId);
+			if (message != null)
+				return message;
+			
+			// grab the item at this index
+			message = getMessageObject();
+			if (message == null)
+				return null;
+			JSONObject item = message.optJSONObject(String.valueOf(serverId));
+			userObjects.put(serverId, item);
+			return item;
+		} 	
 	}
 }

@@ -2,6 +2,7 @@ package com.instantPhotoShare.Activities;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 
 import android.app.Activity;
 import android.content.Context;
@@ -13,6 +14,7 @@ import android.graphics.Matrix;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.text.Html;
+import android.util.Log;
 import android.view.Display;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -305,8 +307,14 @@ extends CustomActivity{
 			return true;
 		case ROTATE_CW:
 			picturesAdapater.moveToPosition(gallery.getLastVisiblePosition());
-			com.tools.Tools.rotateExif(
-					picturesAdapater.getFullPicturePath(), 1);
+			try {
+				com.tools.ImageProcessing.rotateExif(
+						picturesAdapater.getFullPicturePath(), 1);
+			} catch (IOException e) {
+				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+				Toast.makeText(ctx, "Could not rotate picture", Toast.LENGTH_SHORT).show();
+				return true;
+			}
 			adapter.clearCache();
 			adapter.notifyDataSetChanged();
 			return true;

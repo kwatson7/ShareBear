@@ -9,6 +9,7 @@ import org.json.JSONObject;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.media.ExifInterface;
 import android.util.Log;
 import android.widget.Toast;
@@ -134,10 +135,9 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 
 		// save the data
 		SuccessReason pictureSave = 
-				com.tools.Tools.saveByteDataToFile(
+				com.tools.ImageProcessing.saveByteDataToFile(
 						applicationCtx,
 						camData,
-						caption,
 						false,
 						picName.mObject1,
 						rotation,
@@ -152,19 +152,18 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 		}
 
 		// create the thumbnail
-		byte[] thumbnail = com.tools.Tools.makeThumbnail(
+		Bitmap thumbnail = com.tools.ImageProcessing.makeThumbnail(
 				camData,
 				rotation,
 				Utils.MAX_THUMBNAIL_DIMENSION,
-				Utils.FORCE_BASE2_THUMBNAIL_RESIZE,
-				Utils.IMAGE_QUALITY);
-
+				Utils.FORCE_BASE2_THUMBNAIL_RESIZE);
+		byte[] thumbByte = com.tools.ImageProcessing.getByteArray(thumbnail, Utils.IMAGE_QUALITY);
+		
 		// save the thumbnail
 		SuccessReason thumbnailSave = 
-				com.tools.Tools.saveByteDataToFile(
+				com.tools.ImageProcessing.saveByteDataToFile(
 						applicationCtx,
-						thumbnail,
-						caption,
+						thumbByte,
 						false,
 						picName.mObject2,
 						ExifInterface.ORIENTATION_NORMAL,
@@ -219,7 +218,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 		//TODO: verify that pictures have been added to groups. for example, if the group wasn't synced, the picture was not uploaded to the group.
 		//TODO: also check if no groups are synced, we might get an error as there are no groups to upload
 		// post to server
-		return postDataToServer(picId, pictureSave.getReason(), thumbnail);
+		return postDataToServer(picId, pictureSave.getReason(), thumbByte);
 	}
 
 	@Override

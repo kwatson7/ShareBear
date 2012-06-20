@@ -386,10 +386,9 @@ extends TableAdapter<PicturesAdapter>{
 			// write to file
 			if (thumbPath != null && thumbPath.length() != 0){
 				SuccessReason result2 = 
-						com.tools.Tools.saveByteDataToFile(
+						com.tools.ImageProcessing.saveByteDataToFile(
 								appCtx,
 								data,
-								"",
 								false,
 								thumbPath,
 								ExifInterface.ORIENTATION_NORMAL,
@@ -632,10 +631,9 @@ extends TableAdapter<PicturesAdapter>{
 			// write to file
 			if (thumbPath != null && thumbPath.length() != 0){
 				SuccessReason result2 = 
-						com.tools.Tools.saveByteDataToFile(
+						com.tools.ImageProcessing.saveByteDataToFile(
 								appCtx,
 								data,
-								"",
 								false,
 								thumbPath,
 								ExifInterface.ORIENTATION_NORMAL,

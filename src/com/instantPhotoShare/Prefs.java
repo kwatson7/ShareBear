@@ -288,7 +288,7 @@ public class Prefs {
 	}
 	
 	/**
-	 * Set the serverIdin the preference file that is permanently saved and can be accessed by all package classes.
+	 * Set the serverId in the preference file that is permanently saved and can be accessed by all package classes.
 	 * @param serverId the serverId to set
 	 */
 	public static void setUserServerId(Context ctx, Long serverId){
@@ -296,7 +296,7 @@ public class Prefs {
 		if (userRowId == -1)
 			throw new IllegalAccessError(PREEMPTIVE_ACCESS_ERROR);
 		UsersAdapter users = new UsersAdapter(ctx);
-		users.setIsSynced(userRowId, true, serverId);
+		users.setIsSynced(userRowId, true, serverId, true);
 	}
 	
 	/**

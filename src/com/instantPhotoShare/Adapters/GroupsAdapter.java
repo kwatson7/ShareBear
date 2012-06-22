@@ -145,6 +145,37 @@ extends TableAdapter <GroupsAdapter>{
 	}
 
 	/**
+	 * Update all the links that contain any of these users, and change them to the main user
+	 * @param userRowIdToKeep The user to overwirte all the other users
+	 * @param otherUserRowIds The users that will be overwritten
+	 */
+	protected void combineLinksForUsers(long userRowIdToKeep, ArrayList<Long> otherUserRowIds){
+
+		// first remove userRowIdToKeep from otherUserRowIds
+		while(otherUserRowIds.remove(userRowIdToKeep));
+
+		// if empty, then return
+		if (otherUserRowIds.size() == 0)
+			return;
+
+		// the query items
+		TwoObjects<String, String[]> selection = TableAdapter.createSelection(KEY_USER_ID_CREATED, otherUserRowIds);
+
+		// the new values
+		ContentValues values = new ContentValues(1);
+		values.put(KEY_USER_ID_CREATED, userRowIdToKeep);
+
+		int nRowsUpdated = -1;
+		synchronized (database) {
+			// update the rows
+			nRowsUpdated = database.update(TABLE_NAME, values, selection.mObject1, selection.mObject2);
+		}
+
+		if (nRowsUpdated != otherUserRowIds.size())
+			Log.e(Utils.LOG_TAG, "Did not update the correct number of rows for id " + userRowIdToKeep);
+	}
+
+	/**
 	 * Generate a picture path and thumbnail path for a given top level folder and group name
 	 * @param groupFolderFullPath The top level path ie. /sdcard/folder1/
 	 * @param groupName The acceptable groupName to write to path ie "folder1", not "folder%*1"
@@ -631,7 +662,7 @@ extends TableAdapter <GroupsAdapter>{
 
 							// not a good return
 							if (!data.isSuccess()){
-								Log.e(Utils.LOG_TAG, result.getDetailErrorMessage());
+								Log.e(Utils.LOG_TAG, data.getDetailErrorMessage());
 								return;
 							}
 
@@ -648,12 +679,12 @@ extends TableAdapter <GroupsAdapter>{
 									allServerids.add(val);
 								nPicturesInGroupsFromServer.put(groupServerId, data.getNPictures(groupServerId));
 							}
-							
+
 							// determine if there are new pictures in any of the groups.
 							// how many pictures stored locally
 							HashMap<Long, ThreeObjects<Long, Integer, String>> nPicturesInGroupsLocal = adapter.getNPicturesInGroupsByServerId();
 							HashMap<Long, TwoObjects<Integer, String>> newPictures = new HashMap<Long, TwoObjects<Integer, String>>();
-							
+
 							// compare to server pictures
 							for (Entry<Long, ThreeObjects<Long, Integer, String>> entry : nPicturesInGroupsLocal.entrySet()) {
 								// grab the row id and pictures stored locally, and serverid
@@ -662,17 +693,17 @@ extends TableAdapter <GroupsAdapter>{
 								int localNPics = val.mObject2;
 								String name = val.mObject3;
 								long serverId = entry.getKey();
-								
+
 								// compare to server
 								Integer serverNPics = nPicturesInGroupsFromServer.get(serverId);
 								if (serverNPics == null)
 									continue;
-								
+
 								// store if new pictures
 								if (serverNPics > localNPics)
 									newPictures.put(rowId, new TwoObjects<Integer, String>(serverNPics-localNPics, name));
 							}
-							
+
 							// notifications for new pictures in groups
 							NotificationsAdapter notes = new NotificationsAdapter(ctx);
 							for (Entry<Long, TwoObjects<Integer, String>> entry : newPictures.entrySet()) {
@@ -687,7 +718,7 @@ extends TableAdapter <GroupsAdapter>{
 							}
 							//TODO: do something with these updates.
 							//TODO: we will keep getting the same update over and over until we actually go into the group.
-							
+
 
 							// determine which groups are new
 							UsersAdapter users = new UsersAdapter(ctx);
@@ -769,7 +800,7 @@ extends TableAdapter <GroupsAdapter>{
 		GroupsAdapter allGroups = new GroupsAdapter(ctx);
 		allGroups.fetchAllGroups();
 		HashMap<Long, ThreeObjects<Long, Integer, String>> map = new HashMap<Long, ThreeObjects<Long, Integer, String>>(allGroups.size());
-		
+
 		// loop over groups counting how many pictures are in each group.
 		while(allGroups.moveToNext()){
 			// create the query where we match up all the pictures that are in the group
@@ -786,19 +817,19 @@ extends TableAdapter <GroupsAdapter>{
 					new String[]{String.valueOf(allGroups.getRowId())});
 			if (cursor == null)
 				continue;
-			
+
 			// grab the number of pictures
 			int nPictures = 0;
 			if (cursor.moveToFirst())
 				nPictures = cursor.getInt(0);
 			cursor.close();
-			
+
 			// save in map
 			long serverId = allGroups.getServerId();
 			if (serverId != -1 && serverId != 0)
 				map.put(serverId, new ThreeObjects<Long, Integer, String>(allGroups.getRowId(), nPictures, allGroups.getName()));		
 		}
-		
+
 		return map;
 	}
 

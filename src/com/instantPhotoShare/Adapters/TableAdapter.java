@@ -54,7 +54,7 @@ extends CursorWrapper<TYPE>{
 	 * @param columnValues The acceptable values for that column
 	 * @return TwoObjects, where mObject1 is selection, and mObject2 is selectionArgs
 	 */
-	protected <TYPE2>TwoObjects<String, String[]> createSelection(
+	protected static <TYPE2>TwoObjects<String, String[]> createSelection(
 			String columnName,
 			ArrayList <TYPE2> columnValues){
 

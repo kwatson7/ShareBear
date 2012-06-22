@@ -54,7 +54,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, ContactCheckedArray>{
 			if (callingActivity == null)
 				return null;
 			contactChecked.setItem(new ContactCheckedItem(
-					users.getContactDatabaseRowId(callingActivity),
+					users.getContactDatabaseRowId(),
 					true,
 					users.getName(),
 					users.getDefaultContactMethod(),

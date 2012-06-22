@@ -1111,6 +1111,39 @@ extends TableAdapter<PicturesAdapter>{
 		// set cursor
 		setCursor(cursor);
 	}	
+	
+	/**
+	 * Update all the links that contain any of these users, and change them to the main user
+	 * @param userRowIdToKeep The user to overwrite all the other users
+	 * @param otherUserRowIds The users that will be overwritten
+	 */
+	protected void combineLinksForUsers(long userRowIdToKeep, ArrayList<Long> otherUserRowIds){
+
+		// first remove userRowIdToKeep from otherUserRowIds
+		while(otherUserRowIds.remove(userRowIdToKeep));
+
+		// if empty, then return
+		if (otherUserRowIds.size() == 0)
+			return;
+
+		// the query items
+		TwoObjects<String, String[]> selection = TableAdapter.createSelection(KEY_USER_ID_TOOK, otherUserRowIds);
+
+		// the new values
+		ContentValues values = new ContentValues(1);
+		values.put(KEY_USER_ID_TOOK, userRowIdToKeep);
+
+		// do the update
+		int nRowsUpdated = -1;
+		synchronized (database) {
+			// update the rows
+			nRowsUpdated = database.update(TABLE_NAME, values, selection.mObject1, selection.mObject2);
+		}
+
+		// verify we updated the correct number of rows
+		if (nRowsUpdated != otherUserRowIds.size())
+			Log.e(Utils.LOG_TAG, "Did not update the correct number of rows for id " + userRowIdToKeep);
+	}
 
 	/**
 	 * Return the date taken as a string, or "" if not accessible.

@@ -15,6 +15,7 @@ import com.instantPhotoShare.ShareBearServerReturn;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.NotificationsAdapter.NOTIFICATION_TYPES;
 import com.tools.ThreeObjects;
+import com.tools.TwoObjects;
 import com.tools.TwoStrings;
 
 import android.content.ContentValues;
@@ -55,25 +56,25 @@ extends TableAdapter <UsersAdapter>{
 
 	/** Table creation string */
 	public static String TABLE_CREATE = 
-		"create table "
-		+TABLE_NAME +" ("
-		+KEY_ROW_ID +" integer primary key autoincrement, "
-		+KEY_FIRST_NAME +" text DEFAULT '', "
-		+KEY_LAST_NAME +" text DEFAULT '', "
-		+KEY_SERVER_ID +" integer DEFAULT '-1', "
-		+KEY_EMAILS +" text, "
-		+KEY_PHONES +" text, "
-		+KEY_PICTURE_ID +" integer DEFAULT '-1', "
-		+KEY_DATE_JOINED +" text, "
-		+KEY_HAS_ACCOUNT +" boolean DEFAULT 'FALSE', "
-		+KEY_IS_UPDATING +" boolean DEFAULT 'FALSE', "
-		+KEY_LAST_UPDATE_ATTEMPT_TIME +" text not null DEFAULT '1900-01-01 01:00:00', "
-		+KEY_IS_SYNCED +" boolean DEFAULT 'FALSE', "
-		+KEY_DEFAULT_CONTACT + " TEXT, "
-		+KEY_CONTACTS_ROW_ID + " integer DEFAULT '-1', "
-		+KEY_LOOKUP_KEY + " " + LOOKUP_KEY_TYPE + ", "
-		+"foreign key(" +KEY_PICTURE_ID +") references " +PicturesAdapter.TABLE_NAME +"(" +PicturesAdapter.KEY_ROW_ID + ")" 
-		+");";
+			"create table "
+					+TABLE_NAME +" ("
+					+KEY_ROW_ID +" integer primary key autoincrement, "
+					+KEY_FIRST_NAME +" text DEFAULT '', "
+					+KEY_LAST_NAME +" text DEFAULT '', "
+					+KEY_SERVER_ID +" integer DEFAULT '-1', "
+					+KEY_EMAILS +" text, "
+					+KEY_PHONES +" text, "
+					+KEY_PICTURE_ID +" integer DEFAULT '-1', "
+					+KEY_DATE_JOINED +" text, "
+					+KEY_HAS_ACCOUNT +" boolean DEFAULT 'FALSE', "
+					+KEY_IS_UPDATING +" boolean DEFAULT 'FALSE', "
+					+KEY_LAST_UPDATE_ATTEMPT_TIME +" text not null DEFAULT '1900-01-01 01:00:00', "
+					+KEY_IS_SYNCED +" boolean DEFAULT 'FALSE', "
+					+KEY_DEFAULT_CONTACT + " TEXT, "
+					+KEY_CONTACTS_ROW_ID + " integer DEFAULT '-1', "
+					+KEY_LOOKUP_KEY + " " + LOOKUP_KEY_TYPE + ", "
+					+"foreign key(" +KEY_PICTURE_ID +") references " +PicturesAdapter.TABLE_NAME +"(" +PicturesAdapter.KEY_ROW_ID + ")" 
+					+");";
 
 	public UsersAdapter(Context context) {
 		super(context);
@@ -90,10 +91,10 @@ extends TableAdapter <UsersAdapter>{
 		ArrayList<String> out = new ArrayList<String>(1);
 		if (oldVersion < 4 && newVersion >= 4){
 			String upgradeQuery = 
-				"ALTER TABLE " +
-				TABLE_NAME + " ADD COLUMN " + 
-				KEY_LOOKUP_KEY + " "+
-				LOOKUP_KEY_TYPE;
+					"ALTER TABLE " +
+							TABLE_NAME + " ADD COLUMN " + 
+							KEY_LOOKUP_KEY + " "+
+							LOOKUP_KEY_TYPE;
 			out.add(upgradeQuery);
 		}
 
@@ -107,15 +108,13 @@ extends TableAdapter <UsersAdapter>{
 	 * @param contactId The contactId from the address book
 	 * @param lookupKey the lookup key used to find the user later
 	 * @param defaultContactMethod The default contact method for the user. If empty, then it will not overwrite
-	 * @param serverId The server id (-1) if not known.
 	 * @return The row id added or updated.
 	 */
 	public long makeNewUser(
 			Context ctx,
 			long contactId,
 			String lookupKey,
-			String defaultContactMethod,
-			long serverId){
+			String defaultContactMethod){
 
 		// initialize items to insert.
 		ContentValues values = new ContentValues();
@@ -124,8 +123,6 @@ extends TableAdapter <UsersAdapter>{
 		values.put(KEY_CONTACTS_ROW_ID, contactId);
 		if (defaultContactMethod != null && defaultContactMethod.length() > 0)
 			values.put(KEY_DEFAULT_CONTACT, defaultContactMethod);
-		if (serverId >= 0)
-			values.put(KEY_SERVER_ID, serverId);
 		values.put(KEY_IS_UPDATING, false);
 		if (lookupKey != null && lookupKey.length() > 0)
 			values.put(KEY_LOOKUP_KEY, lookupKey);
@@ -133,7 +130,7 @@ extends TableAdapter <UsersAdapter>{
 		// find emails, phones, and names
 		TwoStrings fullName = null;
 		ThreeObjects<HashSet<TwoStrings>, HashSet<TwoStrings>, TwoStrings>  phoneEmailName = 
-			com.tools.CustomCursors.getContactPhoneArrayEmailArrayAndName(ctx, contactId);
+				com.tools.CustomCursors.getContactPhoneArrayEmailArrayAndName(ctx, contactId);
 		if (phoneEmailName != null){
 			String phone = phoneEmailName.mObject1.toString();
 			String email = phoneEmailName.mObject2.toString();
@@ -157,7 +154,7 @@ extends TableAdapter <UsersAdapter>{
 
 		// The where clause
 		String where = 
-			KEY_CONTACTS_ROW_ID + " = ?";
+				KEY_CONTACTS_ROW_ID + " = ?";
 
 		// The selection args
 		String[] selectionArgs = {String.valueOf(contactId)};
@@ -184,7 +181,7 @@ extends TableAdapter <UsersAdapter>{
 
 	/**
 	 * Make a new contact in the database for a given serverId
-	 * If the user already exists, then don't nothing happens adn the original rowId is returned
+	 * If the user already exists, then nothing happens adn the original rowId is returned
 	 * @param serverId The server id 
 	 * @return The row id added or updated.
 	 */
@@ -201,7 +198,7 @@ extends TableAdapter <UsersAdapter>{
 
 			// The where clause
 			String where = 
-				KEY_SERVER_ID + " = ?";
+					KEY_SERVER_ID + " = ?";
 
 			// The selection args
 			String[] selectionArgs = {String.valueOf(serverId)};
@@ -290,16 +287,16 @@ extends TableAdapter <UsersAdapter>{
 		// grab the cursor
 		Cursor cursor =
 
-			database.query(
-					true,
-					TABLE_NAME,
-					null,
-					KEY_ROW_ID + "='" + rowId +"'",
-					null,
-					null,
-					null,
-					null,
-					null);
+				database.query(
+						true,
+						TABLE_NAME,
+						null,
+						KEY_ROW_ID + "='" + rowId +"'",
+						null,
+						null,
+						null,
+						null,
+						null);
 
 		// check null
 		if (cursor == null || !cursor.moveToFirst())
@@ -371,9 +368,10 @@ extends TableAdapter <UsersAdapter>{
 	 * @param rowId the rowId of the group to update.
 	 * @param isSynced boolean if we are synced
 	 * @param newServerId, input -1, if not known and nothing will be saved
+	 * @param hasAccount, does the user have an account or is this a temp placeholder?
 	 * @return boolean if we updated successfully to sql table.
 	 */
-	public boolean setIsSynced(long rowId, boolean isSynced, long newServerId){
+	public boolean setIsSynced(long rowId, boolean isSynced, long newServerId, boolean hasAccount){
 
 		ContentValues values = new ContentValues();
 		values.put(KEY_IS_SYNCED, isSynced);	
@@ -382,10 +380,198 @@ extends TableAdapter <UsersAdapter>{
 		if (newServerId != -1)
 			values.put(KEY_SERVER_ID, newServerId);
 
-		return database.update(
+		boolean didWeUpdate = false;
+		synchronized (database) {
+
+			// update
+			didWeUpdate = database.update(TABLE_NAME,values,KEY_ROW_ID + "='" + rowId + "'", null) > 0;
+
+			// check that we don't have multiple serverIds
+			combineCommonServerIds(newServerId);
+		}
+
+		return didWeUpdate;
+	}
+
+	/**
+	 * Search the database and combine any rows that have this same serverid. If 0 or -1, we ignore and just return
+	 * @param serverId The serverId to check
+	 */
+	private void combineCommonServerIds(long serverId){
+		//TODO: make sure this is working correctly
+		
+		
+		UsersAdapter helper = new UsersAdapter(ctx);
+
+		// no check on -1 or 0
+		if (serverId == 0 || serverId == -1)
+			return;
+
+		// find all users with this serverId
+		helper.fetchUserByServerId(serverId);
+
+		// none or only 1, then nothing to combine, so just leave
+		if (helper.size() == 0 || helper.size() == 1){
+			helper.close();
+			return;
+		}
+
+		// initialize items to insert.
+		ContentValues values = new ContentValues();		
+
+		/*
+		 *  loop over the users finding one with the following criteria that takes precedent over others
+		 *  1. have contact id AND phonelookup 64 points
+		 *  2. have email  or phone gives 32 points
+		 *  3. 
+		 *  
+		 *  1. if we have email and / or phone highest priority
+		 *  2. if #1, then highest row id wins
+		 *  3. if not #1, then 
+		 */
+		boolean bool = false;
+		int points = 0;
+		int bestPoints = 0;
+		long rowToKeep = 0;
+		ArrayList<Long> allUserIds = new ArrayList<Long>();
+		do{
+			// reset points
+			points = 0;
+
+			// keep track of all ids, so we can combine them later
+			allUserIds.add(helper.getRowId());
+
+			// calculate points for this user
+			// contact id and lookup key
+			long contactId = helper.getContactDatabaseRowId();
+			String lookupKey = helper.getLookupKey();
+			if (contactId != -1 && contactId != 0
+					&& lookupKey != null && lookupKey.length() != 0)
+				points +=64;
+
+			// email and phone
+			String email = helper.getEmails();
+			String phone = helper.getPhones();
+			if (email != null && email.length() > 0 &&
+					phone != null && phone.length() > 0)
+				points += 32;
+
+			// update values, but if conflict, then user higher point
+			updateHelper(values, points, bestPoints, KEY_LOOKUP_KEY, lookupKey);
+			updateHelper(values, points, bestPoints, KEY_FIRST_NAME, helper.getFirstName());
+			updateHelper(values, points, bestPoints, KEY_LAST_NAME, helper.getLastName());
+			updateHelper(values, points, bestPoints, KEY_EMAILS, email);
+			updateHelper(values, points, bestPoints, KEY_PHONES, phone);
+			updateHelper(values, points, bestPoints, KEY_DEFAULT_CONTACT, helper.getDefaultContactInfo());
+			updateHelper(values, points, bestPoints, KEY_CONTACTS_ROW_ID, contactId);
+			updateHelper(values, points, bestPoints, KEY_PICTURE_ID, helper.getPictureId());
+
+			// has account
+			bool = helper.getHasAccount();
+			if (bool)
+				values.put(KEY_HAS_ACCOUNT, bool);
+
+			// update bestPoints
+			if (points >= bestPoints){
+				bestPoints = points;
+				rowToKeep = helper.getRowId();
+			}
+
+			//TODO: finish the below fields
+			//TODO: we need some way to know if we've added new fields to this database
+			//private static final String KEY_DATE_JOINED = "dateJoined";
+			//private static final String KEY_IS_UPDATING = "isUpdating";
+			//private static final String KEY_LAST_UPDATE_ATTEMPT_TIME = "KEY_LAST_UPDATE_ATTEMPT_TIME";
+			//private static final String KEY_IS_SYNCED = "isSynced";
+		}while(helper.moveToNext());
+
+		helper.close();
+
+		// update the database with combination of all the best values
+		if(database.update(
 				TABLE_NAME,
 				values,
-				KEY_ROW_ID + "='" + rowId + "'", null) > 0;	
+				KEY_ROW_ID + "=?", new String[] {String.valueOf(rowToKeep)}) > 0){
+
+			// update database to remove all old users
+			combineLinksForUsers(rowToKeep, allUserIds);
+
+		}else
+			Log.e(Utils.LOG_TAG, "database did not update correctly");
+	}
+
+	/**
+	 * Update the values of a content value at a given key with the new value only if: <br>
+	 * newValue != null && newValue.length() != 0  && (previousValue == null || points >= bestPoints)
+	 * @param values The contentValues to update
+	 * @param points The validity ranking of the new value (bigger takes precedence)
+	 * @param bestPoints the validity ranking of the old value
+	 * @param key The key to update
+	 * @param newValue The new value to update with
+	 */
+	private static void updateHelper(ContentValues values, int points, int bestPoints, String key, String newValue){
+		String previousValue = values.getAsString(key);
+		if (newValue != null && newValue.length() != 0  && 
+				(previousValue == null || points >= bestPoints))
+			values.put(key, newValue);
+	}
+
+	/**
+	 * Update the values of a content value at a given key with the new value only if: <br>
+	 * newValue != -1 && newValue != 0  && (previousValue == null || points >= bestPoints)
+	 * @param values The contentValues to update
+	 * @param points The validity ranking of the new value (bigger takes precedence)
+	 * @param bestPoints the validity ranking of the old value
+	 * @param key The key to update
+	 * @param newValue The new value to update with
+	 */
+	private static void updateHelper(ContentValues values, int points, int bestPoints, String key, long newValue){
+		Long previousValue = values.getAsLong(key);
+		if (newValue != -1 && newValue != 0  && 
+				(previousValue == null || points >= bestPoints))
+			values.put(key, newValue);
+	}
+
+	/**
+	 * Update all the links that contain any of these users, and change them to the main user
+	 * @param userRowIdToKeep The user to overwirte all the other users
+	 * @param otherUserRowIds The users that will be overwritten
+	 */
+	private void combineLinksForUsers(long userRowIdToKeep, ArrayList<Long> otherUserRowIds){
+		// first remove userRowIdToKeep from otherUserRowIds
+		while(otherUserRowIds.remove(userRowIdToKeep));
+
+		// if empty, then return
+		if (otherUserRowIds.size() == 0)
+			return;
+
+		// the query items
+		TwoObjects<String, String[]> selection = TableAdapter.createSelection(KEY_ROW_ID, otherUserRowIds);
+
+		// synchronize over the database
+		synchronized (database) {
+			// first delete the rows in this database
+			int effected = database.delete(
+					TABLE_NAME,
+					selection.mObject1,
+					selection.mObject2);
+			if (effected != otherUserRowIds.size())
+				Log.e(Utils.LOG_TAG, "did not delete the same number of rows as we entered");
+
+			// now update all the rows in the groups adapter
+			GroupsAdapter groups = new GroupsAdapter(ctx);
+			groups.combineLinksForUsers(userRowIdToKeep, otherUserRowIds);
+
+			// now update all the rows in the pictures adapter
+			PicturesAdapter pictures = new PicturesAdapter(ctx);
+			pictures.combineLinksForUsers(userRowIdToKeep, otherUserRowIds);
+
+			// now update all the rows in the usersingroups adapter
+			UsersInGroupsAdapter usersInGroups = new UsersInGroupsAdapter(ctx);
+			usersInGroups.combineLinksForUsers(userRowIdToKeep, otherUserRowIds);
+		}
+		//TODO: figured out how to make sure we update everywehre user apperas, for example if we add user to a new databse like commetns for example
+
 	}
 
 	/**
@@ -411,7 +597,7 @@ extends TableAdapter <UsersAdapter>{
 
 		// The where clause
 		String where = 
-			KEY_ROW_ID + " = ?";
+				KEY_ROW_ID + " = ?";
 
 		// The selection args
 		String[] selectionArgs = {String.valueOf(usersRowId)};
@@ -465,7 +651,7 @@ extends TableAdapter <UsersAdapter>{
 
 		// The where clause
 		String where = 
-			KEY_CONTACTS_ROW_ID + " = ?";
+				KEY_CONTACTS_ROW_ID + " = ?";
 
 		// The selection args
 		String[] selectionArgs = {String.valueOf(contactsRowId)};
@@ -497,7 +683,7 @@ extends TableAdapter <UsersAdapter>{
 		// check if we have a row that we can update
 		// The where clause
 		String where = 
-			KEY_ROW_ID + " = ?";
+				KEY_ROW_ID + " = ?";
 
 		// The selection args
 		String[] selectionArgs = {String.valueOf(rowId)};
@@ -527,7 +713,7 @@ extends TableAdapter <UsersAdapter>{
 
 		// create the query
 		String selection = 
-			KEY_CONTACTS_ROW_ID+ " = ?";
+				KEY_CONTACTS_ROW_ID+ " = ?";
 
 		// the selection args
 		String[] selectionArgs = {String.valueOf(contactId)};
@@ -568,7 +754,7 @@ extends TableAdapter <UsersAdapter>{
 
 		// The where clause
 		String where = 
-			KEY_ROW_ID + " = ?";
+				KEY_ROW_ID + " = ?";
 
 		// The selection args
 		String[] selectionArgs = {String.valueOf(rowId)};
@@ -599,16 +785,16 @@ extends TableAdapter <UsersAdapter>{
 		// grab the cursor
 		Cursor cursor =
 
-			database.query(
-					true,
-					TABLE_NAME,
-					null,
-					KEY_ROW_ID + "='" + rowId +"'",
-					null,
-					null,
-					null,
-					null,
-					null);
+				database.query(
+						true,
+						TABLE_NAME,
+						null,
+						KEY_ROW_ID + "='" + rowId +"'",
+						null,
+						null,
+						null,
+						null,
+						null);
 
 		setCursor(cursor);
 		moveToFirst();
@@ -622,16 +808,16 @@ extends TableAdapter <UsersAdapter>{
 		// grab the cursor
 		Cursor cursor =
 
-			database.query(
-					true,
-					TABLE_NAME,
-					null,
-					KEY_SERVER_ID + "='" + serverId +"'",
-					null,
-					null,
-					null,
-					null,
-					null);
+				database.query(
+						true,
+						TABLE_NAME,
+						null,
+						KEY_SERVER_ID + "='" + serverId +"'",
+						null,
+						null,
+						null,
+						null,
+						null);
 
 		setCursor(cursor);
 		moveToFirst();
@@ -648,16 +834,16 @@ extends TableAdapter <UsersAdapter>{
 		// grab the cursor
 		Cursor cursor =
 
-			database.query(
-					true,
-					TABLE_NAME,
-					null,
-					KEY_CONTACTS_ROW_ID + "='" + rowId +"'",
-					null,
-					null,
-					null,
-					null,
-					null);
+				database.query(
+						true,
+						TABLE_NAME,
+						null,
+						KEY_CONTACTS_ROW_ID + "='" + rowId +"'",
+						null,
+						null,
+						null,
+						null,
+						null);
 
 		setCursor(cursor);
 		moveToFirst();
@@ -665,7 +851,7 @@ extends TableAdapter <UsersAdapter>{
 		// double check that this matches, if it doens't match, then create a new one
 		UsersAdapter users = new UsersAdapter(ctx);
 		users.fetchUser(this.getRowId());
-		if (rowId != users.getContactDatabaseRowId(ctx))
+		if (rowId != users.getContactDatabaseRowId())
 			setCursor(null);
 		users.close();
 	}
@@ -693,16 +879,16 @@ extends TableAdapter <UsersAdapter>{
 
 		// create the query where we match up all the pictures that are in the group
 		String query = 
-			"SELECT users.* FROM "
-			+UsersAdapter.TABLE_NAME + " users "
-			+" INNER JOIN "
-			+UsersInGroupsAdapter.TABLE_NAME + " groups "
-			+" ON "
-			+"users." + UsersAdapter.KEY_ROW_ID + " = "
-			+"groups." + UsersInGroupsAdapter.KEY_USER_ID
-			+" WHERE "
-			+"groups." + UsersInGroupsAdapter.KEY_GROUP_ID
-			+"=?";
+				"SELECT users.* FROM "
+						+UsersAdapter.TABLE_NAME + " users "
+						+" INNER JOIN "
+						+UsersInGroupsAdapter.TABLE_NAME + " groups "
+						+" ON "
+						+"users." + UsersAdapter.KEY_ROW_ID + " = "
+						+"groups." + UsersInGroupsAdapter.KEY_USER_ID
+						+" WHERE "
+						+"groups." + UsersInGroupsAdapter.KEY_GROUP_ID
+						+"=?";
 
 		// do the query
 		Cursor cursor = database.rawQuery(
@@ -731,6 +917,36 @@ extends TableAdapter <UsersAdapter>{
 		if (!checkCursor())
 			return "";
 		return getString(KEY_LAST_NAME);
+	}
+
+	/**
+	 * Return the default contact method for this user. "" or null if none.
+	 * @return
+	 */
+	public String getDefaultContactInfo(){
+		if (!checkCursor())
+			return "";
+		return getString(KEY_DEFAULT_CONTACT);
+	}
+
+	/**
+	 * Return if this user has an open account, or false if we could not read.
+	 * @return
+	 */
+	public boolean getHasAccount(){
+		if (!checkCursor())
+			return false;
+		else return getBoolean(KEY_HAS_ACCOUNT);
+	}
+
+	/**
+	 * Return the pictureId for this user or -1 if it couldn't be found
+	 * @return
+	 */
+	public long getPictureId(){
+		if (!checkCursor())
+			return -1;
+		return getLong(KEY_PICTURE_ID);
 	}
 
 	/**
@@ -776,7 +992,7 @@ extends TableAdapter <UsersAdapter>{
 			JSONObject message = result.getMessageObject();
 			try {
 				name = message.optJSONObject(String.valueOf(getServerId())).optString("first_name") + " " +
-					message.getJSONObject(String.valueOf(getServerId())).optString("last_name");
+						message.getJSONObject(String.valueOf(getServerId())).optString("last_name");
 			} catch (JSONException e) {
 				// TODO Auto-generated catch block
 				Log.e("TAG", Log.getStackTraceString(e));
@@ -808,7 +1024,7 @@ extends TableAdapter <UsersAdapter>{
 	 * This searches the contacts database to confirm we have the correct id, so it can be slow
 	 * @return
 	 */
-	public long getContactDatabaseRowId(Context ctx){
+	public long getContactDatabaseRowId(){
 		//TODO: this method is slow, but currently required to make sure we don't get contact confusion. it can be fixed by outputing a uri, so it doesn't have to be done again in adduserstogroup
 		if (!checkCursor())
 			return -1;
@@ -911,7 +1127,7 @@ extends TableAdapter <UsersAdapter>{
 
 		// create the query
 		String selection = 
-			KEY_ROW_ID + " = ?";
+				KEY_ROW_ID + " = ?";
 
 		// the selection args
 		String[] selectionArgs = {String.valueOf(contactId)};
@@ -955,7 +1171,7 @@ extends TableAdapter <UsersAdapter>{
 
 		// create the query
 		String selection = 
-			KEY_ROW_ID + " = ?";
+				KEY_ROW_ID + " = ?";
 
 		// the selection args
 		String[] selectionArgs = {String.valueOf(rowId)};
@@ -1006,7 +1222,7 @@ extends TableAdapter <UsersAdapter>{
 
 		// create the query
 		String selection = 
-			columnName + " = ?";
+				columnName + " = ?";
 
 		// the selection args
 		String[] selectionArgs = {columnValue};
@@ -1058,7 +1274,7 @@ extends TableAdapter <UsersAdapter>{
 
 		// create the query
 		String selection = 
-			columnName + " = ?";
+				columnName + " = ?";
 
 		// the selection args
 		String[] selectionArgs = {columnValue};
@@ -1102,7 +1318,7 @@ extends TableAdapter <UsersAdapter>{
 
 		// create the query
 		String selection = 
-			KEY_ROW_ID + " = ?";
+				KEY_ROW_ID + " = ?";
 
 		// the selection args
 		String[] selectionArgs = {String.valueOf(rowId)};

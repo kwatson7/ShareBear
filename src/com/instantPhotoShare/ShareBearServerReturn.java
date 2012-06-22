@@ -32,6 +32,7 @@ extends ServerPost.ServerReturn{
 	private static final String NO_JSON_DATA_MESSAGE = "No return from the server";
 	private static final String INCORRECT_FORMAT_CODE = "INCORRECT_FORMAT_CODE";
 	private static final String INCORRECT_FORMAT_CODE_STRING = "Server Error";
+	public static final String EMAIL_VALIDATION_ERROR = "EMAIL_VALIDATION_ERROR";
 	
 	// member variables
 	private JSONObject messageObject = null;
@@ -158,5 +159,26 @@ extends ServerPost.ServerReturn{
 			return null;
 		}
 		return json;
+	}
+	
+	/**
+	 * Check if we had an email validation error
+	 * @return true if email validation error, false otherwise
+	 */
+	public boolean isEmailValidationError(){
+		// success, can't be email error
+		if (isSuccess())
+			return false;
+		
+		// no error code, can't be email error
+		String errCode = getErrorCode();
+		if (errCode == null)
+			return false;
+		
+		// compare to expected string
+		if (errCode.compareToIgnoreCase(EMAIL_VALIDATION_ERROR) == 0)
+			return true;
+		else
+			return false;
 	}
 }

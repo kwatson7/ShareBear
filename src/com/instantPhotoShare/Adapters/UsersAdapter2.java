@@ -544,7 +544,7 @@ extends TableAdapter <UsersAdapter>{
 		// double check that this matches, if it doens't match, then create a new one
 		UsersAdapter users = new UsersAdapter(ctx);
 		users.fetchUser(this.getRowId());
-		if (rowId != users.getContactDatabaseRowId(ctx))
+		if (rowId != users.getContactDatabaseRowId())
 			setCursor(null);
 		users.close();
 	}

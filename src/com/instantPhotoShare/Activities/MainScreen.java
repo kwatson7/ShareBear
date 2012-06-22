@@ -6,6 +6,7 @@ package com.instantPhotoShare.Activities;
 import java.util.ArrayList;
 
 import com.instantPhotoShare.R;
+import com.instantPhotoShare.ShareBearServerReturn;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.PicturesAdapter;
@@ -16,9 +17,11 @@ import com.tools.TwoObjects;
 import com.tools.images.MemoryCache;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
@@ -41,6 +44,7 @@ extends CustomActivity{
 	// constants
 	private static final String FETCHING_DATA_TAG = "fetchingData";
 	private static final int N_RANDOM_PICTURES = 500; 	// number of pictures to fetch on bottom gallery
+	private static final long TIME_TO_WAIT_ON_EMAIL_ERROR = 3500;
 
 	// pointers to graphics objects
 	private ImageView createNewGroup;
@@ -51,6 +55,7 @@ extends CustomActivity{
 
 	// misc private variables
 	private CustomActivity act = this;
+	private AlertDialog noEmailDialog = null;
 
 	// enums for menu items
 	private enum MENU_ITEMS { 										
@@ -98,14 +103,14 @@ extends CustomActivity{
 	 * Fetch any new groups that the user has been added to
 	 */
 	private void fetchNewGroups(){
-		
+
 		// the groups adapter needed to fetch groups
 		GroupsAdapter groups = new GroupsAdapter(ctx);
-		
+
 		// the notification spinning progress bars to update while downloading
 		ArrayList<String> bars = new ArrayList<String>(1);
 		bars.add(FETCHING_DATA_TAG);
-		
+
 		// fetch the groups
 		groups.fetchAllGroupsFromServer(this, bars, new GroupsAdapter.ItemsFetchedCallback<MainScreen>() {
 
@@ -118,7 +123,7 @@ extends CustomActivity{
 				// save the number of groups
 				if (act != null && errorCode != null){
 					act.nNewGroups = nNewItems;
-					
+
 					// post a notification
 					Intent intent = new Intent(act, GroupGallery.class);
 					intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -130,7 +135,7 @@ extends CustomActivity{
 							"You've been added to " + nNewItems + " new groups.",
 							0,
 							intent);
-					
+
 					//TODO: use appropriate id instead of 0
 					//TODO: we dont' want a toast, an android notification, and a sharebear notification
 					//TODO: should these calls just be insided the calling function instead of out here.
@@ -154,9 +159,36 @@ extends CustomActivity{
 				if (errorCode != null){
 					Log.e(Utils.LOG_TAG, "Error code when fetching groups " + errorCode);
 				}	
+
+				// email validation error
+				if (errorCode != null && errorCode.compareToIgnoreCase(ShareBearServerReturn.EMAIL_VALIDATION_ERROR) == 0){
+					noEmailDialog = com.tools.Tools.showAlert(act, ctx, "You must validate your email for proper fucntionality! ShareBear closing...");
+					killActivtyThread.start();
+				}
 			}
 		});
 	}
+
+	/**
+	 * This thread will wait 3.5 seconds and then kill the activity
+	 */
+	private Thread killActivtyThread = new Thread(){
+		@Override
+		public void run() {
+			try {
+				Thread.sleep(TIME_TO_WAIT_ON_EMAIL_ERROR);
+				try{
+					if (noEmailDialog != null)
+						noEmailDialog.dismiss();
+				}catch(Exception e){
+					Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+				}
+				MainScreen.this.finish();
+			} catch (Exception e) {
+				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			}
+		}  
+	};
 
 	/**
 	 * Find the cursor required for pictures

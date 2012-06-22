@@ -712,8 +712,7 @@ extends CustomActivity{
 							mCtx,
 							contactId,
 							contactCursorWrapper.getLookupKey(),
-							contactMethod,
-							-1));
+							contactMethod));
 				}else
 					users.setDefaultContactInfo(users.getRowId(), contactMethod);
 				
@@ -837,8 +836,7 @@ extends CustomActivity{
 							mCtx,
 							contactId,
 							contactCursorWrapper.getLookupKey(),
-							contactMethod,
-							-1));
+							contactMethod));
 				}else
 					users.setDefaultContactInfo(users.getRowId(), contactMethod);
 				
@@ -1158,8 +1156,7 @@ extends CustomActivity{
 								mCtx,
 								contactId,
 								contactCursorWrapper.getLookupKey(), 
-								defaultMethod,
-								-1));
+								defaultMethod));
 					}
 					mContactChecked.setItem(new ContactCheckedItem(
 							contactId,

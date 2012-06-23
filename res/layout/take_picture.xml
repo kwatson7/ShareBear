@@ -6,12 +6,27 @@
 	android:id="@+id/take_picture"
 	android:background="@drawable/camera_background"
 	android:padding="3dp">
+<FrameLayout
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content">
 <SurfaceView android:id="@+id/surface_camera"
 	android:layout_width="0px"
 	android:layout_height="0px"
-	android:onClick="surfaceClicked"
 	android:layout_gravity="center_horizontal"	
 />
+<ImageView
+	android:id="@+id/flashButton"
+	android:layout_width="32dp"
+	android:layout_height="32dp"
+	android:layout_gravity="left|bottom"
+	android:scaleType="centerCrop"
+	android:onClick="onFlashClicked"
+	android:src="@drawable/auto_flash"
+	android:background="@drawable/blue_selector"
+	android:padding="5dp"
+	android:cropToPadding="true"
+/>
+</FrameLayout>
 <LinearLayout
 	android:orientation="horizontal"
 	android:layout_width="wrap_content"
@@ -118,4 +133,11 @@
 		android:onClick="retakeClicked"
 	/>
 </LinearLayout>
+<android.widget.VerticalSeekBar
+    android:id="@+id/zoomBar"
+    android:layout_width="wrap_content"
+    android:layout_height="200dp"
+    android:layout_gravity="right|center_vertical"
+    android:visibility="invisible"
+/>
 </FrameLayout>

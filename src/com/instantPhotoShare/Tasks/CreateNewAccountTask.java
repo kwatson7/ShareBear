@@ -103,6 +103,8 @@ extends com.tools.CustomAsyncTask <ACTIVITY_TYPE, Integer, CreateNewAccountTask<
 		// check failure or not
 		if (rowId == -1)
 			return false;
+		
+		adapter.setIsSynced(rowId, true, taskValue.getUserId(), true);
 
 		// store the rest of the settings
 		Prefs.setUserRowId(applicationCtx, rowId);
@@ -136,7 +138,6 @@ extends com.tools.CustomAsyncTask <ACTIVITY_TYPE, Integer, CreateNewAccountTask<
 		// send result back to activity
 		if (callingActivity != null)
 			sendObjectToActivityFromPostExecute(result);
-
 	}
 
 	@Override

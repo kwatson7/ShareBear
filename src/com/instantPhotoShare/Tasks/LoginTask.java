@@ -114,6 +114,8 @@ extends com.tools.CustomAsyncTask<ACTIVITY_TYPE, Integer, LoginTask<ACTIVITY_TYP
 		// check failure or not
 		if (rowId == -1)
 			return false;
+		
+		adapter.setIsSynced(rowId, true, returnVal.getUserId(), true);
 
 		// store the rest of the settings
 		Prefs.setUserRowId(applicationCtx, rowId);

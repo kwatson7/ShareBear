@@ -1,5 +1,7 @@
 package com.instantPhotoShare.Activities;
 
+import java.util.ArrayList;
+
 import com.instantPhotoShare.Person;
 import com.instantPhotoShare.R;
 import com.instantPhotoShare.Utils;
@@ -137,12 +139,15 @@ extends CustomActivity {
     		return;
     	}
     	
-    	// check valid email
-    	if (!com.tools.Tools.isValidEmail(email)){
-    		Toast.makeText(this,
-    				"Invalid email address",
-    				Toast.LENGTH_LONG).show();
-    		return;
+    	// check valid emails
+    	ArrayList<String> emailArray = com.tools.Tools.setArrayFromString(email, ",");
+    	for (String item : emailArray){
+    		if (!com.tools.Tools.isValidEmail(item)){
+        		Toast.makeText(this,
+        				"Invalid email address",
+        				Toast.LENGTH_LONG).show();
+        		return;
+        	}
     	}
     			
     	// create the account on the server

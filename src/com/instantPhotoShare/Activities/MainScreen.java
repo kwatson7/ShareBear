@@ -159,12 +159,6 @@ extends CustomActivity{
 				if (errorCode != null){
 					Log.e(Utils.LOG_TAG, "Error code when fetching groups " + errorCode);
 				}	
-
-				// email validation error
-				if (errorCode != null && errorCode.compareToIgnoreCase(ShareBearServerReturn.EMAIL_VALIDATION_ERROR) == 0){
-					noEmailDialog = com.tools.Tools.showAlert(act, ctx, "You must validate your email for proper fucntionality! ShareBear closing...");
-					killActivtyThread.start();
-				}
 			}
 		});
 	}
@@ -327,7 +321,6 @@ extends CustomActivity{
 
 	@Override
 	protected void additionalConfigurationStoring() {
-		// TODO Auto-generated method stub
 
 	}
 

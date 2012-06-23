@@ -130,7 +130,7 @@ extends CustomActivity {
 
 	@Override
 	protected void additionalConfigurationStoring() {
-		// TODO Auto-generated method stub		
+	
 	}
 
 	@Override

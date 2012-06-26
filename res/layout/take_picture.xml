@@ -16,12 +16,12 @@
 />
 <ImageView
 	android:id="@+id/flashButton"
-	android:layout_width="32dp"
-	android:layout_height="32dp"
+	android:layout_width="64dp"
+	android:layout_height="64dp"
 	android:layout_gravity="left|bottom"
 	android:scaleType="centerCrop"
 	android:onClick="onFlashClicked"
-	android:src="@drawable/auto_flash"
+	android:src="@drawable/flash_auto"
 	android:background="@drawable/blue_selector"
 	android:padding="5dp"
 	android:cropToPadding="true"
@@ -139,5 +139,6 @@
     android:layout_height="200dp"
     android:layout_gravity="right|center_vertical"
     android:visibility="invisible"
+    android:padding="4dp"
 />
 </FrameLayout>

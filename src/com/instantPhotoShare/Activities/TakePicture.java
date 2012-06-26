@@ -16,11 +16,10 @@ import android.content.DialogInterface;
 import android.content.DialogInterface.OnDismissListener;
 import android.content.Intent;
 import android.content.DialogInterface.OnClickListener;
+import android.graphics.Color;
 import android.graphics.PixelFormat;
-import android.graphics.Canvas.VertexMode;
 import android.hardware.Camera;
 import android.hardware.Camera.AutoFocusCallback;
-import android.hardware.Camera.Parameters;
 import android.hardware.Camera.ShutterCallback;
 import android.app.AlertDialog;
 import android.media.AudioManager;
@@ -29,17 +28,13 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.text.Html;
-import android.text.method.HideReturnsTransformationMethod;
 import android.util.Log;
-import android.view.ContextMenu;
 import android.view.KeyEvent;
-import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
-import android.view.ContextMenu.ContextMenuInfo;
 import android.view.View.OnLongClickListener;
 import android.view.View.OnTouchListener;
 import android.view.Window;
@@ -53,7 +48,6 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
-import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.Toast;
 
@@ -69,7 +63,6 @@ implements SurfaceHolder.Callback{
 	private CustomActivity act = this; 													// the activity
 	private ArrayList<Group> selectedGroups = new ArrayList<GroupsAdapter.Group>(); 	// this list of selected groups
 	private boolean isChangeGroupShowing = false;										// boolean to keep track if group selector is showing
-	private String flashMode = Camera.Parameters.FLASH_MODE_AUTO; 						// the flash mode currently set
 
 	// pointers to graphics
 	private com.tools.TextViewMarquee groupsPortraitView;								// The groups we have selected
@@ -197,15 +190,15 @@ implements SurfaceHolder.Callback{
 		// on volume button press, take the picture
 		if (action == KeyEvent.ACTION_DOWN &&
 				(keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
-				keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) &&
-				!isWaitingForPictureSave){
+						keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) &&
+						!isWaitingForPictureSave){
 			goClicked(goButton);
 			return true;
 
 			// capture up events for volume buttons as well, so it doesn't beep	
 		}else if (action == KeyEvent.ACTION_UP &&
 				(keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
-				keyCode == KeyEvent.KEYCODE_VOLUME_DOWN)){
+						keyCode == KeyEvent.KEYCODE_VOLUME_DOWN)){
 			return true;
 		}
 
@@ -322,13 +315,6 @@ implements SurfaceHolder.Callback{
 			}
 		});
 
-		// check if we have a flash
-		List<String> modes = cameraHelper.getSupportedFlashModes();
-		//	if (modes == null || modes.size() == 0)
-		//	flashButton.setVisibility(View.INVISIBLE);
-		//	else
-		//		flashButton.setVisibility(View.VISIBLE);
-
 		setupFlashMenu();
 	}
 
@@ -347,25 +333,25 @@ implements SurfaceHolder.Callback{
 
 					// change the default contact method
 					if (cameraHelper.setFlash(Camera.Parameters.FLASH_MODE_AUTO)){
-						flashButton.setImageDrawable(getResources().getDrawable(R.drawable.auto_flash));
+						flashButton.setImageDrawable(getResources().getDrawable(R.drawable.flash_auto));
 					}else
 						Toast.makeText(ctx, "Could not set flash", Toast.LENGTH_SHORT).show();
 					break;
 
-				// turn the flash on	
+					// turn the flash on	
 				case R.id.flashOn:
 					// change the default contact method
 					if (cameraHelper.setFlash(Camera.Parameters.FLASH_MODE_ON)){
-						flashButton.setImageDrawable(getResources().getDrawable(R.drawable.auto_flash));
+						flashButton.setImageDrawable(getResources().getDrawable(R.drawable.flash_on));
 					}else
 						Toast.makeText(ctx, "Could not set flash", Toast.LENGTH_SHORT).show();
 					break;
 
-				// turn the flash off	
+					// turn the flash off	
 				case R.id.flashOff:
 					// change the default contact method
 					if (cameraHelper.setFlash(Camera.Parameters.FLASH_MODE_OFF)){
-						flashButton.setImageDrawable(getResources().getDrawable(R.drawable.auto_flash));
+						flashButton.setImageDrawable(getResources().getDrawable(R.drawable.flash_off));
 					}else
 						Toast.makeText(ctx, "Could not set flash", Toast.LENGTH_SHORT).show();
 					break;
@@ -374,6 +360,8 @@ implements SurfaceHolder.Callback{
 			}
 		};
 		flashMenu.setOnIconContextItemSelectedListener(listener);
+		Integer color = Color.argb(128, 128, 128, 128);
+		flashMenu.setBackgroundColor(color);
 	}
 
 	/**
@@ -381,6 +369,16 @@ implements SurfaceHolder.Callback{
 	 * @param v
 	 */
 	public void onFlashClicked(View v){
+		String flashMode = cameraHelper.getFlashMode();
+		if (flashMode == null)
+			return;
+		int color = Color.argb(200, 0, 198, 253);
+		if (flashMode.compareToIgnoreCase(Camera.Parameters.FLASH_MODE_AUTO)==0)
+			flashMenu.setSelectedBackgroundColor(color, 0);
+		else if (flashMode.compareToIgnoreCase(Camera.Parameters.FLASH_MODE_ON)==0)
+			flashMenu.setSelectedBackgroundColor(color, 1);
+		else if (flashMode.compareToIgnoreCase(Camera.Parameters.FLASH_MODE_OFF)==0)
+			flashMenu.setSelectedBackgroundColor(color, 2);
 		flashMenu.show();
 	}
 
@@ -388,7 +386,7 @@ implements SurfaceHolder.Callback{
 	 * Rotation callback. Rotate the views of interest.
 	 */
 	private CameraHelper.OnRotationCallback onRotate = 
-			new CameraHelper.OnRotationCallback() {
+		new CameraHelper.OnRotationCallback() {
 
 		@Override
 		public void onRotation(int orientation, int lastOrientation) {
@@ -485,6 +483,13 @@ implements SurfaceHolder.Callback{
 			surfaceCreated(previewHolder);
 			surfaceChanged(previewHolder, PIXEL_FORMAT, surfaceView.getWidth(), surfaceView.getHeight());
 		}
+
+		// check if we have a flash
+		List<String> modes = cameraHelper.getSupportedFlashModes();
+		if (modes == null || modes.size() == 0)
+			flashButton.setVisibility(View.INVISIBLE);
+		else
+			flashButton.setVisibility(View.VISIBLE);
 
 	}
 
@@ -721,7 +726,6 @@ implements SurfaceHolder.Callback{
 		try {
 			cameraHelper.setSurfaceSizePreviewSizeCameraSize(
 					this,
-					flashMode,
 					null,
 					null,
 					null,
@@ -772,7 +776,7 @@ implements SurfaceHolder.Callback{
 				camBytes,
 				camRotation,
 				this.selectedGroups,
-				"");
+		"");
 		task.execute();
 
 		camBytes = null;

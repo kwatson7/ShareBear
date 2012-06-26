@@ -180,7 +180,7 @@ public class Utils {
 		for (int i = 0; i < ILLEGAL_CHARACTERS.length; i++)
 			out = out.replace(ILLEGAL_CHARACTERS[i], '_');
 
-		return out;
+		return out.trim();
 	}
 
 	/**

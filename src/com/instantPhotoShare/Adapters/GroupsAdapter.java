@@ -1237,6 +1237,7 @@ extends TableAdapter <GroupsAdapter>{
 	 * @param allowPublicWithinDistance allow anybody to join group if there are within this many miles of group (pass -1) to not allow
 	 * @param keepLocal boolean to keep these pictures local
 	 * @return The rowId of the group, -1 if it failed.
+	 * @throws IOException if folders cannot be created to save groups
 	 */
 	public long makeNewGroup(
 			Context ctx,
@@ -1248,7 +1249,7 @@ extends TableAdapter <GroupsAdapter>{
 			Double latitude,
 			Double longitude,
 			double allowPublicWithinDistance,
-			boolean keepLocal){
+			boolean keepLocal) throws IOException{
 
 		// override some values and/or check
 		if (dateCreated == null || dateCreated.length() == 0)
@@ -1431,8 +1432,11 @@ extends TableAdapter <GroupsAdapter>{
 	 * @param groupName The group name
 	 * @param dateCreated The date this was created
 	 * @return threeObjects<String, String, STring> with top level folder, pictures folder, and thumbnails folder
+	 * @throws IOException 
 	 */
-	private ThreeObjects<String, String, String> makeRequiredFolders(Context ctx, String groupName, String dateCreated){
+	private ThreeObjects<String, String, String>
+	makeRequiredFolders(Context ctx, String groupName, String dateCreated)
+	throws IOException{
 
 		// the name
 		String folderName = getAllowableFolderName(ctx, groupName, dateCreated);
@@ -1440,23 +1444,23 @@ extends TableAdapter <GroupsAdapter>{
 		// now make the folder
 		File dir = new File(folderName);
 		if(!dir.mkdirs())
-			throw new IllegalAccessError("Cannot create folder " + folderName);
+			throw new IOException("Cannot create folder " + folderName);
 
 		// now make sub folders
 		TwoStrings subFolders = generatePicturePath(folderName, groupName);
 		File dir2 = new File(subFolders.mObject1);
 		if(!dir2.mkdirs())
-			throw new IllegalAccessError("Cannot create folder " + subFolders.mObject1);
+			throw new IOException("Cannot create folder " + subFolders.mObject1);
 		File dir3 = new File(subFolders.mObject2);
 		if(!dir3.mkdirs())
-			throw new IllegalAccessError("Cannot create folder " + subFolders.mObject2);
+			throw new IOException("Cannot create folder " + subFolders.mObject2);
 		// the no media file
 		File nomedia = new File(dir3, ".nomedia");
 		if (!nomedia.exists()){
 			try {
 				nomedia.createNewFile();
 			} catch (IOException e) {
-				throw new IllegalAccessError("Cannot create file .nomeida");
+				throw new IOException("Cannot create file .nomedia");
 			}
 		}
 

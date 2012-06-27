@@ -352,7 +352,7 @@ extends CustomActivity{
 	 * Additional configuration properties
 	 *
 	 */
-	private class ConfigurationPropertiesCustom{
+	private static class ConfigurationPropertiesCustom{
 		com.tools.images.MemoryCache<Long> cache = null;	
 	}
 

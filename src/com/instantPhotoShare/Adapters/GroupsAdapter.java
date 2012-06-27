@@ -755,7 +755,10 @@ extends TableAdapter <GroupsAdapter>{
 										-1,
 										false);
 
-								adapter.setIsSynced(groupRowId, true, groupServerId);
+								if (groupRowId != -1)
+									adapter.setIsSynced(groupRowId, true, groupServerId);
+								else
+									nNewGroups--;
 							}
 
 							// notification for new groups
@@ -922,9 +925,10 @@ extends TableAdapter <GroupsAdapter>{
 											-1,
 											false);
 
-									adapter.setIsSynced(groupRowId, true, groupServerId);
-
-									counter++;
+									if (groupRowId != -1){
+										adapter.setIsSynced(groupRowId, true, groupServerId);
+										counter++;
+									}
 								}
 							}
 						}
@@ -1237,7 +1241,6 @@ extends TableAdapter <GroupsAdapter>{
 	 * @param allowPublicWithinDistance allow anybody to join group if there are within this many miles of group (pass -1) to not allow
 	 * @param keepLocal boolean to keep these pictures local
 	 * @return The rowId of the group, -1 if it failed.
-	 * @throws IOException if folders cannot be created to save groups
 	 */
 	public long makeNewGroup(
 			Context ctx,
@@ -1249,7 +1252,7 @@ extends TableAdapter <GroupsAdapter>{
 			Double latitude,
 			Double longitude,
 			double allowPublicWithinDistance,
-			boolean keepLocal) throws IOException{
+			boolean keepLocal){
 
 		// override some values and/or check
 		if (dateCreated == null || dateCreated.length() == 0)
@@ -1263,7 +1266,13 @@ extends TableAdapter <GroupsAdapter>{
 			throw new IllegalArgumentException("cannot allow public within a distance >= 0 if lat or long are null");
 
 		// find the allowable folder name and create it
-		ThreeObjects<String, String, String> folderNames = makeRequiredFolders(ctx, groupName, dateCreated);
+		ThreeObjects<String, String, String> folderNames;
+		try {
+			folderNames = makeRequiredFolders(ctx, groupName, dateCreated);
+		} catch (IOException e) {
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			return -1;
+		}
 
 		// create values
 		ContentValues values = new ContentValues();
@@ -1436,7 +1445,7 @@ extends TableAdapter <GroupsAdapter>{
 	 */
 	private ThreeObjects<String, String, String>
 	makeRequiredFolders(Context ctx, String groupName, String dateCreated)
-	throws IOException{
+			throws IOException{
 
 		// the name
 		String folderName = getAllowableFolderName(ctx, groupName, dateCreated);

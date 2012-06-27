@@ -1002,7 +1002,7 @@ extends CustomActivity{
 	 * Additional configuration properties
 	 *
 	 */
-	private class ConfigurationPropertiesCustom{
+	private static class ConfigurationPropertiesCustom{
 		ContactCheckedArray mContactChecked = null;
 		ArrayList<TwoObjects<String, Long>> addFromGroupData;
 		boolean isAddFromGroupDialogShowing = false;

@@ -68,6 +68,7 @@ extends CustomActivity{
 		
 		// grab values
 		String groupName = groupNameEdit.getText().toString();
+		groupName = groupName.trim();
 		boolean isPrivate = keepPrivate.isChecked();
 		boolean allowOthersAdd = allowOthersToAddMembers.isChecked();
 		

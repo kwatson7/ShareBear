@@ -134,8 +134,8 @@ extends CustomActivity{
 		configurationProperties.customData = data;
 	}
 	
-	private class ConfigurationData{
-		public long groupdId = groupId;
+	private static class ConfigurationData{
+		public long groupdId = -1;
 		public Drawable backgroundDrawable;
 	}
 

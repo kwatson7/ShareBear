@@ -291,7 +291,7 @@ extends CustomActivity{
 		configurationProperties.customData = data;
 	}
 
-	private class ConfigurationData{
+	private static class ConfigurationData{
 		public Drawable backgroundDrawable;
 	}
 

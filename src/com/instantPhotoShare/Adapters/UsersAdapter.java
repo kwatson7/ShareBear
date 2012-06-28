@@ -983,7 +983,6 @@ extends TableAdapter <UsersAdapter>{
 				json.put("secret_code", Prefs.getSecretCode(ctx));
 				json.put("user_ids", array);
 			} catch (JSONException e) {
-				// TODO Auto-generated catch block
 				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 				users.close();
 				return name;
@@ -994,7 +993,6 @@ extends TableAdapter <UsersAdapter>{
 				name = message.optJSONObject(String.valueOf(getServerId())).optString("first_name") + " " +
 						message.getJSONObject(String.valueOf(getServerId())).optString("last_name");
 			} catch (JSONException e) {
-				// TODO Auto-generated catch block
 				Log.e("TAG", Log.getStackTraceString(e));
 			}
 			users.close();

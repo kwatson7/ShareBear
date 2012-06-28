@@ -315,6 +315,8 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 		//TODO: is brennan making sure to check if we can actually post to a group
 		//TODO: before doign any updates, we should be checking if there is already an update goign for all update possibilities
 		//TODO: deal with updating and syncing of picture / group pairs
+		
+		//TODO: this and uploadPicturesThatNeedIt have overlapping code. consolidate
 
 		ReturnFromPostPicture serverResponse = null;
 

@@ -15,6 +15,8 @@ import com.tools.CustomAsyncTask;
 public class SyncGroupsThatNeedIt <ACTIVITY_TYPE extends CustomActivity>
 extends CustomAsyncTask<ACTIVITY_TYPE, Void, Void>{
 
+	//TODO: this and creategrouptask have overlapping code - consolidate
+	
 	// codes to be sent to server
 	private static final String CREATE_GROUP = "create_group";
 	private static final String KEY_USER_ID = "user_id";

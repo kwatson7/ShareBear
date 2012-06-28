@@ -194,7 +194,7 @@ extends CustomActivity{
 	/**
 	 * The callback to run when we are done grabbing the pictures from the server
 	 */
-	private ItemsFetchedCallback<InsideGroupGallery> fetchPictureIdsCallback = 
+	private static ItemsFetchedCallback<InsideGroupGallery> fetchPictureIdsCallback = 
 			new ItemsFetchedCallback<InsideGroupGallery>() {
 
 		@Override

@@ -1,5 +1,6 @@
 package com.instantPhotoShare.Tasks;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
 import org.json.JSONException;
@@ -76,8 +77,16 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, Void>{
 					
 					// grab the thumbnail data
 					//TODO: re-encoding file which will lead to artifacts
+					//TODO: we're not re-encoding anymore, but make sure this gives good thumbnail data
 					String thumbPath = pics.getThumbnailPath();
-					byte[] thumb = com.tools.images.ImageLoader.getThumbnailAsByteArray(thumbPath, Utils.IMAGE_QUALITY);
+					//byte[] thumb = com.tools.images.ImageLoader.getThumbnailAsByteArray(thumbPath, Utils.IMAGE_QUALITY);
+					byte[] thumb;
+					try {
+						thumb = com.tools.Tools.readFile(thumbPath);
+					} catch (IOException e1) {
+						Log.e("TAG", Log.getStackTraceString(e1));
+						continue;
+					}
 					String fullPath = pics.getFullPicturePath();
 					if (thumb == null || thumb.length == 0 || fullPath == null || fullPath.length() == 0){
 						Log.e(Utils.LOG_TAG, "in UploadPicturesThatNeedIt, we somehow bad picture paths");
@@ -121,20 +130,15 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, Void>{
 
 	@Override
 	protected void onProgressUpdate(Void... progress) {
-		// TODO Auto-generated method stub
-
 	}
 
 	@Override
 	protected void onPostExectueOverride(Void result) {
-		// TODO Auto-generated method stub
 
 	}
 
 	@Override
 	protected void setupDialog() {
-		// TODO Auto-generated method stub
-
 	}
 
 }

@@ -112,58 +112,61 @@ extends CustomActivity{
 		bars.add(FETCHING_DATA_TAG);
 
 		// fetch the groups
-		groups.fetchAllGroupsFromServer(this, bars, new GroupsAdapter.ItemsFetchedCallback<MainScreen>() {
-
-			@Override
-			public void onItemsFetchedBackground(
-					MainScreen act,
-					int nNewItems,
-					String errorCode) {
-
-				// save the number of groups
-				if (act != null && errorCode == null){
-					act.nNewGroups = nNewItems;
-
-					// post a notification
-					if (nNewItems > 0){
-						Intent intent = new Intent(act, GroupGallery.class);
-						intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-						com.tools.Tools.postNotification(
-								act,
-								R.drawable.icon3,
-								"New Groups!",
-								"Share Bear new Groups!",
-								"You've been added to " + nNewItems + " new groups.",
-								0,
-								intent);
-					}
-
-					//TODO: use appropriate id instead of 0
-					//TODO: we dont' want a toast, an android notification, and a sharebear notification
-					//TODO: should these calls just be insided the calling function instead of out here.
-				}
-			}
-
-			@Override
-			public void onItemsFetchedUiThread(
-					MainScreen act,
-					String errorCode) {
-
-				// update adatper if there are new pictures
-				if (act!= null && act.nNewGroups > 0 && errorCode == null){
-					Toast.makeText(act, "You've been added to " + act.nNewGroups + " new groups!", Toast.LENGTH_SHORT).show();
-					//TODO: we should show the new pictures here, but right now they are just random, so off
-					//act.getPictures();
-					//act.fillPictures();
-				}
-
-				// if there was an error
-				if (errorCode != null){
-					Log.e(Utils.LOG_TAG, "Error code when fetching groups " + errorCode);
-				}	
-			}
-		});
+		groups.fetchAllGroupsFromServer(this, bars, fetchGroupsCallback);
 	}
+	
+	private static GroupsAdapter.ItemsFetchedCallback<MainScreen> fetchGroupsCallback = 
+		new GroupsAdapter.ItemsFetchedCallback<MainScreen>() {
+
+		@Override
+		public void onItemsFetchedBackground(
+				MainScreen act,
+				int nNewItems,
+				String errorCode) {
+
+			// save the number of groups
+			if (act != null && errorCode == null){
+				act.nNewGroups = nNewItems;
+
+				// post a notification
+				if (nNewItems > 0){
+					Intent intent = new Intent(act, GroupGallery.class);
+					intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+					com.tools.Tools.postNotification(
+							act,
+							R.drawable.icon3,
+							"New Groups!",
+							"Share Bear new Groups!",
+							"You've been added to " + nNewItems + " new groups.",
+							0,
+							intent);
+				}
+
+				//TODO: use appropriate id instead of 0
+				//TODO: we dont' want a toast, an android notification, and a sharebear notification
+				//TODO: should these calls just be insided the calling function instead of out here.
+			}
+		}
+
+		@Override
+		public void onItemsFetchedUiThread(
+				MainScreen act,
+				String errorCode) {
+
+			// update adatper if there are new pictures
+			if (act!= null && act.nNewGroups > 0 && errorCode == null){
+				Toast.makeText(act, "You've been added to " + act.nNewGroups + " new groups!", Toast.LENGTH_SHORT).show();
+				//TODO: we should show the new pictures here, but right now they are just random, so off
+				//act.getPictures();
+				//act.fillPictures();
+			}
+
+			// if there was an error
+			if (errorCode != null){
+				Log.e(Utils.LOG_TAG, "Error code when fetching groups " + errorCode);
+			}	
+		}
+	};
 
 	/**
 	 * This thread will wait 3.5 seconds and then kill the activity

@@ -517,7 +517,6 @@ implements SurfaceHolder.Callback{
 
 	@Override
 	protected void additionalConfigurationStoring() {
-		// TODO Auto-generated method stub
 
 	}
 

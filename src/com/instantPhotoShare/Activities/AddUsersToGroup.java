@@ -1100,14 +1100,15 @@ extends CustomActivity{
 		@Override
 		public Cursor runQueryOnBackgroundThread(CharSequence constraint){
 
-			if (constraint == null)
-				return null;
+			String searchString = "";
+			if (constraint != null)
+				searchString = constraint.toString();	
 
 			// grab cursor from search result grabbing names of interest
 			ContactCursorWrapper cursor = new ContactCursorWrapper();
 			cursor.searchDatabaseForName(
 					mAct,
-					constraint.toString(),
+					searchString,
 					onlyShowContactsFromVisibleGroup);
 
 			contactCursorWrapperTmp = cursor;
@@ -1116,8 +1117,8 @@ extends CustomActivity{
 		
 		@Override
 		public void changeCursor(Cursor c){
-			super.changeCursor(c);
 			this.contactCursorWrapper = this.contactCursorWrapperTmp;
+			super.changeCursor(c);
 		}
 
 

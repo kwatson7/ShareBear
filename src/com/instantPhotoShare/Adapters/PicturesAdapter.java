@@ -953,8 +953,7 @@ extends TableAdapter<PicturesAdapter>{
 
 		// sort backwards order
 		final String sortOrder = 
-				KEY_DATE_TAKEN + " ASC, " 
-						+ KEY_SERVER_ID + " ASC, "
+						 KEY_SERVER_ID + " ASC, "
 						+ KEY_ROW_ID + " ASC";
 
 		// where args

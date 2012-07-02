@@ -120,7 +120,7 @@
 			android:layout_weight="1"
 			android:layout_gravity="center"
 			android:padding="5dp">
-			<ImageView android:id="@+id/test"
+			<ImageView android:id="@+id/viewPictures"
 				android:layout_width="fill_parent"
 				android:layout_height="fill_parent"
 				android:layout_weight="1"
@@ -147,17 +147,62 @@
 		android:orientation="horizontal"
 		android:layout_width="fill_parent"
 		android:layout_height="0px"
-		android:layout_weight="1">
-		<ImageView android:id="@+id/button5"
-			android:layout_width="0px"
-			android:layout_height="wrap_content"
+		android:layout_weight="1"
+		android:padding="5dp">
+		<LinearLayout
+			android:layout_width="fill_parent"
+			android:layout_height="fill_parent"
+			android:orientation="vertical"
 			android:layout_weight="1"
-			android:clickable="true"
-			android:src="@drawable/coming_soon_xml"
-			android:padding="5dp"/>
+			android:layout_gravity="center"
+			android:padding="5dp">
+		<RelativeLayout
+			android:layout_width="fill_parent"
+			android:layout_height="fill_parent"
+			android:orientation="vertical"
+			android:layout_weight="1"
+			android:layout_gravity="center">
+			<ImageView
+			    android:id="@+id/notificationsButton"
+				android:layout_width="fill_parent"
+				android:layout_height="fill_parent"
+				android:layout_weight="1"
+				android:scaleType="fitCenter"
+				android:src="@drawable/notifications_xml"
+				android:clickable="true"
+				android:onClick="notificationsClicked"
+			/>
+			<TextView
+			    android:id="@+id/nNotificationsText"
+			    android:layout_width="32dp"
+			    android:layout_height="32dp"
+			    android:layout_alignTop="@+id/notificationsButton"
+			    android:layout_alignRight="@+id/notificationsButton"
+			    android:visibility="invisible"
+			    android:background="@drawable/red_circle_white_border"
+			    android:textColor="@android:color/white"
+			    android:textSize="12dp"
+			    android:typeface="serif"
+				android:textStyle="bold"
+				android:gravity="center"
+			/>
+			</RelativeLayout>
+			<TextView
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:lines="1"
+				android:text="Notifications"
+				android:layout_gravity="center_horizontal|center_vertical"
+				android:gravity="center"
+				android:textColor="@android:color/primary_text_dark"
+				android:typeface="serif"
+				android:textStyle="bold"
+				android:textSize="15dp"
+			/>
+		</LinearLayout>
 		<ImageView android:id="@+id/button6"
-			android:layout_width="0px"
-			android:layout_height="wrap_content"
+			android:layout_width="fill_parent"
+			android:layout_height="fill_parent"
 			android:layout_weight="1"
 			android:clickable="true"
 			android:src="@drawable/coming_soon_xml"

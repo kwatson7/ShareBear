@@ -187,15 +187,15 @@ extends CustomActivity{
 		if (serverId != -1){
 			ArrayList<String> bars = new ArrayList<String>(1);
 			bars.add(FETCHING_DATA_TAG);
-			groups.fetchPictureIdsFromServer(this, serverId, bars, fetchPictureIdsCallback);
+			groups.fetchPictureIdsFromServer(this, serverId, bars, new FetchPictureIdsCallback());
 		}
 	}
 
 	/**
 	 * The callback to run when we are done grabbing the pictures from the server
 	 */
-	private static ItemsFetchedCallback<InsideGroupGallery> fetchPictureIdsCallback = 
-			new ItemsFetchedCallback<InsideGroupGallery>() {
+	private static class FetchPictureIdsCallback 
+	implements ItemsFetchedCallback<InsideGroupGallery>{
 
 		@Override
 		public void onItemsFetchedBackground(

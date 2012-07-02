@@ -21,6 +21,8 @@ import android.graphics.PixelFormat;
 import android.hardware.Camera;
 import android.hardware.Camera.AutoFocusCallback;
 import android.hardware.Camera.ShutterCallback;
+import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
 import android.app.AlertDialog;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
@@ -427,6 +429,7 @@ implements SurfaceHolder.Callback{
 		return set;
 	}
 
+	@TargetApi(9)
 	@Override 
 	protected void onResume() {
 		super.onResume();
@@ -439,7 +442,7 @@ implements SurfaceHolder.Callback{
 		int currentApiVersion = android.os.Build.VERSION.SDK_INT;
 
 		// open the correct back facing camera
-		if (currentApiVersion >= Build.VERSION_CODES.GINGERBREAD) {
+		if (currentApiVersion >= Build.VERSION_CODES.GINGERBREAD) {	
 			Camera.CameraInfo info=new Camera.CameraInfo();
 
 			// loop across all cameras

@@ -39,6 +39,7 @@
         	android:windowSoftInputMode="stateHidden"/>
         <activity android:name=".Activities.LoginScreen" 
         	android:windowSoftInputMode="stateHidden"/>
+        <activity android:name=".Activities.NotificationsScreen" />
         <activity android:name=".Activities.CreateGroup"/>
         <activity android:name=".Activities.GroupGallery"/>
 		<activity android:name=".Activities.TakePicture"

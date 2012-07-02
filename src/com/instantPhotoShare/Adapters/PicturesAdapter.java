@@ -67,32 +67,32 @@ extends TableAdapter<PicturesAdapter>{
 
 	// some other constants
 	private static String SORT_ORDER = 
-			KEY_DATE_TAKEN + " DESC, " 
-					+ KEY_SERVER_ID + " DESC, "
-					+ KEY_ROW_ID + " DESC"; 			// sort the picture by most recent
+		KEY_DATE_TAKEN + " DESC, " 
+		+ KEY_SERVER_ID + " DESC, "
+		+ KEY_ROW_ID + " DESC"; 			// sort the picture by most recent
 
 	/** table creation string */
 	public static final String TABLE_CREATE =
-			"create table "
-					+TABLE_NAME +" ("
-					+KEY_ROW_ID +" integer primary key autoincrement, "
-					+KEY_SERVER_ID +" integer DEFAULT '-1', "
-					+KEY_PATH +" text, "
-					+KEY_THUMBNAIL_PATH +" text, "
-					+KEY_DATE_TAKEN +" text, "
-					+KEY_USER_ID_TOOK +" integer not null, "
-					+KEY_LATITUDE +" DOUBLE, "
-					+KEY_LONGITUE +" DOUBLE, "
-					+KEY_IS_UPDATING +" boolean DEFAULT 'FALSE', "
-					+KEY_LAST_UPDATE_ATTEMPT_TIME + LAST_UPDATE_ATTEMPT_TIME_TYPE + ", "
-					+KEY_IS_FULLSIZE_DOWNLOADING + IS_FULLSIZE_DOWNLOADING_TYPE + ", "
-					+KEY_LAST_FULLSIZE_DOWNLOAD_TIME + LAST_FULLSIZE_DOWNLOAD_ATTEMPT_TIME_TYPE + ", "
-					+KEY_IS_THUMBNAIL_DOWNLOADING + IS_THUMBNAIL_DOWNLOADING_TYPE + ", "
-					+KEY_LAST_THUMBNAIL_DOWNLOAD_TIME + LAST_THUMBNAIL_DOWNLOAD_ATTEMPT_TIME_TYPE + ", "
-					+KEY_HAS_THUMBNAIL_DATA + HAS_THUMBNAIL_DATA_TYPE + ", "
-					+KEY_IS_SYNCED +" boolean DEFAULT 'FALSE', "
-					+"foreign key(" +KEY_USER_ID_TOOK +") references " +UsersAdapter.TABLE_NAME +"(" +UsersAdapter.KEY_ROW_ID + ")"
-					+");";
+		"create table "
+		+TABLE_NAME +" ("
+		+KEY_ROW_ID +" integer primary key autoincrement, "
+		+KEY_SERVER_ID +" integer DEFAULT '-1', "
+		+KEY_PATH +" text, "
+		+KEY_THUMBNAIL_PATH +" text, "
+		+KEY_DATE_TAKEN +" text, "
+		+KEY_USER_ID_TOOK +" integer not null, "
+		+KEY_LATITUDE +" DOUBLE, "
+		+KEY_LONGITUE +" DOUBLE, "
+		+KEY_IS_UPDATING +" boolean DEFAULT 'FALSE', "
+		+KEY_LAST_UPDATE_ATTEMPT_TIME + LAST_UPDATE_ATTEMPT_TIME_TYPE + ", "
+		+KEY_IS_FULLSIZE_DOWNLOADING + IS_FULLSIZE_DOWNLOADING_TYPE + ", "
+		+KEY_LAST_FULLSIZE_DOWNLOAD_TIME + LAST_FULLSIZE_DOWNLOAD_ATTEMPT_TIME_TYPE + ", "
+		+KEY_IS_THUMBNAIL_DOWNLOADING + IS_THUMBNAIL_DOWNLOADING_TYPE + ", "
+		+KEY_LAST_THUMBNAIL_DOWNLOAD_TIME + LAST_THUMBNAIL_DOWNLOAD_ATTEMPT_TIME_TYPE + ", "
+		+KEY_HAS_THUMBNAIL_DATA + HAS_THUMBNAIL_DATA_TYPE + ", "
+		+KEY_IS_SYNCED +" boolean DEFAULT 'FALSE', "
+		+"foreign key(" +KEY_USER_ID_TOOK +") references " +UsersAdapter.TABLE_NAME +"(" +UsersAdapter.KEY_ROW_ID + ")"
+		+");";
 
 	/**
 	 * Initialize a pictures adapter that is needed for most operations.
@@ -386,13 +386,13 @@ extends TableAdapter<PicturesAdapter>{
 			// write to file
 			if (thumbPath != null && thumbPath.length() != 0){
 				SuccessReason result2 = 
-						com.tools.ImageProcessing.saveByteDataToFile(
-								appCtx,
-								data,
-								false,
-								thumbPath,
-								ExifInterface.ORIENTATION_NORMAL,
-								false);
+					com.tools.ImageProcessing.saveByteDataToFile(
+							appCtx,
+							data,
+							false,
+							thumbPath,
+							ExifInterface.ORIENTATION_NORMAL,
+							false);
 
 				// grab the id of the picture
 				long pictureServerId;
@@ -430,7 +430,9 @@ extends TableAdapter<PicturesAdapter>{
 			pics.close();
 
 			// notify anyone waiting that we are done saveing a file
-			PicturesAdapter.class.notifyAll();
+			synchronized (PicturesAdapter.class) {
+				PicturesAdapter.class.notifyAll();
+			}
 		}
 
 		// return the data
@@ -631,13 +633,13 @@ extends TableAdapter<PicturesAdapter>{
 			// write to file
 			if (thumbPath != null && thumbPath.length() != 0){
 				SuccessReason result2 = 
-						com.tools.ImageProcessing.saveByteDataToFile(
-								appCtx,
-								data,
-								false,
-								thumbPath,
-								ExifInterface.ORIENTATION_NORMAL,
-								false);
+					com.tools.ImageProcessing.saveByteDataToFile(
+							appCtx,
+							data,
+							false,
+							thumbPath,
+							ExifInterface.ORIENTATION_NORMAL,
+							false);
 
 				// grab the id of the picture
 				long pictureServerId;
@@ -688,6 +690,25 @@ extends TableAdapter<PicturesAdapter>{
 
 		// return the data
 		return bmp;
+	}
+
+	/**
+	 * Remove the picture from this table and all tables where it appears. Just locally removed however.
+	 * @param pictureRowId The picture rowId to remove
+	 */
+	public void removePictureFromDatabase(long pictureRowId){
+		//TODO: figure out how to remove picture everywhere, after we add picture to new tables. For example when I add comments and ratings.
+
+		// first delete the rows in this database
+		int effected = database.delete(
+				TABLE_NAME,
+				KEY_ROW_ID + " =?",
+				new String[] {String.valueOf(pictureRowId)});
+		Log.v(Utils.LOG_TAG, effected + " pictures removed from pic table");
+
+		// now update all the rows in the groups adapter
+		PicturesInGroupsAdapter inGroups = new PicturesInGroupsAdapter(ctx);
+		inGroups.removePictureFromAllGroups(pictureRowId);
 	}
 
 	/**
@@ -788,44 +809,44 @@ extends TableAdapter<PicturesAdapter>{
 		ArrayList<String> out = new ArrayList<String>(1);
 		if (oldVersion < 2 && newVersion >= 2){
 			String upgradeQuery = 
-					"ALTER TABLE " +
-							TABLE_NAME + " ADD COLUMN " + 
-							KEY_LAST_UPDATE_ATTEMPT_TIME + " "+
-							LAST_UPDATE_ATTEMPT_TIME_TYPE;
+				"ALTER TABLE " +
+				TABLE_NAME + " ADD COLUMN " + 
+				KEY_LAST_UPDATE_ATTEMPT_TIME + " "+
+				LAST_UPDATE_ATTEMPT_TIME_TYPE;
 			out.add(upgradeQuery);
 		}
 		if (oldVersion < 5 && newVersion >= 5){
 			String upgradeQuery = 
-					"ALTER TABLE " +
-							TABLE_NAME + " ADD COLUMN " + 
-							KEY_IS_FULLSIZE_DOWNLOADING + " "+
-							IS_FULLSIZE_DOWNLOADING_TYPE;
+				"ALTER TABLE " +
+				TABLE_NAME + " ADD COLUMN " + 
+				KEY_IS_FULLSIZE_DOWNLOADING + " "+
+				IS_FULLSIZE_DOWNLOADING_TYPE;
 			out.add(upgradeQuery);
 			String upgradeQuery2 = 
-					"ALTER TABLE " +
-							TABLE_NAME + " ADD COLUMN " + 
-							KEY_LAST_FULLSIZE_DOWNLOAD_TIME + " "+
-							LAST_FULLSIZE_DOWNLOAD_ATTEMPT_TIME_TYPE;
+				"ALTER TABLE " +
+				TABLE_NAME + " ADD COLUMN " + 
+				KEY_LAST_FULLSIZE_DOWNLOAD_TIME + " "+
+				LAST_FULLSIZE_DOWNLOAD_ATTEMPT_TIME_TYPE;
 			out.add(upgradeQuery2);
 		}
 		if (oldVersion < 6 && newVersion >= 6){
 			String upgradeQuery = 
-					"ALTER TABLE " +
-							TABLE_NAME + " ADD COLUMN " + 
-							KEY_IS_THUMBNAIL_DOWNLOADING + " "+
-							IS_THUMBNAIL_DOWNLOADING_TYPE;
+				"ALTER TABLE " +
+				TABLE_NAME + " ADD COLUMN " + 
+				KEY_IS_THUMBNAIL_DOWNLOADING + " "+
+				IS_THUMBNAIL_DOWNLOADING_TYPE;
 			out.add(upgradeQuery);
 			String upgradeQuery2 = 
-					"ALTER TABLE " +
-							TABLE_NAME + " ADD COLUMN " + 
-							KEY_LAST_THUMBNAIL_DOWNLOAD_TIME + " "+
-							LAST_THUMBNAIL_DOWNLOAD_ATTEMPT_TIME_TYPE;
+				"ALTER TABLE " +
+				TABLE_NAME + " ADD COLUMN " + 
+				KEY_LAST_THUMBNAIL_DOWNLOAD_TIME + " "+
+				LAST_THUMBNAIL_DOWNLOAD_ATTEMPT_TIME_TYPE;
 			out.add(upgradeQuery2);
 			String upgradeQuery3 = 
-					"ALTER TABLE " +
-							TABLE_NAME + " ADD COLUMN " + 
-							KEY_HAS_THUMBNAIL_DATA + " "+
-							HAS_THUMBNAIL_DATA_TYPE;
+				"ALTER TABLE " +
+				TABLE_NAME + " ADD COLUMN " + 
+				KEY_HAS_THUMBNAIL_DATA + " "+
+				HAS_THUMBNAIL_DATA_TYPE;
 			out.add(upgradeQuery3);
 		}
 
@@ -895,16 +916,16 @@ extends TableAdapter<PicturesAdapter>{
 	public void fetchPictureFromServerId(long serverId){
 		Cursor cursor =
 
-				database.query(
-						true,
-						TABLE_NAME,
-						null,
-						KEY_SERVER_ID + "=?",
-						new String[] {String.valueOf(serverId)},
-						null,
-						null,
-						SORT_ORDER,
-						null);
+			database.query(
+					true,
+					TABLE_NAME,
+					null,
+					KEY_SERVER_ID + "=?",
+					new String[] {String.valueOf(serverId)},
+					null,
+					null,
+					SORT_ORDER,
+					null);
 
 		setCursor(cursor);
 		moveToFirst();
@@ -944,17 +965,17 @@ extends TableAdapter<PicturesAdapter>{
 
 		// build the where clause
 		String where = "(pics." + KEY_SERVER_ID + " =? OR pics." + KEY_SERVER_ID + " =? OR pics." + KEY_SERVER_ID + " IS NULL ) AND " +
-				"((pics." + KEY_IS_UPDATING + " =? OR UPPER(pics." + KEY_IS_UPDATING + ") =?) OR " + 
-				"(Datetime(" + KEY_LAST_UPDATE_ATTEMPT_TIME + ") < Datetime('" + timeAgo + "'))) AND " +
-				"(pics." + KEY_IS_SYNCED + " =? OR UPPER(pics." + KEY_IS_SYNCED + ") =?)";// AND " +
+		"((pics." + KEY_IS_UPDATING + " =? OR UPPER(pics." + KEY_IS_UPDATING + ") =?) OR " + 
+		"(Datetime(" + KEY_LAST_UPDATE_ATTEMPT_TIME + ") < Datetime('" + timeAgo + "'))) AND " +
+		"(pics." + KEY_IS_SYNCED + " =? OR UPPER(pics." + KEY_IS_SYNCED + ") =?)";// AND " +
 		//"(" + KEY_HAS_THUMBNAIL_DATA + " =? OR UPPER(" + KEY_HAS_THUMBNAIL_DATA + ") =?)";
 
 		//TODO: we don't require that we have thumbnail data, for backwards compatability, but this should be turned back on soon
 
 		// sort backwards order
 		final String sortOrder = 
-						 KEY_SERVER_ID + " ASC, "
-						+ KEY_ROW_ID + " ASC";
+			KEY_SERVER_ID + " ASC, "
+			+ KEY_ROW_ID + " ASC";
 
 		// where args
 		String[] whereArgs = {String.valueOf(groupRowId),
@@ -965,19 +986,19 @@ extends TableAdapter<PicturesAdapter>{
 
 		// create the query where we match up all the pictures that are in the group
 		String query = 
-				"SELECT pics.* FROM "
-						+PicturesAdapter.TABLE_NAME + " pics "
-						+" INNER JOIN "
-						+PicturesInGroupsAdapter.TABLE_NAME + " joinner "
-						+" ON "
-						+"pics." + PicturesAdapter.KEY_ROW_ID + " = "
-						+"joinner." + PicturesInGroupsAdapter.KEY_PICTURE_ID
-						+" WHERE "
-						+"joinner." + PicturesInGroupsAdapter.KEY_GROUP_ID
-						+"=?"
-						+" AND "
-						+where
-						+" ORDER BY " + sortOrder;
+			"SELECT pics.* FROM "
+			+PicturesAdapter.TABLE_NAME + " pics "
+			+" INNER JOIN "
+			+PicturesInGroupsAdapter.TABLE_NAME + " joinner "
+			+" ON "
+			+"pics." + PicturesAdapter.KEY_ROW_ID + " = "
+			+"joinner." + PicturesInGroupsAdapter.KEY_PICTURE_ID
+			+" WHERE "
+			+"joinner." + PicturesInGroupsAdapter.KEY_GROUP_ID
+			+"=?"
+			+" AND "
+			+where
+			+" ORDER BY " + sortOrder;
 
 		// do the query
 		Cursor cursor = database.rawQuery(
@@ -1015,17 +1036,17 @@ extends TableAdapter<PicturesAdapter>{
 		TwoObjects<String, String[]> selection = createSelection("groups." + PicturesInGroupsAdapter.KEY_GROUP_ID, rowIds);
 
 		String query = 
-				"SELECT pics.* FROM "
-						+PicturesAdapter.TABLE_NAME + " pics "
-						+" INNER JOIN "
-						+PicturesInGroupsAdapter.TABLE_NAME + " groups "
-						+" ON "
-						+"pics." + PicturesAdapter.KEY_ROW_ID + " = "
-						+"groups." + PicturesInGroupsAdapter.KEY_PICTURE_ID;
+			"SELECT pics.* FROM "
+			+PicturesAdapter.TABLE_NAME + " pics "
+			+" INNER JOIN "
+			+PicturesInGroupsAdapter.TABLE_NAME + " groups "
+			+" ON "
+			+"pics." + PicturesAdapter.KEY_ROW_ID + " = "
+			+"groups." + PicturesInGroupsAdapter.KEY_PICTURE_ID;
 		if (selection.mObject1.length() > 0){
 			query+=
-					" WHERE "
-							+selection.mObject1;
+				" WHERE "
+				+selection.mObject1;
 		}
 		query+=" ORDER BY RANDOM() LIMIT '" + nPictures + "'";
 
@@ -1071,27 +1092,27 @@ extends TableAdapter<PicturesAdapter>{
 
 		// build the where clause
 		String where = 
-				"(UPPER(pics." + KEY_HAS_THUMBNAIL_DATA + ") = 'FALSE' OR pics." + KEY_HAS_THUMBNAIL_DATA + " = '0')" 
-						+ " AND "
-						+ "((UPPER(pics." + KEY_IS_THUMBNAIL_DOWNLOADING + ") = 'FALSE' OR pics." + KEY_IS_THUMBNAIL_DOWNLOADING + " = '0')"	
-						+ " OR "
-						+ "(Datetime(pics." + KEY_LAST_THUMBNAIL_DOWNLOAD_TIME + ") < Datetime('" + timeAgo + "')))"; 
+			"(UPPER(pics." + KEY_HAS_THUMBNAIL_DATA + ") = 'FALSE' OR pics." + KEY_HAS_THUMBNAIL_DATA + " = '0')" 
+			+ " AND "
+			+ "((UPPER(pics." + KEY_IS_THUMBNAIL_DOWNLOADING + ") = 'FALSE' OR pics." + KEY_IS_THUMBNAIL_DOWNLOADING + " = '0')"	
+			+ " OR "
+			+ "(Datetime(pics." + KEY_LAST_THUMBNAIL_DOWNLOAD_TIME + ") < Datetime('" + timeAgo + "')))"; 
 
 		// create the query where we match up all the pictures that are in the group
 		String query = 
-				"SELECT pics.* FROM "
-						+PicturesAdapter.TABLE_NAME + " pics "
-						+" INNER JOIN "
-						+PicturesInGroupsAdapter.TABLE_NAME + " joinner "
-						+" ON "
-						+"pics." + PicturesAdapter.KEY_ROW_ID + " = "
-						+"joinner." + PicturesInGroupsAdapter.KEY_PICTURE_ID
-						+" WHERE "
-						+"joinner." + PicturesInGroupsAdapter.KEY_GROUP_ID
-						+"=?"
-						+" AND "
-						+where
-						+" ORDER BY " + SORT_ORDER;
+			"SELECT pics.* FROM "
+			+PicturesAdapter.TABLE_NAME + " pics "
+			+" INNER JOIN "
+			+PicturesInGroupsAdapter.TABLE_NAME + " joinner "
+			+" ON "
+			+"pics." + PicturesAdapter.KEY_ROW_ID + " = "
+			+"joinner." + PicturesInGroupsAdapter.KEY_PICTURE_ID
+			+" WHERE "
+			+"joinner." + PicturesInGroupsAdapter.KEY_GROUP_ID
+			+"=?"
+			+" AND "
+			+where
+			+" ORDER BY " + SORT_ORDER;
 
 		// the number to grab
 		String limit = null;
@@ -1110,7 +1131,7 @@ extends TableAdapter<PicturesAdapter>{
 		// set cursor
 		setCursor(cursor);
 	}	
-	
+
 	/**
 	 * Update all the links that contain any of these users, and change them to the main user
 	 * @param userRowIdToKeep The user to overwrite all the other users
@@ -1277,8 +1298,8 @@ extends TableAdapter<PicturesAdapter>{
 		boolean isTimeout;
 		try {
 			isTimeout = Utils.parseMilliseconds(Utils.getNowTime()) - 
-					Utils.parseMilliseconds(getString(KEY_LAST_FULLSIZE_DOWNLOAD_TIME))
-					> 1000*TIMEOUT_ON_FULLSIZE;
+			Utils.parseMilliseconds(getString(KEY_LAST_FULLSIZE_DOWNLOAD_TIME))
+			> 1000*TIMEOUT_ON_FULLSIZE;
 
 		}catch (ParseException e) {
 			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
@@ -1303,8 +1324,8 @@ extends TableAdapter<PicturesAdapter>{
 		boolean isTimeout;
 		try {
 			isTimeout = Utils.parseMilliseconds(Utils.getNowTime()) - 
-					Utils.parseMilliseconds(getString(KEY_LAST_THUMBNAIL_DOWNLOAD_TIME))
-					> 1000*TIMEOUT_ON_THUMBNAIL;
+			Utils.parseMilliseconds(getString(KEY_LAST_THUMBNAIL_DOWNLOAD_TIME))
+			> 1000*TIMEOUT_ON_THUMBNAIL;
 
 		}catch (ParseException e) {
 			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
@@ -1325,20 +1346,20 @@ extends TableAdapter<PicturesAdapter>{
 
 		// create the query where we match up all the pictures that are in the group
 		String query = 
-				"SELECT pics.* FROM "
-						+PicturesAdapter.TABLE_NAME + " pics "
-						+" INNER JOIN "
-						+PicturesInGroupsAdapter.TABLE_NAME + " groups "
-						+" ON "
-						+"pics." + PicturesAdapter.KEY_ROW_ID + " = "
-						+"groups." + PicturesInGroupsAdapter.KEY_PICTURE_ID
-						+" WHERE "
-						+"groups." + PicturesInGroupsAdapter.KEY_GROUP_ID
-						+"=?"
-						+" AND "
-						+"pics." + PicturesAdapter.KEY_ROW_ID
-						+"=?"
-						+" ORDER BY " + SORT_ORDER;
+			"SELECT pics.* FROM "
+			+PicturesAdapter.TABLE_NAME + " pics "
+			+" INNER JOIN "
+			+PicturesInGroupsAdapter.TABLE_NAME + " groups "
+			+" ON "
+			+"pics." + PicturesAdapter.KEY_ROW_ID + " = "
+			+"groups." + PicturesInGroupsAdapter.KEY_PICTURE_ID
+			+" WHERE "
+			+"groups." + PicturesInGroupsAdapter.KEY_GROUP_ID
+			+"=?"
+			+" AND "
+			+"pics." + PicturesAdapter.KEY_ROW_ID
+			+"=?"
+			+" ORDER BY " + SORT_ORDER;
 
 		// do the query
 		Cursor cursor = database.rawQuery(
@@ -1362,16 +1383,16 @@ extends TableAdapter<PicturesAdapter>{
 	public boolean isPicturePresent(long serverId){
 		Cursor cursor =
 
-				database.query(
-						true,
-						TABLE_NAME,
-						new String[] {KEY_ROW_ID},
-						KEY_SERVER_ID + "=?",
-						new String[] {String.valueOf(serverId)},
-						null,
-						null,
-						SORT_ORDER,
-						null);
+			database.query(
+					true,
+					TABLE_NAME,
+					new String[] {KEY_ROW_ID},
+					KEY_SERVER_ID + "=?",
+					new String[] {String.valueOf(serverId)},
+					null,
+					null,
+					SORT_ORDER,
+					null);
 		boolean value = cursor.moveToFirst();
 		cursor.close();
 		return value;
@@ -1585,16 +1606,16 @@ extends TableAdapter<PicturesAdapter>{
 
 		Cursor cursor =
 
-				database.query(
-						true,
-						TABLE_NAME,
-						null,
-						KEY_ROW_ID + "=?",
-						new String[] {String.valueOf(rowId)},
-						null,
-						null,
-						SORT_ORDER,
-						null);
+			database.query(
+					true,
+					TABLE_NAME,
+					null,
+					KEY_ROW_ID + "=?",
+					new String[] {String.valueOf(rowId)},
+					null,
+					null,
+					SORT_ORDER,
+					null);
 
 		return cursor;
 	}
@@ -1609,17 +1630,17 @@ extends TableAdapter<PicturesAdapter>{
 
 		// create the query where we match up all the pictures that are in the group
 		String query = 
-				"SELECT pics.* FROM "
-						+PicturesAdapter.TABLE_NAME + " pics "
-						+" INNER JOIN "
-						+PicturesInGroupsAdapter.TABLE_NAME + " groups "
-						+" ON "
-						+"pics." + PicturesAdapter.KEY_ROW_ID + " = "
-						+"groups." + PicturesInGroupsAdapter.KEY_PICTURE_ID
-						+" WHERE "
-						+"groups." + PicturesInGroupsAdapter.KEY_GROUP_ID
-						+"=?"
-						+" ORDER BY " + SORT_ORDER;
+			"SELECT pics.* FROM "
+			+PicturesAdapter.TABLE_NAME + " pics "
+			+" INNER JOIN "
+			+PicturesInGroupsAdapter.TABLE_NAME + " groups "
+			+" ON "
+			+"pics." + PicturesAdapter.KEY_ROW_ID + " = "
+			+"groups." + PicturesInGroupsAdapter.KEY_PICTURE_ID
+			+" WHERE "
+			+"groups." + PicturesInGroupsAdapter.KEY_GROUP_ID
+			+"=?"
+			+" ORDER BY " + SORT_ORDER;
 
 		// do the query
 		Cursor cursor = database.rawQuery(
@@ -1628,19 +1649,5 @@ extends TableAdapter<PicturesAdapter>{
 
 		// return the cursor
 		return cursor;
-	}
-
-	/**
-	 * Delete the picture with the given rowId from the database
-	 * 
-	 * @param rowId id of picture to delete
-	 * @return true if deleted, false otherwise
-	 */
-	private boolean removePictureFromDatabase(long rowId) {
-
-		return database.delete(
-				TABLE_NAME,
-				KEY_ROW_ID + "=?",
-				new String[] {String.valueOf(rowId)}) > 0;
 	}
 }

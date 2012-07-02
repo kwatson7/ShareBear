@@ -1,5 +1,6 @@
 package com.instantPhotoShare.Tasks;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 
@@ -83,8 +84,13 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, Void>{
 					byte[] thumb;
 					try {
 						thumb = com.tools.Tools.readFile(thumbPath);
+					}catch (FileNotFoundException e2){
+						Log.e(Utils.LOG_TAG, Log.getStackTraceString(e2));
+						if (com.tools.Tools.isStorageAvailable(false))
+							pics.removePictureFromDatabase(pics.getRowId());
+						continue;
 					} catch (IOException e1) {
-						Log.e("TAG", Log.getStackTraceString(e1));
+						Log.e(Utils.LOG_TAG, Log.getStackTraceString(e1));
 						continue;
 					}
 					String fullPath = pics.getFullPicturePath();

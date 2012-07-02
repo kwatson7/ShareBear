@@ -482,7 +482,8 @@ extends TableAdapter <GroupsAdapter>{
 			ArrayList<String> indeterminateProgressBars,
 			final ItemsFetchedCallback<ACTIVITY_TYPE> callback){
 		//TODO: this shouldn't be synced. Will cause hanging, also doesn't even gaurantee thread safe, as multiple objects cann access this
-
+		//TODO: make checking to see what new picture we have faster. Shouldn't check each picture individually, but do a batch callback and loop over pictures
+		
 		// bad serverId
 		if (groupServerId == -1 || groupServerId == 0)
 			return;
@@ -518,7 +519,7 @@ extends TableAdapter <GroupsAdapter>{
 
 						// not a good return
 						if (!data.isSuccess()){
-							Log.e(Utils.LOG_TAG, result.getDetailErrorMessage());
+							Log.e(Utils.LOG_TAG, data.getDetailErrorMessage());
 							return;
 						}
 
@@ -582,8 +583,9 @@ extends TableAdapter <GroupsAdapter>{
 						if (counter > 0){
 							NotificationsAdapter notes = new NotificationsAdapter(ctx);
 							notes.createNotification(
-									counter + " new pictures for " + group.getName(),
-									NotificationsAdapter.NOTIFICATION_TYPES.NEW_PICTURE_IN_GROUP, String.valueOf(group.getRowId()));
+									"You have " + counter + " new pictures in " + group.getName(),
+									NotificationsAdapter.NOTIFICATION_TYPES.NEW_PICTURE_IN_GROUP,
+									String.valueOf(group.getRowId()));
 						}
 
 						// send callback back to activity
@@ -591,7 +593,7 @@ extends TableAdapter <GroupsAdapter>{
 							if (data.isSuccess())
 								callback.onItemsFetchedBackground(act, counter, null);
 							else
-								callback.onItemsFetchedBackground(act, counter, result.getErrorCode());
+								callback.onItemsFetchedBackground(act, counter, data.getErrorCode());
 						}
 					}
 
@@ -755,16 +757,19 @@ extends TableAdapter <GroupsAdapter>{
 										-1,
 										false);
 
-								if (groupRowId != -1)
+								if (groupRowId != -1){
 									adapter.setIsSynced(groupRowId, true, groupServerId);
-								else
+									notes.createNotification(
+											"You've been added to " + data.getName(groupServerId),
+											NotificationsAdapter.NOTIFICATION_TYPES.ADD_TO_NEW_GROUP, String.valueOf(groupRowId));
+								}else
 									nNewGroups--;
 							}
 
 							// notification for new groups
 							if (nNewGroups > 0){
 								notes.createNotification(
-										nNewGroups + " new groups you've been added to.",
+										"You've been added to " + nNewGroups + " new groups.",
 										NotificationsAdapter.NOTIFICATION_TYPES.ADD_TO_NEW_GROUP, null);
 							}
 
@@ -834,134 +839,6 @@ extends TableAdapter <GroupsAdapter>{
 		}
 
 		return map;
-	}
-
-	/**
-	 * Fetch all the groups from the server for a given user and then create for any new groups. 
-	 * Done a a background thread
-	 * @param <ACTIVITY_TYPE>
-	 * @param act The activity that will be attached to callback on return.
-	 * @param groupServerId the server id of the group in question
-	 * @param indeterminateProgressBars tags to progress bars to show while posting, null if none
-	 * @param callback The callback to be called when we are done. Can be null.
-	 * callback 3rd return will be how many new groups there are
-	 */
-	public synchronized <ACTIVITY_TYPE extends CustomActivity>
-	void fetchAllGroupsFromServerOld(
-			ACTIVITY_TYPE act,
-			ArrayList<String> indeterminateProgressBars,
-			final ItemsFetchedCallback<ACTIVITY_TYPE> callback){
-
-		// make json data to post
-		JSONObject json = new JSONObject();
-		try{
-			json.put("user_id", Prefs.getUserServerId(ctx));
-			json.put("secret_code", Prefs.getSecretCode(ctx));
-		}catch (JSONException e) {
-			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
-			return;
-		}
-
-		Utils.postToServer(
-				"get_groups",
-				json.toString(),
-				null,
-				null,
-				null,
-				act,
-				indeterminateProgressBars,
-				new PostCallback<ACTIVITY_TYPE>() {
-
-					@Override
-					public void onPostFinished(
-							ACTIVITY_TYPE act,
-							ServerReturn result) {
-
-						// convert to custom return object
-						GetGroupsServerReturn data = new GetGroupsServerReturn(result);
-
-						// not a good return
-						if (!data.isSuccess()){
-							Log.e(Utils.LOG_TAG, result.getDetailErrorMessage());
-							return;
-						}
-
-						// loop checking the pictures and creating in database if we don't have
-						GroupsAdapter adapter = new GroupsAdapter(ctx);
-						UsersAdapter users = new UsersAdapter(ctx);
-						int counter = 0;
-						Iterator<String> iterator = data.getMessageObject().keys();
-						while (iterator.hasNext()){
-							synchronized (GroupsAdapter.class) {
-								long groupServerId = Long.valueOf(iterator.next());
-								if (groupServerId == 0)
-									continue;
-
-								// check if group is present
-								if (!adapter.isGroupPresent(groupServerId)){
-									// see if the user exists, if it doesn't then add it
-									long userServerId = data.getUserServerIdWhoCreated(groupServerId);
-									users.fetchUserByServerId(userServerId);
-									long userRowId = users.getRowId();
-									if(userRowId == 0 ||userRowId == -1){
-										users.close();
-										userRowId = users.makeNewUser(userServerId);
-									}else
-										users.close();
-
-									// create a new group
-									//TODO: read allowOthersToAddMembers
-									//TODO: read allow within distance
-									//TODO: read lat and long
-									//TODO: read picture id for group
-									long groupRowId = adapter.makeNewGroup(ctx,
-											data.getName(groupServerId),
-											-1l,
-											data.getDateCreated(groupServerId),
-											userRowId,
-											true, 
-											null,
-											null,
-											-1,
-											false);
-
-									if (groupRowId != -1){
-										adapter.setIsSynced(groupRowId, true, groupServerId);
-										counter++;
-									}
-								}
-							}
-						}
-
-						// notification for new groups
-						if (counter > 0){
-							NotificationsAdapter notes = new NotificationsAdapter(ctx);
-							notes.createNotification(
-									counter + " new groups you've been added to.",
-									NotificationsAdapter.NOTIFICATION_TYPES.ADD_TO_NEW_GROUP, null);
-						}
-
-						// send callback back to activity
-						if (callback != null){
-							if (data.isSuccess())
-								callback.onItemsFetchedBackground(act, counter, null);
-							else
-								callback.onItemsFetchedBackground(act, counter, result.getErrorCode());
-						}
-					}
-
-					@Override
-					public void onPostFinishedUiThread(
-							ACTIVITY_TYPE act,
-							ServerReturn result) {
-						GetGroupsServerReturn result2 = new GetGroupsServerReturn(result);
-						if (callback != null)
-							if (result2.isSuccess())
-								callback.onItemsFetchedUiThread(act, null);
-							else
-								callback.onItemsFetchedUiThread(act, result2.getErrorCode());
-					}
-				});
 	}
 
 	/**
@@ -1264,6 +1141,9 @@ extends TableAdapter <GroupsAdapter>{
 		if ((latitude == null || longitude == null) &&
 				allowPublicWithinDistance >= 0)
 			throw new IllegalArgumentException("cannot allow public within a distance >= 0 if lat or long are null");
+		
+		// trim name
+		groupName = groupName.trim();
 
 		// find the allowable folder name and create it
 		ThreeObjects<String, String, String> folderNames;

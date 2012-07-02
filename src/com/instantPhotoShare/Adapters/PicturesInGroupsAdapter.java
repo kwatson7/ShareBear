@@ -1,10 +1,12 @@
 package com.instantPhotoShare.Adapters;
 
 import com.instantPhotoShare.Prefs;
+import com.instantPhotoShare.Utils;
 
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.util.Log;
 
 public class PicturesInGroupsAdapter
 extends TableAdapter <PicturesInGroupsAdapter>{
@@ -78,6 +80,20 @@ extends TableAdapter <PicturesInGroupsAdapter>{
 		groups.incrementLastPictureNumber(groupId);
 		
 		return newRow;
+	}
+	
+	/**
+	 * Remove all links for the given picture from all groups
+	 * @param pictureRowId
+	 * @see PicturesAdapter.removePictureFromDatabase
+	 */
+	public void removePictureFromAllGroups(long pictureRowId){
+		// delete all rows where it appears
+		int effected = database.delete(
+				TABLE_NAME,
+				KEY_PICTURE_ID + " =?",
+				new String[] {String.valueOf(pictureRowId)});
+		Log.v(Utils.LOG_TAG, effected + " pictures removed from pic-group link table");
 	}
 	
 	/**

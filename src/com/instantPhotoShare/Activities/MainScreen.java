@@ -9,10 +9,13 @@ import com.instantPhotoShare.R;
 import com.instantPhotoShare.ShareBearServerReturn;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
+import com.instantPhotoShare.Adapters.NotificationsAdapter;
 import com.instantPhotoShare.Adapters.PicturesAdapter;
 import com.instantPhotoShare.Tasks.CreatePrivateGroup;
 import com.instantPhotoShare.Tasks.SyncGroupsThatNeedIt;
 import com.tools.CustomActivity;
+import com.tools.CustomAsyncTask;
+import com.tools.CustomAsyncTask.FinishedCallback;
 import com.tools.TwoObjects;
 import com.tools.images.MemoryCache;
 
@@ -31,6 +34,7 @@ import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.Gallery;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.AdapterView.OnItemClickListener;
 
@@ -51,6 +55,7 @@ extends CustomActivity{
 	private Gallery gallery; 				// the gallery to show pictures
 	private PicturesGridAdapter adapter; 		// the adapter to show pictures
 	private PicturesAdapter picturesAdapater;	// An array of all the pictures
+	private TextView nNotificationsText;
 	private int nNewGroups = 0;
 
 	// misc private variables
@@ -112,11 +117,11 @@ extends CustomActivity{
 		bars.add(FETCHING_DATA_TAG);
 
 		// fetch the groups
-		groups.fetchAllGroupsFromServer(this, bars, fetchGroupsCallback);
+		groups.fetchAllGroupsFromServer(this, bars, new FetchGroupsCallback());
 	}
 	
-	private static GroupsAdapter.ItemsFetchedCallback<MainScreen> fetchGroupsCallback = 
-		new GroupsAdapter.ItemsFetchedCallback<MainScreen>() {
+	private static class FetchGroupsCallback 
+		implements GroupsAdapter.ItemsFetchedCallback<MainScreen> {
 
 		@Override
 		public void onItemsFetchedBackground(
@@ -165,6 +170,8 @@ extends CustomActivity{
 			if (errorCode != null){
 				Log.e(Utils.LOG_TAG, "Error code when fetching groups " + errorCode);
 			}	
+			
+			act.setNotificationsNumber();
 		}
 	};
 
@@ -222,6 +229,7 @@ extends CustomActivity{
 		super.onResume();
 		adapter.notifyDataSetChanged();
 		fetchNewGroups();
+		setNotificationsNumber();
 	}
 
 	/**
@@ -235,6 +243,7 @@ extends CustomActivity{
 		// grab pointers for graphics objects
 		createNewGroup = (ImageView) findViewById(R.id.createNewGroupButton);
 		gallery = (Gallery)findViewById(R.id.galleryView);
+		nNotificationsText = (TextView) findViewById(R.id.nNotificationsText);
 
 		// add click listener
 		gallery.setOnItemClickListener(pictureClick);
@@ -349,12 +358,51 @@ extends CustomActivity{
 		intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 		startActivity(intent);
 	}
+	
+	public void notificationsClicked(View v){
+		Intent intent = new Intent(this, NotificationsScreen.class);
+		intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+		startActivity(intent);
+	}
 
 	public void manageGroupsClicked(View v){
 		Intent intent = new Intent(this, ManageGroups.class);
 		intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 		startActivity(intent);
 	}
+	
+	/**
+	 * Set the number of new notifications
+	 */
+	private void setNotificationsNumber(){
+		// get the number of unread notificiations
+		NotificationsAdapter notes = new NotificationsAdapter(ctx);
+		notes.getNumberNewNotifications(this, new GetNumberNewNotificationsCallback());
+	}
+	
+	/**
+	 * Helper class used to retrieve and set the number of new notifications
+	 */
+	private static class GetNumberNewNotificationsCallback
+	implements CustomAsyncTask.FinishedCallback<MainScreen, Integer> {
+
+		@Override
+		public void onFinish(MainScreen activity, Integer result) {
+			int unreadNotifications = (java.lang.Integer) result;
+			// set the number, but clip at 99
+			if (unreadNotifications == 0){
+				activity.nNotificationsText.setVisibility(View.INVISIBLE);
+			}else if (unreadNotifications <= 99){
+				activity.nNotificationsText.setText(String.valueOf(unreadNotifications));
+				activity.nNotificationsText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
+				activity.nNotificationsText.setVisibility(View.VISIBLE);
+			}else{
+				activity.nNotificationsText.setText("99+");
+				activity.nNotificationsText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
+				activity.nNotificationsText.setVisibility(View.VISIBLE);
+			}
+		}
+	};
 
 	private class PicturesGridAdapter
 	extends BaseAdapter {

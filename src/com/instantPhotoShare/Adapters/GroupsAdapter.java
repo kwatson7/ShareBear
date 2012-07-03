@@ -22,15 +22,19 @@ import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Activities.GroupGallery;
 import com.instantPhotoShare.Tasks.CreateGroupTask;
 import com.tools.CustomActivity;
+import com.tools.CustomAsyncTask;
 import com.tools.ServerPost.PostCallback;
 import com.tools.ServerPost.ServerReturn;
 import com.tools.ThreeObjects;
 import com.tools.TwoObjects;
 import com.tools.TwoStrings;
 
+import android.app.ProgressDialog;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.DialogInterface.OnCancelListener;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.SQLException;
@@ -63,16 +67,18 @@ extends TableAdapter <GroupsAdapter>{
 	private static final String KEY_THUMBNAIL_PATH = "thumbnailPath";
 	private static final String KEY_MARK_FOR_DELETION  = "KEY_MARK_FOR_DELETION";
 	private static final String KEY_AM_I_MEMBER = "KEY_AM_I_MEMBER";
+	private static final String KEY_NUMBER_OF_PICS = "KEY_NUMBER_OF_PICS";
 
 	// types
 	private static final String MARK_FOR_DELETION_TYPE = " BOOLEAN DEFAULT 'FALSE'";
 	private static final String AM_I_MEMBER_TYPE = " BOOLEAN DEFAULT 'TRUE'";
+	private static final String NUMBER_OF_PICS_TYPE = " INTEGER NOT NULL";
 
 	// private constants
 	private static final String DEFAULT_PRIVATE_NAME = "Private"; 			// default group name for the auto-generated private group
 	private static final String PRIVATE_GROUP_COLOR = "#ADD8E6"; 			// color for private groups when toString is called
 	private static final String NON_SYNCED_PUBLIC_GROUPS_COLOR = "red"; 	// color for non-synced groups when toString is called
-	private static final String SORT_ORDER = KEY_DATE_CREATED + " DESC"; 			// sort the picture by most recent
+	private static final String SORT_ORDER = KEY_DATE_CREATED + " DESC"; 	// sort the picture by most recent
 	private static final String ADDITIONAL_QUERY_NO_AND = 
 			"(" + KEY_AM_I_MEMBER + " ='TRUE' OR " + KEY_AM_I_MEMBER + " = '1') AND (" 
 					+ KEY_MARK_FOR_DELETION + " = 'FALSE' OR " + KEY_MARK_FOR_DELETION + " = '0')";
@@ -107,6 +113,7 @@ extends TableAdapter <GroupsAdapter>{
 					+KEY_MARK_FOR_DELETION + MARK_FOR_DELETION_TYPE + ", "
 					+KEY_AM_I_MEMBER + AM_I_MEMBER_TYPE +", "
 					+KEY_IS_UPDATING +" boolean DEFAULT 'FALSE', "
+					+KEY_NUMBER_OF_PICS + NUMBER_OF_PICS_TYPE + ", "
 					+KEY_LAST_UPDATE_ATTEMPT_TIME +" text not null DEFAULT '1900-01-01 01:00:00', "
 					+KEY_IS_SYNCED +" boolean DEFAULT 'FALSE', "
 					+"foreign key(" +KEY_PICTURE_ID +") references " +PicturesAdapter.TABLE_NAME +"(" +PicturesAdapter.KEY_ROW_ID + "), " 
@@ -141,7 +148,103 @@ extends TableAdapter <GroupsAdapter>{
 			out.add(upgradeQuery);
 		}
 
+		if (oldVersion  < 10 && newVersion >= 10){
+			String upgradeQuery = 
+					"ALTER TABLE " +
+							TABLE_NAME + " ADD COLUMN " + 
+							KEY_NUMBER_OF_PICS + " "+
+							NUMBER_OF_PICS_TYPE;
+			out.add(upgradeQuery);
+		}
+
 		return out;
+	}
+
+	/**
+	 * Call this to asynchronously, with progressDialog, upgrade the database to version 10
+	 * @param act An activity required to hold the progressDialog
+	 */
+	public void upgradeToVersion10(CustomActivity act){
+		(new UpgradeToVersion10(act)).execute();
+	}
+
+	/**
+	 * Call this to asynchronously, with progressDialog, upgrade the database to version 10
+	 */
+	private class UpgradeToVersion10 extends CustomAsyncTask<CustomActivity, Integer, Void>{
+
+		public UpgradeToVersion10(CustomActivity act) {
+			super(
+					act,
+					-1,
+					true,
+					false,
+					null);
+
+		}
+
+		@Override
+		protected void onPreExecute() {
+
+		}
+
+		@Override
+		protected Void doInBackground(Void... params) {
+			// count how many pictures are in each group
+			HashMap<Long, ThreeObjects<Long, Integer, String>> nPictures = getNPicturesInGroupsByServerId();
+
+			try{
+				database.beginTransaction();
+				final String where = KEY_ROW_ID + " =?";
+				int i = 0;
+				int total = nPictures.size();
+				
+				// loop over all values in database
+				for (Entry<Long, ThreeObjects<Long, Integer, String>> entry : nPictures.entrySet()) {
+					// grab the row id and pictures stored locally, and serverid
+					ThreeObjects<Long, Integer, String> val = entry.getValue();
+					long rowId = val.mObject1;
+					int localNPics = val.mObject2;;
+
+					// update database
+					ContentValues values = new ContentValues(1);
+					values.put(KEY_NUMBER_OF_PICS, localNPics);
+					database.update(TABLE_NAME, values, where, new String[] {String.valueOf(rowId)});
+					
+					publishProgress(((i++)*100)/total);
+				}
+				database.setTransactionSuccessful();
+			}catch(SQLException e){
+				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			}finally{
+				database.endTransaction();
+			}
+			
+			return null;
+		}
+
+		@Override
+		protected void onProgressUpdate(Integer... progress) {
+			dialog.setProgress(progress[0]);
+		}
+
+		@Override
+		protected void onPostExectueOverride(Void result) {
+
+		}
+
+		@Override
+		protected void setupDialog() {
+			// show dialog for this long process
+			if (callingActivity != null){
+				dialog = new ProgressDialog(callingActivity);
+				dialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+				dialog.setTitle("Upgrading Database");
+				dialog.setMessage("Please wait...");
+				dialog.setIndeterminate(false);
+				dialog.setCancelable(false);
+			}
+		}
 	}
 
 	/**
@@ -483,7 +586,7 @@ extends TableAdapter <GroupsAdapter>{
 			final ItemsFetchedCallback<ACTIVITY_TYPE> callback){
 		//TODO: this shouldn't be synced. Will cause hanging, also doesn't even gaurantee thread safe, as multiple objects cann access this
 		//TODO: make checking to see what new picture we have faster. Shouldn't check each picture individually, but do a batch callback and loop over pictures
-		
+
 		// bad serverId
 		if (groupServerId == -1 || groupServerId == 0)
 			return;
@@ -801,7 +904,7 @@ extends TableAdapter <GroupsAdapter>{
 
 	/**
 	 * Return a map with the number of pictures in each group as the values, and the keys are the SERVERIDS, NOT ROWIDs
-	 * @return The mapping, null if we couldn't read, the key is the serverId, and value is <RowId, nPictures, groupName>
+	 * @return The mapping, null if we couldn't read, the key is the serverId, and value is "RowId, nPictures, groupName"
 	 */
 	public HashMap<Long, ThreeObjects<Long, Integer, String>> getNPicturesInGroupsByServerId(){
 		// grab all the groups
@@ -1141,7 +1244,7 @@ extends TableAdapter <GroupsAdapter>{
 		if ((latitude == null || longitude == null) &&
 				allowPublicWithinDistance >= 0)
 			throw new IllegalArgumentException("cannot allow public within a distance >= 0 if lat or long are null");
-		
+
 		// trim name
 		groupName = groupName.trim();
 

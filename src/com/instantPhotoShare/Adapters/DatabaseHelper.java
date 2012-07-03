@@ -12,7 +12,8 @@ extends SQLiteOpenHelper{
 
 	// database variables
 	private static final String DATABASE_NAME = "data.db";
-	private static final int DATABASE_VERSION = 9;
+	public static final int DATABASE_VERSION = 10;
+	private int oldVersion = -1;
 
 	// instance of database
 	private static DatabaseHelper instance;
@@ -76,14 +77,13 @@ extends SQLiteOpenHelper{
 		for (String item : notificationUpgrades)
 			db.execSQL(item);
 		
-		
-		//db.execSQL("DROP TABLE IF EXISTS "+PicturesAdapter.TABLE_NAME);
-		//db.execSQL("DROP TABLE IF EXISTS "+GroupsAdapter.TABLE_NAME);
-		//db.execSQL("DROP TABLE IF EXISTS "+UsersAdapter.TABLE_NAME);
-		//db.execSQL("DROP TABLE IF EXISTS "+CommentsAdapter.TABLE_NAME);
-		//db.execSQL("DROP TABLE IF EXISTS "+PicturesInGroupsAdapter.TABLE_NAME);
-		//db.execSQL("DROP TABLE IF EXISTS "+UsersInGroupsAdapter.TABLE_NAME);
-		//db.execSQL("DROP TABLE IF EXISTS "+NotificationsAdapter.TABLE_NAME);
-		//onCreate(db);
+		this.oldVersion = oldVersion;
+	}
+	
+	/**
+	 * Return the old database version. Will be -1 if onUpgrade was not called. open() must first have been called as well
+	 */
+	public int getOldVersion(){
+		return oldVersion;
 	}
 }

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 
 import com.tools.CursorWrapper;
+import com.tools.CustomActivity;
 import com.tools.TwoObjects;
 
 import android.content.Context;
@@ -11,7 +12,7 @@ import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 
-public abstract class TableAdapter <TYPE extends CursorWrapper<TYPE>>
+public class TableAdapter <TYPE extends CursorWrapper<TYPE>>
 extends CursorWrapper<TYPE>{
 
 	// Database protected fields
@@ -23,6 +24,17 @@ extends CursorWrapper<TYPE>{
 		ctx = context;
 		dbHelper = DatabaseHelper.getHelper(context);
 		open();
+	}
+	
+	/**
+	 * Call this method to upgrade database that require a customActivity
+	 * @param act Activity required to show progress dialog
+	 */
+	public void customUpgrade(CustomActivity act){
+		if (dbHelper.getOldVersion() < 10 && DatabaseHelper.DATABASE_VERSION >= 10){
+			GroupsAdapter groups = new GroupsAdapter(act);
+			groups.upgradeToVersion10(act);
+		}
 	}
 
 	/**

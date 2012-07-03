@@ -11,8 +11,10 @@ import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.NotificationsAdapter;
 import com.instantPhotoShare.Adapters.PicturesAdapter;
+import com.instantPhotoShare.Adapters.TableAdapter;
 import com.instantPhotoShare.Tasks.CreatePrivateGroup;
 import com.instantPhotoShare.Tasks.SyncGroupsThatNeedIt;
+import com.tools.CursorWrapper;
 import com.tools.CustomActivity;
 import com.tools.CustomAsyncTask;
 import com.tools.CustomAsyncTask.FinishedCallback;
@@ -102,6 +104,9 @@ extends CustomActivity{
 		// check for any groups that need to be synced
 		SyncGroupsThatNeedIt<MainScreen> task2 = new SyncGroupsThatNeedIt<MainScreen>(this);
 		task2.execute();
+		
+		// upgrade database 
+		(new TableAdapter(ctx)).customUpgrade(this);
 	}
 
 	/**

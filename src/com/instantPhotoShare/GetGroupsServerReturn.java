@@ -14,7 +14,6 @@ extends ShareBearServerReturn{
 	private static final String KEY_USER_COUNT = "user_count";
 	//TODO: read user_count from this return
 	private static final String KEY_PHOTO_COUNT = "photo_count";
-	//TODO: save photo_count to the database
 	
 	public GetGroupsServerReturn(ServerReturn toCopy) {
 		super(toCopy);

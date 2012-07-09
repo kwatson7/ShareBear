@@ -71,7 +71,7 @@ extends CustomActivity{
 	private CustomActivity mAct = this;					// This activity
 	private ContactCheckedArray mContactChecked = null; // Object keeping track of which contacts are checked
 	private boolean canIDeleteMembers = false; 			// if the current user can delte members from this group		
-	//TODO: implement cadIDeleteMembers
+	//TODO: implement canIDeleteMembers
 	
 	// for adding people from google groups
 	private ArrayList<TwoStrings> mGroupList; 			// This list of group names and column ids, but stored as strings

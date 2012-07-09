@@ -16,10 +16,8 @@ import org.json.JSONObject;
 
 import com.instantPhotoShare.GetGroupsServerReturn;
 import com.instantPhotoShare.Prefs;
-import com.instantPhotoShare.R;
 import com.instantPhotoShare.ShareBearServerReturn;
 import com.instantPhotoShare.Utils;
-import com.instantPhotoShare.Activities.GroupGallery;
 import com.instantPhotoShare.Tasks.CreateGroupTask;
 import com.tools.CustomActivity;
 import com.tools.CustomAsyncTask;
@@ -32,11 +30,7 @@ import com.tools.TwoStrings;
 import android.app.ProgressDialog;
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.DialogInterface;
-import android.content.Intent;
-import android.content.DialogInterface.OnCancelListener;
 import android.database.Cursor;
-import android.database.DatabaseUtils;
 import android.database.SQLException;
 import android.util.Log;
 
@@ -72,7 +66,7 @@ extends TableAdapter <GroupsAdapter>{
 	// types
 	private static final String MARK_FOR_DELETION_TYPE = " BOOLEAN DEFAULT 'FALSE'";
 	private static final String AM_I_MEMBER_TYPE = " BOOLEAN DEFAULT 'TRUE'";
-	private static final String NUMBER_OF_PICS_TYPE = " INTEGER NOT NULL";
+	private static final String NUMBER_OF_PICS_TYPE = " INTEGER NOT NULL DEFAULT '0'";
 
 	// private constants
 	private static final String DEFAULT_PRIVATE_NAME = "Private"; 			// default group name for the auto-generated private group
@@ -80,8 +74,8 @@ extends TableAdapter <GroupsAdapter>{
 	private static final String NON_SYNCED_PUBLIC_GROUPS_COLOR = "red"; 	// color for non-synced groups when toString is called
 	private static final String SORT_ORDER = KEY_DATE_CREATED + " DESC"; 	// sort the picture by most recent
 	private static final String ADDITIONAL_QUERY_NO_AND = 
-			"(" + KEY_AM_I_MEMBER + " ='TRUE' OR " + KEY_AM_I_MEMBER + " = '1') AND (" 
-					+ KEY_MARK_FOR_DELETION + " = 'FALSE' OR " + KEY_MARK_FOR_DELETION + " = '0')";
+		"(" + KEY_AM_I_MEMBER + " ='TRUE' OR " + KEY_AM_I_MEMBER + " = '1') AND (" 
+		+ KEY_MARK_FOR_DELETION + " = 'FALSE' OR " + KEY_MARK_FOR_DELETION + " = '0')";
 	private static final String ADDITIONAL_QUERY = " AND " + ADDITIONAL_QUERY_NO_AND;
 
 	// error codes
@@ -93,32 +87,32 @@ extends TableAdapter <GroupsAdapter>{
 
 	/** Table creation string */
 	public static final String TABLE_CREATE = 
-			"create table "
-					+TABLE_NAME +" ("
-					+KEY_ROW_ID +" integer primary key autoincrement, "
-					+KEY_NAME +" text not null, "
-					+KEY_SERVER_ID +" integer DEFAULT '-1', "
-					+KEY_PICTURE_ID +" integer DEFAULT '-1', "
-					+KEY_DATE_CREATED +" text not null, "
-					+KEY_USER_ID_CREATED +" integer not null, "
-					+KEY_ALLOW_OTHERS_ADD_MEMBERS +" boolean DEFAULT 'TRUE', "
-					+KEY_LATITUDE +" double, "
-					+KEY_LONGITUDE +" double, "
-					+KEY_ALLOW_PUBLIC_WITHIN_DISTANCE +" double, "
-					+KEY_KEEP_LOCAL +" BOOLEAN DEFAULT 'FALSE', "
-					+KEY_LAST_PICTURE_NUMBER +" int NOT NULL DEFAULT '-1', "
-					+KEY_GROUP_TOP_LEVEL_PATH +" TEXT NOT NULL, "
-					+KEY_PICTURE_PATH +" TEXT NOT NULL, "
-					+KEY_THUMBNAIL_PATH +" TEXT NOT NULL, "
-					+KEY_MARK_FOR_DELETION + MARK_FOR_DELETION_TYPE + ", "
-					+KEY_AM_I_MEMBER + AM_I_MEMBER_TYPE +", "
-					+KEY_IS_UPDATING +" boolean DEFAULT 'FALSE', "
-					+KEY_NUMBER_OF_PICS + NUMBER_OF_PICS_TYPE + ", "
-					+KEY_LAST_UPDATE_ATTEMPT_TIME +" text not null DEFAULT '1900-01-01 01:00:00', "
-					+KEY_IS_SYNCED +" boolean DEFAULT 'FALSE', "
-					+"foreign key(" +KEY_PICTURE_ID +") references " +PicturesAdapter.TABLE_NAME +"(" +PicturesAdapter.KEY_ROW_ID + "), " 
-					+"foreign key(" +KEY_USER_ID_CREATED +") references " +UsersAdapter.TABLE_NAME +"(" +UsersAdapter.KEY_ROW_ID + ")" 
-					+");";	
+		"create table "
+		+TABLE_NAME +" ("
+		+KEY_ROW_ID +" integer primary key autoincrement, "
+		+KEY_NAME +" text not null, "
+		+KEY_SERVER_ID +" integer DEFAULT '-1', "
+		+KEY_PICTURE_ID +" integer DEFAULT '-1', "
+		+KEY_DATE_CREATED +" text not null, "
+		+KEY_USER_ID_CREATED +" integer not null, "
+		+KEY_ALLOW_OTHERS_ADD_MEMBERS +" boolean DEFAULT 'TRUE', "
+		+KEY_LATITUDE +" double, "
+		+KEY_LONGITUDE +" double, "
+		+KEY_ALLOW_PUBLIC_WITHIN_DISTANCE +" double, "
+		+KEY_KEEP_LOCAL +" BOOLEAN DEFAULT 'FALSE', "
+		+KEY_LAST_PICTURE_NUMBER +" int NOT NULL DEFAULT '-1', "
+		+KEY_GROUP_TOP_LEVEL_PATH +" TEXT NOT NULL, "
+		+KEY_PICTURE_PATH +" TEXT NOT NULL, "
+		+KEY_THUMBNAIL_PATH +" TEXT NOT NULL, "
+		+KEY_MARK_FOR_DELETION + MARK_FOR_DELETION_TYPE + ", "
+		+KEY_AM_I_MEMBER + AM_I_MEMBER_TYPE +", "
+		+KEY_IS_UPDATING +" boolean DEFAULT 'FALSE', "
+		+KEY_NUMBER_OF_PICS + NUMBER_OF_PICS_TYPE + ", "
+		+KEY_LAST_UPDATE_ATTEMPT_TIME +" text not null DEFAULT '1900-01-01 01:00:00', "
+		+KEY_IS_SYNCED +" boolean DEFAULT 'FALSE', "
+		+"foreign key(" +KEY_PICTURE_ID +") references " +PicturesAdapter.TABLE_NAME +"(" +PicturesAdapter.KEY_ROW_ID + "), " 
+		+"foreign key(" +KEY_USER_ID_CREATED +") references " +UsersAdapter.TABLE_NAME +"(" +UsersAdapter.KEY_ROW_ID + ")" 
+		+");";	
 
 	public GroupsAdapter(Context context) {
 		super(context);
@@ -134,26 +128,26 @@ extends TableAdapter <GroupsAdapter>{
 		ArrayList<String> out = new ArrayList<String>(1);
 		if (oldVersion  < 3 && newVersion >= 3){
 			String upgradeQuery = 
-					"ALTER TABLE " +
-							TABLE_NAME + " ADD COLUMN " + 
-							KEY_MARK_FOR_DELETION + " "+
-							MARK_FOR_DELETION_TYPE;
+				"ALTER TABLE " +
+				TABLE_NAME + " ADD COLUMN " + 
+				KEY_MARK_FOR_DELETION + " "+
+				MARK_FOR_DELETION_TYPE;
 			out.add(upgradeQuery);
 
 			upgradeQuery = 
-					"ALTER TABLE " +
-							TABLE_NAME + " ADD COLUMN " + 
-							KEY_AM_I_MEMBER + " "+
-							AM_I_MEMBER_TYPE;
+				"ALTER TABLE " +
+				TABLE_NAME + " ADD COLUMN " + 
+				KEY_AM_I_MEMBER + " "+
+				AM_I_MEMBER_TYPE;
 			out.add(upgradeQuery);
 		}
 
 		if (oldVersion  < 10 && newVersion >= 10){
 			String upgradeQuery = 
-					"ALTER TABLE " +
-							TABLE_NAME + " ADD COLUMN " + 
-							KEY_NUMBER_OF_PICS + " "+
-							NUMBER_OF_PICS_TYPE;
+				"ALTER TABLE " +
+				TABLE_NAME + " ADD COLUMN " + 
+				KEY_NUMBER_OF_PICS + " "+
+				NUMBER_OF_PICS_TYPE;
 			out.add(upgradeQuery);
 		}
 
@@ -198,7 +192,7 @@ extends TableAdapter <GroupsAdapter>{
 				final String where = KEY_ROW_ID + " =?";
 				int i = 0;
 				int total = nPictures.size();
-				
+
 				// loop over all values in database
 				for (Entry<Long, ThreeObjects<Long, Integer, String>> entry : nPictures.entrySet()) {
 					// grab the row id and pictures stored locally, and serverid
@@ -210,7 +204,7 @@ extends TableAdapter <GroupsAdapter>{
 					ContentValues values = new ContentValues(1);
 					values.put(KEY_NUMBER_OF_PICS, localNPics);
 					database.update(TABLE_NAME, values, where, new String[] {String.valueOf(rowId)});
-					
+
 					publishProgress(((i++)*100)/total);
 				}
 				database.setTransactionSuccessful();
@@ -219,7 +213,7 @@ extends TableAdapter <GroupsAdapter>{
 			}finally{
 				database.endTransaction();
 			}
-			
+
 			return null;
 		}
 
@@ -325,7 +319,7 @@ extends TableAdapter <GroupsAdapter>{
 			if (theDir.exists()){
 				long newNumber = 2;
 				path = top + groupName + "_" + dateCreated + "_";
-				while (!(new File(path + newNumber + pathsep)).exists())
+				while ((new File(path + newNumber + pathsep)).exists())
 					newNumber++;
 				path = path + newNumber + pathsep;
 			}
@@ -343,16 +337,16 @@ extends TableAdapter <GroupsAdapter>{
 	public boolean isGroupPresent(long serverId){
 		Cursor cursor =
 
-				database.query(
-						true,
-						TABLE_NAME,
-						new String[] {KEY_ROW_ID},
-						KEY_SERVER_ID + "=?",
-						new String[] {String.valueOf(serverId)},
-						null,
-						null,
-						SORT_ORDER,
-						null);
+			database.query(
+					true,
+					TABLE_NAME,
+					new String[] {KEY_ROW_ID},
+					KEY_SERVER_ID + "=?",
+					new String[] {String.valueOf(serverId)},
+					null,
+					null,
+					SORT_ORDER,
+					null);
 		boolean value = cursor.moveToFirst();
 		cursor.close();
 		return value;
@@ -390,7 +384,7 @@ extends TableAdapter <GroupsAdapter>{
 
 		// The where clause
 		String where = 
-				KEY_ROW_ID + " = ?";
+			KEY_ROW_ID + " = ?";
 
 		// The selection args
 		String[] selectionArgs = {String.valueOf(rowId)};
@@ -421,7 +415,7 @@ extends TableAdapter <GroupsAdapter>{
 
 		// The where clause
 		String where = 
-				KEY_ROW_ID + " = ?";
+			KEY_ROW_ID + " = ?";
 
 		// The selection args
 		String[] selectionArgs = {String.valueOf(rowId)};
@@ -475,16 +469,16 @@ extends TableAdapter <GroupsAdapter>{
 		// grab the cursor
 		Cursor cursor =
 
-				database.query(
-						true,
-						TABLE_NAME,
-						null,
-						KEY_ROW_ID + "='" + rowId +"'" + ADDITIONAL_QUERY,
-						null,
-						null,
-						null,
-						SORT_ORDER,
-						null);
+			database.query(
+					true,
+					TABLE_NAME,
+					null,
+					KEY_ROW_ID + "='" + rowId +"'" + ADDITIONAL_QUERY,
+					null,
+					null,
+					null,
+					SORT_ORDER,
+					null);
 
 		setCursor(cursor);
 		moveToFirst();
@@ -498,17 +492,17 @@ extends TableAdapter <GroupsAdapter>{
 
 		// create the query where we match up all groups that have this picture
 		String query = 
-				"SELECT groups.* FROM "
-						+GroupsAdapter.TABLE_NAME + " groups "
-						+" INNER JOIN "
-						+PicturesInGroupsAdapter.TABLE_NAME + " joinner "
-						+" ON "
-						+"groups." + GroupsAdapter.KEY_ROW_ID + " = "
-						+"joinner." + PicturesInGroupsAdapter.KEY_GROUP_ID
-						+" WHERE "
-						+"joinner." + PicturesInGroupsAdapter.KEY_PICTURE_ID
-						+"=?" + " AND " + "groups." + KEY_AM_I_MEMBER + " ='TRUE' AND " + "groups." + KEY_MARK_FOR_DELETION + " = 'FALSE'"
-						+" ORDER BY " + SORT_ORDER;
+			"SELECT groups.* FROM "
+			+GroupsAdapter.TABLE_NAME + " groups "
+			+" INNER JOIN "
+			+PicturesInGroupsAdapter.TABLE_NAME + " joinner "
+			+" ON "
+			+"groups." + GroupsAdapter.KEY_ROW_ID + " = "
+			+"joinner." + PicturesInGroupsAdapter.KEY_GROUP_ID
+			+" WHERE "
+			+"joinner." + PicturesInGroupsAdapter.KEY_PICTURE_ID
+			+"=?" + " AND " + "groups." + KEY_AM_I_MEMBER + " ='TRUE' AND " + "groups." + KEY_MARK_FOR_DELETION + " = 'FALSE'"
+			+" ORDER BY " + SORT_ORDER;
 
 		// do the query
 		Cursor cursor = database.rawQuery(
@@ -536,11 +530,11 @@ extends TableAdapter <GroupsAdapter>{
 
 		// build the where clause
 		String where = "(" + KEY_SERVER_ID + " =? OR " + KEY_SERVER_ID + " =? OR " + KEY_SERVER_ID + " IS NULL ) AND " +
-				"(" + KEY_KEEP_LOCAL + " =? OR UPPER(" + KEY_KEEP_LOCAL + ") =?) AND " +
-				"((" + KEY_IS_UPDATING + " =? OR UPPER(" + KEY_IS_UPDATING + ") =?) OR " + 
-				"(Datetime(" + KEY_LAST_UPDATE_ATTEMPT_TIME + ") < Datetime('" + timeAgo + "'))) AND " +
-				"(" + KEY_IS_SYNCED + " =? OR UPPER(" + KEY_IS_SYNCED + ") =?) AND " +
-				"(" + KEY_MARK_FOR_DELETION + " =? OR UPPER(" + KEY_MARK_FOR_DELETION + ") =?)";
+		"(" + KEY_KEEP_LOCAL + " =? OR UPPER(" + KEY_KEEP_LOCAL + ") =?) AND " +
+		"((" + KEY_IS_UPDATING + " =? OR UPPER(" + KEY_IS_UPDATING + ") =?) OR " + 
+		"(Datetime(" + KEY_LAST_UPDATE_ATTEMPT_TIME + ") < Datetime('" + timeAgo + "'))) AND " +
+		"(" + KEY_IS_SYNCED + " =? OR UPPER(" + KEY_IS_SYNCED + ") =?) AND " +
+		"(" + KEY_MARK_FOR_DELETION + " =? OR UPPER(" + KEY_MARK_FOR_DELETION + ") =?)";
 
 		// where args
 		String[] whereArgs = {
@@ -553,16 +547,16 @@ extends TableAdapter <GroupsAdapter>{
 		// grab the cursor
 		Cursor cursor =
 
-				database.query(
-						true,
-						TABLE_NAME,
-						null,
-						where,
-						whereArgs,
-						null,
-						null,
-						SORT_ORDER,
-						null);
+			database.query(
+					true,
+					TABLE_NAME,
+					null,
+					where,
+					whereArgs,
+					null,
+					null,
+					SORT_ORDER,
+					null);
 
 		// set the cursor
 		setCursor(cursor);
@@ -715,7 +709,7 @@ extends TableAdapter <GroupsAdapter>{
 	}
 
 	/**
-	 * Fetch all the groups from the server for a given user and then create for any new groups. 
+	 * Fetch all the groups from the server for a given user and then create for any new groups. Also fetch the ids of the new pictures in groups
 	 * Done a a background thread
 	 * @param <ACTIVITY_TYPE>
 	 * @param act The activity that will be attached to callback on return.
@@ -792,6 +786,7 @@ extends TableAdapter <GroupsAdapter>{
 
 							// compare to server pictures
 							for (Entry<Long, ThreeObjects<Long, Integer, String>> entry : nPicturesInGroupsLocal.entrySet()) {
+
 								// grab the row id and pictures stored locally, and serverid
 								ThreeObjects<Long, Integer, String> val = entry.getValue();
 								long rowId = val.mObject1;
@@ -805,12 +800,27 @@ extends TableAdapter <GroupsAdapter>{
 									continue;
 
 								// store if new pictures
-								if (serverNPics > localNPics)
+								if (serverNPics > localNPics){
 									newPictures.put(rowId, new TwoObjects<Integer, String>(serverNPics-localNPics, name));
+
+									// fetch new pictures
+									adapter.fetchPictureIdsFromServer(act, serverId, null, null);
+								}
+								
+								// save the new number
+								if (serverNPics != localNPics){
+									adapter.fetchGroup(rowId);
+									adapter.setNPictures(serverNPics);
+									adapter.close();
+								}
+								
 							}
 
-							// notifications for new pictures in groups
 							NotificationsAdapter notes = new NotificationsAdapter(ctx);
+							
+							//TODO: this doesn't have to be called, as we are calling it in fetchPictureIdsFromServer above
+							/*
+							// notifications for new pictures in groups
 							for (Entry<Long, TwoObjects<Integer, String>> entry : newPictures.entrySet()) {
 								long rowId = entry.getKey();
 								TwoObjects<Integer, String> val = entry.getValue();
@@ -819,11 +829,9 @@ extends TableAdapter <GroupsAdapter>{
 								notes.createNotification(
 										"You have " + nNewPictures + " new pictures in " + name,
 										NotificationsAdapter.NOTIFICATION_TYPES.NEW_PICTURE_IN_GROUP,
-										String.valueOf(rowId));								
+										String.valueOf(rowId));	
 							}
-							//TODO: do something with these updates.
-							//TODO: we will keep getting the same update over and over until we actually go into the group.
-
+							*/
 
 							// determine which groups are new
 							UsersAdapter users = new UsersAdapter(ctx);
@@ -858,7 +866,8 @@ extends TableAdapter <GroupsAdapter>{
 										null,
 										null,
 										-1,
-										false);
+										false,
+										data.getNPictures(groupServerId));
 
 								if (groupRowId != -1){
 									adapter.setIsSynced(groupRowId, true, groupServerId);
@@ -903,7 +912,8 @@ extends TableAdapter <GroupsAdapter>{
 	}
 
 	/**
-	 * Return a map with the number of pictures in each group as the values, and the keys are the SERVERIDS, NOT ROWIDs
+	 * Return a map with the number of pictures in each group as the values, and the keys are the SERVERIDS, NOT ROWIDs.
+	 * Skips private groups
 	 * @return The mapping, null if we couldn't read, the key is the serverId, and value is "RowId, nPictures, groupName"
 	 */
 	public HashMap<Long, ThreeObjects<Long, Integer, String>> getNPicturesInGroupsByServerId(){
@@ -914,13 +924,18 @@ extends TableAdapter <GroupsAdapter>{
 
 		// loop over groups counting how many pictures are in each group.
 		while(allGroups.moveToNext()){
+			
+			if (allGroups.isKeepLocal())
+				continue;
+
+			/*
 			// create the query where we match up all the pictures that are in the group
 			String query = 
-					"SELECT COUNT(*) FROM "
-							+PicturesInGroupsAdapter.TABLE_NAME
-							+" WHERE "
-							+PicturesInGroupsAdapter.KEY_GROUP_ID
-							+"=?";
+				"SELECT COUNT(*) FROM "
+				+PicturesInGroupsAdapter.TABLE_NAME
+				+" WHERE "
+				+PicturesInGroupsAdapter.KEY_GROUP_ID
+				+"=?";
 
 			// do the query
 			Cursor cursor = database.rawQuery(
@@ -934,12 +949,16 @@ extends TableAdapter <GroupsAdapter>{
 			if (cursor.moveToFirst())
 				nPictures = cursor.getInt(0);
 			cursor.close();
+			*/
+			int nPictures = allGroups.getNPictures();
 
 			// save in map
 			long serverId = allGroups.getServerId();
 			if (serverId != -1 && serverId != 0)
 				map.put(serverId, new ThreeObjects<Long, Integer, String>(allGroups.getRowId(), nPictures, allGroups.getName()));		
 		}
+		
+		allGroups.close();
 
 		return map;
 	}
@@ -952,16 +971,16 @@ extends TableAdapter <GroupsAdapter>{
 
 		// get the cursor
 		Cursor cursor = 
-				database.query(
-						true,
-						TABLE_NAME,
-						null,
-						KEY_KEEP_LOCAL + " >'0'" + ADDITIONAL_QUERY,
-						null,
-						null,
-						null,
-						SORT_ORDER,
-						null);
+			database.query(
+					true,
+					TABLE_NAME,
+					null,
+					KEY_KEEP_LOCAL + " >'0'" + ADDITIONAL_QUERY,
+					null,
+					null,
+					null,
+					SORT_ORDER,
+					null);
 
 		// initalize output
 		ArrayList<Group> output = new ArrayList<Group>();
@@ -1020,16 +1039,16 @@ extends TableAdapter <GroupsAdapter>{
 		// grab the cursor
 		Cursor cursor =
 
-				database.query(
-						true,
-						TABLE_NAME,
-						null,
-						KEY_ROW_ID + "='" + rowId +"'" + ADDITIONAL_QUERY,
-						null,
-						null,
-						null,
-						SORT_ORDER,
-						null);
+			database.query(
+					true,
+					TABLE_NAME,
+					null,
+					KEY_ROW_ID + "='" + rowId +"'" + ADDITIONAL_QUERY,
+					null,
+					null,
+					null,
+					SORT_ORDER,
+					null);
 
 		// check null
 		if (cursor == null || !cursor.moveToFirst())
@@ -1061,16 +1080,16 @@ extends TableAdapter <GroupsAdapter>{
 		// grab the cursor
 		Cursor cursor =
 
-				database.query(
-						true,
-						TABLE_NAME,
-						null,
-						KEY_SERVER_ID + "=?" + ADDITIONAL_QUERY,
-						new String[] {String.valueOf(serverId)},
-						null,
-						null,
-						SORT_ORDER,
-						null);
+			database.query(
+					true,
+					TABLE_NAME,
+					null,
+					KEY_SERVER_ID + "=?" + ADDITIONAL_QUERY,
+					new String[] {String.valueOf(serverId)},
+					null,
+					null,
+					SORT_ORDER,
+					null);
 
 		// check null
 		if (cursor == null || !cursor.moveToFirst())
@@ -1086,6 +1105,39 @@ extends TableAdapter <GroupsAdapter>{
 		// close and return
 		cursor.close();
 		return output;
+	}
+
+	/**
+	 * Return the number of pictures that should be in the group
+	 * @return
+	 */
+	public int getNPictures(){
+		if (!checkCursor())
+			return 0;
+		else
+			return getInt(KEY_NUMBER_OF_PICS);
+	}
+
+	/**
+	 * Set the number of pictures the server says this group should have
+	 * @param nPictures
+	 */
+	public void setNPictures(int nPictures){
+		// grab which rowId we are working with
+		if (!checkCursor())
+			return;
+		long rowId = getRowId();
+
+		// the value to update
+		ContentValues values = new ContentValues();
+		values.put(KEY_NUMBER_OF_PICS, nPictures);	
+
+		// update it
+		if (database.update(
+				TABLE_NAME,
+				values,
+				KEY_ROW_ID + "='" + rowId + "'", null) <= 0)
+			Log.e(Utils.LOG_TAG, "database did not update the number of pictures for groupRowId" + rowId);
 	}
 
 	/**
@@ -1105,14 +1157,14 @@ extends TableAdapter <GroupsAdapter>{
 
 		// get the cursor
 		Cursor cursor = 
-				database.query(
-						TABLE_NAME,
-						null,
-						selection.mObject1 + ADDITIONAL_QUERY,
-						selection.mObject2,
-						null,
-						null,
-						SORT_ORDER);
+			database.query(
+					TABLE_NAME,
+					null,
+					selection.mObject1 + ADDITIONAL_QUERY,
+					selection.mObject2,
+					null,
+					null,
+					SORT_ORDER);
 
 		// check null
 		if (cursor == null)
@@ -1198,12 +1250,13 @@ extends TableAdapter <GroupsAdapter>{
 				DEFAULT_PRIVATE_NAME,
 				null,
 				null,
-				null,
+				Prefs.getUserRowId(ctx),
 				false,
 				null,
 				null,
 				-1,
-				true);
+				true,
+				0);
 	}
 
 	/**
@@ -1220,6 +1273,7 @@ extends TableAdapter <GroupsAdapter>{
 	 * @param longitude The longitude of this group location pass null for no location
 	 * @param allowPublicWithinDistance allow anybody to join group if there are within this many miles of group (pass -1) to not allow
 	 * @param keepLocal boolean to keep these pictures local
+	 * @param nPictures the number of pictures in the group, 0 if new group, or a number read from server
 	 * @return The rowId of the group, -1 if it failed.
 	 */
 	public long makeNewGroup(
@@ -1232,7 +1286,8 @@ extends TableAdapter <GroupsAdapter>{
 			Double latitude,
 			Double longitude,
 			double allowPublicWithinDistance,
-			boolean keepLocal){
+			boolean keepLocal,
+			int nPictures){
 
 		// override some values and/or check
 		if (dateCreated == null || dateCreated.length() == 0)
@@ -1271,6 +1326,7 @@ extends TableAdapter <GroupsAdapter>{
 		values.put(KEY_GROUP_TOP_LEVEL_PATH, folderNames.mObject1);
 		values.put(KEY_PICTURE_PATH, folderNames.mObject2);
 		values.put(KEY_THUMBNAIL_PATH, folderNames.mObject3);
+		values.put(KEY_NUMBER_OF_PICS, nPictures);
 
 		// create new row
 		long newRow = database.insert(
@@ -1428,7 +1484,7 @@ extends TableAdapter <GroupsAdapter>{
 	 */
 	private ThreeObjects<String, String, String>
 	makeRequiredFolders(Context ctx, String groupName, String dateCreated)
-			throws IOException{
+	throws IOException{
 
 		// the name
 		String folderName = getAllowableFolderName(ctx, groupName, dateCreated);
@@ -1457,7 +1513,7 @@ extends TableAdapter <GroupsAdapter>{
 		}
 
 		ThreeObjects<String, String, String> output =
-				new ThreeObjects<String, String, String>(folderName, subFolders.mObject1, subFolders.mObject2);
+			new ThreeObjects<String, String, String>(folderName, subFolders.mObject1, subFolders.mObject2);
 
 		// return the three folders.
 		return output;
@@ -1492,11 +1548,15 @@ extends TableAdapter <GroupsAdapter>{
 
 			// update the value
 			String command = "UPDATE " + TABLE_NAME + " SET " + 
-					KEY_LAST_PICTURE_NUMBER + " = " + KEY_LAST_PICTURE_NUMBER + " + 1 WHERE " + 
-					KEY_ROW_ID + " =?";
+			KEY_LAST_PICTURE_NUMBER + " = " + KEY_LAST_PICTURE_NUMBER + " + 1 WHERE " + 
+			KEY_ROW_ID + " =?";
+			String command2 = "UPDATE " + TABLE_NAME + " SET " + 
+			KEY_NUMBER_OF_PICS + " = " + KEY_NUMBER_OF_PICS + " + 1 WHERE " + 
+			KEY_ROW_ID + " =?";
 
 			try{
 				database.execSQL(command, new String[] {String.valueOf(rowId)});
+				database.execSQL(command2, new String[] {String.valueOf(rowId)});
 			}catch(SQLException e){
 				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 			}
@@ -1729,6 +1789,7 @@ extends TableAdapter <GroupsAdapter>{
 		public String getPicturePath(){
 			return picturePath;
 		}
+		
 		/**
 		 * Return the thumbnail for the group picture path. If none, thn grabs the most recent picture
 		 * @param ctx Context is required, if we have not previously called this method on this exact object (not just the group, but the Java object).
@@ -1812,7 +1873,7 @@ extends TableAdapter <GroupsAdapter>{
 		 * @throws IOException if we can't create the folders
 		 */
 		public void writeFoldersIfNeeded()
-				throws IOException{
+		throws IOException{
 
 			// get the folders
 			String topFolder = getGroupFolderName();

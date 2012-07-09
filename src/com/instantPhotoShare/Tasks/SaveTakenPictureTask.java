@@ -3,6 +3,7 @@ package com.instantPhotoShare.Tasks;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -367,26 +368,22 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 			throws JSONException{	
 
 		// build a list of group ids
-		String ids = "";
 		ArrayList<Long> longIds = new ArrayList<Long>(groups.size());
+		JSONArray idsArray = new JSONArray();
 		for (Group item : groups){
 			if (item.isSynced() && !item.isKeepLocal()){
-				ids += item.getServerId() + Utils.DELIM;
 				longIds.add(item.getRowId());
+				idsArray.put(item.getServerId());
 			}
 		}
-		if (ids.length() > 1)
-			ids = ids.substring(0, ids.length()-1);
-		if (ids.length() == 0)
+		if (idsArray.length() == 0)
 			return null;
-
-		//ids = longIds.toString(); // wrong ids, we are mixing server and row ids.
 
 		// add values to json object
 		JSONObject json = new JSONObject();
 		json.put(KEY_USER_ID, Prefs.getUserServerId(applicationCtx));
 		json.put(KEY_SECRET_CODE, Prefs.getSecretCode(applicationCtx));
-		json.put(KEY_GROUP_ID, ids);
+		json.put(KEY_GROUP_ID, idsArray);
 		return new TwoObjects<JSONObject, ArrayList<Long>>(json, longIds);
 	}
 

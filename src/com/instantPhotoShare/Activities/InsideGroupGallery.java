@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.text.Html;
@@ -54,6 +53,8 @@ extends CustomActivity{
 	private Drawable backgroundDrawable = null;
 	private String groupName; 					// The name of the group we are in
 	private int nNewPictures = 0;
+	private com.tools.images.MemoryCache<Long> oldCache = null; 		// the old imageloader cache. use this to handle screen rotations.
+
 
 	// variables to indicate what can be passed in through intents
 	public static final String GROUP_ID = "GROUP_ID";
@@ -77,6 +78,7 @@ extends CustomActivity{
 			ConfigurationData data = (ConfigurationData) config.customData;
 			if (data != null){
 				backgroundDrawable = data.backgroundDrawable;	
+				oldCache = data.cache;
 			}
 		}
 
@@ -95,11 +97,10 @@ extends CustomActivity{
 
 		// grab cursor for all the groups
 		getPictures();
-		fillPictures();
 	}
 
 	// fill list with the pictures
-	private void fillPictures() {
+	private void fillPicturesOld() {
 		// stop old thread if we need to
 		//if (adapter != null)
 		//	adapter.imageLoader.stopThreads();
@@ -125,7 +126,6 @@ extends CustomActivity{
 		gridView.setAdapter(adapter);
 
 		// restore
-
 		if (index != GridView.INVALID_POSITION)
 			gridView.smoothScrollToPosition(index);	
 	}
@@ -133,10 +133,53 @@ extends CustomActivity{
 	/**
 	 * Find the cursor required for searching Contacts
 	 */
-	private void getPictures(){
+	private void getPicturesOld(){
+		if (picturesAdapater != null){
+			picturesAdapater.stopManagingCursor(this);
+			picturesAdapater.close();
+		}
+			
 		picturesAdapater = new PicturesAdapter(this);
 		picturesAdapater.fetchPicturesInGroup(groupId);
 		picturesAdapater.startManagingCursor(this);
+	}
+	
+	/**
+	 * Find the cursor required for searching Contacts and load into gridView
+	 */
+	private void getPictures(){
+		// save index and top position
+		int index = GridView.INVALID_POSITION;
+		
+		// create the new searcher if needed
+		if (picturesAdapater == null){
+			picturesAdapater = new PicturesAdapter(this);
+		}else{
+			index = gridView.getFirstVisiblePosition();
+			picturesAdapater.stopManagingCursor(this);
+		}
+		
+		// do the search and manage
+		picturesAdapater.fetchPicturesInGroup(groupId);
+		picturesAdapater.startManagingCursor(this);	
+		
+		// set adapter
+		if (adapter == null){
+			adapter = new PicturesGridAdapter(this, picturesAdapater);
+			gridView.setAdapter(adapter);
+		}		
+		
+		// restore cache
+		if (oldCache != null){
+			adapter.restoreMemoryCache(oldCache);
+			oldCache = null;
+		}
+
+		// restore position
+		if (index != GridView.INVALID_POSITION)
+			gridView.smoothScrollToPosition(index);	
+		
+		adapter.notifyDataSetChanged();
 	}
 
 	@Override
@@ -213,13 +256,12 @@ extends CustomActivity{
 			if (act != null && act.nNewPictures > 0){
 				Toast.makeText(act, act.nNewPictures + " new pictures!", Toast.LENGTH_SHORT).show();
 				act.getPictures();
-				act.fillPictures();
 			}
 
 			// if there was an error
 			if (errorCode != null){
 				if (act!= null && errorCode.compareToIgnoreCase(GroupsAdapter.GROUP_ACCESS_ERROR) != 0){
-					Toast.makeText(act, "Not in group", Toast.LENGTH_LONG);
+					Toast.makeText(act, "Not in group", Toast.LENGTH_LONG).show();
 				}else{
 					String group = "unknown";
 					if (act != null)
@@ -288,18 +330,20 @@ extends CustomActivity{
 	protected void additionalConfigurationStoring() {
 		ConfigurationData data = new ConfigurationData();
 		data.backgroundDrawable = screen.getDrawable();
+		if (adapter != null)
+			data.cache = adapter.getMemoryCache();
 		configurationProperties.customData = data;
 	}
 
 	private static class ConfigurationData{
 		public Drawable backgroundDrawable;
+		public MemoryCache<Long> cache = null;
 	}
 
 	@Override
 	protected void onDestroyOverride() {
 
 		// null out adapter
-		adapter.imageLoader.clearCache();
 		gridView.setAdapter(null);	
 	}
 
@@ -378,6 +422,15 @@ extends CustomActivity{
 			}
 
 			return vi;
+		}
+		
+		/**
+		 * Set the memory cache to this new value, clearing old one.
+		 * @see getMemoryCache.
+		 * @param mem
+		 */
+		public void restoreMemoryCache(com.tools.images.MemoryCache<Long> mem){
+			imageLoader.restoreMemoryCache(mem);
 		}
 	}
 }

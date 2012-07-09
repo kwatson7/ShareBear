@@ -93,7 +93,8 @@ implements SurfaceHolder.Callback{
 	private boolean isSurfaceCreated = false; 						// boolean to keep track if surface is created.
 	private boolean isWaitingForPictureSave = false; 				// is the take picture deactivated and we are waiting for user to choose
 	private MediaPlayer shutterSound = null; 						// sound for shutter
-
+	private MediaPlayer autoFocusSound = null; 						// sound for auto-focus
+	
 	// intent flags
 	public static String GROUP_IDS = "GROUP_IDS";
 
@@ -905,6 +906,19 @@ implements SurfaceHolder.Callback{
 				mgr.setStreamMute(AudioManager.STREAM_SYSTEM, true);
 				camera.takePicture(shutterCallback, null, pictureCallback); 
 				cameraHelper.setIsPreviewRunning(false);
+			}else{
+				// play auto-focus sound
+				AudioManager meng = (AudioManager) getBaseContext().getSystemService(Context.AUDIO_SERVICE);
+				int volume = meng.getStreamVolume( AudioManager.STREAM_NOTIFICATION);
+
+				if (volume != 0)
+				{
+					if (autoFocusSound == null)
+						autoFocusSound = MediaPlayer.create(act, R.raw.camera_focus);
+					if (autoFocusSound != null)
+						autoFocusSound.start();
+				}
+				
 			}
 		}
 	};

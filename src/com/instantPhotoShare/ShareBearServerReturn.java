@@ -36,6 +36,7 @@ extends ServerPost.ServerReturn{
 	
 	// member variables
 	private JSONObject messageObject = null;
+	private JSONArray messageArray = null;
 
 	/**
 	 * Initialize a ShareBearServerReturn object with a generic ServerReturn object.
@@ -151,6 +152,9 @@ extends ServerPost.ServerReturn{
 	 * @return
 	 */
 	public JSONArray getMessageArray(){
+		if (messageArray != null)
+			return messageArray;
+		
 		JSONArray json;
 		try {
 			json = new JSONArray(getMessage());

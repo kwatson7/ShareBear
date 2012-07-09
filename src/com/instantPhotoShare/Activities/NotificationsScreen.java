@@ -11,6 +11,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -28,6 +29,7 @@ extends CustomActivity{
 	
 	// graphics
 	private ListView listView = null;
+	private ImageView noNotes = null;
 	
 	// menu items
 	private enum MENU_ITEMS {
@@ -69,6 +71,11 @@ extends CustomActivity{
 		
 		// store the new one
 		notificationsAdapter = notes;
+		notificationsAdapter.startManagingCursor(this);
+		if(notificationsAdapter.size() == 0)
+			noNotes.setVisibility(View.VISIBLE);
+		else
+			noNotes.setVisibility(View.GONE);
 		
 		// load the adapter
 		listViewAdapter = new ListViewAdapter(this, notificationsAdapter);
@@ -96,6 +103,7 @@ extends CustomActivity{
 		
 		// graphics
 		listView = (ListView) findViewById(R.id.listView);	
+		noNotes = (ImageView) findViewById(R.id.noNotifications);
 	}
 
 	@Override

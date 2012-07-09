@@ -116,7 +116,8 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, CreateGroupTask.ReturnFromCreate
 					null,
 					null,
 					-1,
-					isLocal);
+					isLocal,
+					0);
 
 			// if we were not successful
 			if (rowId == - 1){

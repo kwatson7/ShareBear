@@ -6,7 +6,6 @@ package com.instantPhotoShare.Activities;
 import java.util.ArrayList;
 
 import com.instantPhotoShare.R;
-import com.instantPhotoShare.ShareBearServerReturn;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.NotificationsAdapter;
@@ -14,10 +13,9 @@ import com.instantPhotoShare.Adapters.PicturesAdapter;
 import com.instantPhotoShare.Adapters.TableAdapter;
 import com.instantPhotoShare.Tasks.CreatePrivateGroup;
 import com.instantPhotoShare.Tasks.SyncGroupsThatNeedIt;
-import com.tools.CursorWrapper;
+import com.instantPhotoShare.Tasks.SyncUsersInGroupThatNeedIt;
 import com.tools.CustomActivity;
 import com.tools.CustomAsyncTask;
-import com.tools.CustomAsyncTask.FinishedCallback;
 import com.tools.TwoObjects;
 import com.tools.images.MemoryCache;
 
@@ -26,7 +24,6 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Handler;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
@@ -49,20 +46,21 @@ extends CustomActivity{
 
 	// constants
 	private static final String FETCHING_DATA_TAG = "fetchingData";
-	private static final int N_RANDOM_PICTURES = 500; 	// number of pictures to fetch on bottom gallery
+	private static final int N_RANDOM_PICTURES = 150; 	// number of pictures to fetch on bottom gallery
 	private static final long TIME_TO_WAIT_ON_EMAIL_ERROR = 3500;
+	private static final boolean IS_GET_RANDOM_PICS = false;
 
 	// pointers to graphics objects
 	private ImageView createNewGroup;
-	private Gallery gallery; 				// the gallery to show pictures
+	private Gallery gallery; 					// the gallery to show pictures
 	private PicturesGridAdapter adapter; 		// the adapter to show pictures
 	private PicturesAdapter picturesAdapater;	// An array of all the pictures
 	private TextView nNotificationsText;
-	private int nNewGroups = 0;
-
+	
 	// misc private variables
 	private CustomActivity act = this;
 	private AlertDialog noEmailDialog = null;
+	private int nNewGroups = 0;
 
 	// enums for menu items
 	private enum MENU_ITEMS { 										
@@ -89,13 +87,16 @@ extends CustomActivity{
 		initializeLayout();	
 
 		getPictures();
-		fillPictures();
 
 		//	DebugUtils.deleteAllNonServerUsersAndGroupLinks(this);
 
 		// move to correct position
-		if (picturesAdapater.size() > 2)
-			gallery.setSelection(picturesAdapater.size()/2, false);
+		if (picturesAdapater.size() > 2){
+			if (!IS_GET_RANDOM_PICS)
+				gallery.setSelection(0, false);
+			else
+				gallery.setSelection(picturesAdapater.size()/2, false);
+		}
 
 		// check for private group and make it if need be
 		CreatePrivateGroup<MainScreen> task = new CreatePrivateGroup<MainScreen>(this, ASYNC_TASKS.MAKE_PRIVATE_GROUP.ordinal());
@@ -104,6 +105,9 @@ extends CustomActivity{
 		// check for any groups that need to be synced
 		SyncGroupsThatNeedIt<MainScreen> task2 = new SyncGroupsThatNeedIt<MainScreen>(this);
 		task2.execute();
+		
+		// sync any users that need to be synced
+		(new SyncUsersInGroupThatNeedIt<CustomActivity>(act)).execute();	
 		
 		// upgrade database 
 		(new TableAdapter(ctx)).customUpgrade(this);
@@ -138,22 +142,6 @@ extends CustomActivity{
 			if (act != null && errorCode == null){
 				act.nNewGroups = nNewItems;
 
-				// post a notification
-				if (nNewItems > 0){
-					Intent intent = new Intent(act, GroupGallery.class);
-					intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-					com.tools.Tools.postNotification(
-							act,
-							R.drawable.icon3,
-							"New Groups!",
-							"Share Bear new Groups!",
-							"You've been added to " + nNewItems + " new groups.",
-							0,
-							intent);
-				}
-
-				//TODO: use appropriate id instead of 0
-				//TODO: we dont' want a toast, an android notification, and a sharebear notification
 				//TODO: should these calls just be insided the calling function instead of out here.
 			}
 		}
@@ -166,17 +154,13 @@ extends CustomActivity{
 			// update adatper if there are new pictures
 			if (act!= null && act.nNewGroups > 0 && errorCode == null){
 				Toast.makeText(act, "You've been added to " + act.nNewGroups + " new groups!", Toast.LENGTH_SHORT).show();
-				//TODO: we should show the new pictures here, but right now they are just random, so off
-				//act.getPictures();
-				//act.fillPictures();
+				act.setNotificationsNumber();
 			}
 
 			// if there was an error
 			if (errorCode != null){
 				Log.e(Utils.LOG_TAG, "Error code when fetching groups " + errorCode);
 			}	
-			
-			act.setNotificationsNumber();
 		}
 	};
 
@@ -204,19 +188,42 @@ extends CustomActivity{
 	/**
 	 * Find the cursor required for pictures
 	 */
-	private void getPictures(){
+	private void getPicturesOld(){
 		picturesAdapater = new PicturesAdapter(this);
-		picturesAdapater.fetchRandomPicture(this, N_RANDOM_PICTURES);
+		picturesAdapater.fetchRandomPicture(N_RANDOM_PICTURES);
 		picturesAdapater.startManagingCursor(this);
-	}
-
-	/**
-	 * Fill the list of pictures
-	 */
-	private void fillPictures() {
+		
 		// set adapter
 		adapter = new PicturesGridAdapter(this, picturesAdapater);
 		gallery.setAdapter(adapter);
+	}
+	
+	/**
+	 * Find the cursor required for searching Contacts and load into gridView
+	 */
+	private void getPictures(){
+		
+		// create the new searcher if needed
+		if (picturesAdapater == null)
+			picturesAdapater = new PicturesAdapter(this);
+		else
+			picturesAdapater.stopManagingCursor(this);
+		
+		
+		// do the search and manage
+		if (!IS_GET_RANDOM_PICS)
+			picturesAdapater.fetchNewestPictures(N_RANDOM_PICTURES);
+		else
+			picturesAdapater.fetchRandomPicture(N_RANDOM_PICTURES);
+		picturesAdapater.startManagingCursor(this);	
+		
+		// set adapter
+		if (adapter == null){
+			adapter = new PicturesGridAdapter(this, picturesAdapater);
+			gallery.setAdapter(adapter);
+		}		
+		
+		adapter.notifyDataSetChanged();
 	}
 
 	@Override
@@ -393,6 +400,9 @@ extends CustomActivity{
 
 		@Override
 		public void onFinish(MainScreen activity, Integer result) {
+			if (result == null || activity == null)
+				return;
+			
 			int unreadNotifications = (java.lang.Integer) result;
 			// set the number, but clip at 99
 			if (unreadNotifications == 0){
@@ -401,10 +411,12 @@ extends CustomActivity{
 				activity.nNotificationsText.setText(String.valueOf(unreadNotifications));
 				activity.nNotificationsText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
 				activity.nNotificationsText.setVisibility(View.VISIBLE);
+				activity.getPictures();
 			}else{
 				activity.nNotificationsText.setText("99+");
 				activity.nNotificationsText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
 				activity.nNotificationsText.setVisibility(View.VISIBLE);
+				activity.getPictures();
 			}
 		}
 	};

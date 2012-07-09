@@ -19,19 +19,20 @@ extends CursorWrapper<TYPE>{
 	protected SQLiteDatabase database;
 	private DatabaseHelper dbHelper;
 	protected Context ctx;
-	
+
 	public TableAdapter(Context context) {
 		ctx = context;
 		dbHelper = DatabaseHelper.getHelper(context);
 		open();
 	}
-	
+
 	/**
 	 * Call this method to upgrade database that require a customActivity
 	 * @param act Activity required to show progress dialog
 	 */
 	public void customUpgrade(CustomActivity act){
-		if (dbHelper.getOldVersion() < 10 && DatabaseHelper.DATABASE_VERSION >= 10){
+		if (dbHelper.getOldVersion() != -1 &&
+				dbHelper.getOldVersion() < 10 && DatabaseHelper.DATABASE_VERSION >= 10){
 			GroupsAdapter groups = new GroupsAdapter(act);
 			groups.upgradeToVersion10(act);
 		}
@@ -44,11 +45,42 @@ extends CursorWrapper<TYPE>{
 	private void open() throws SQLException {
 		database = dbHelper.getWritableDatabase();
 	}
-	
+
 	private void closeDatabase() {
 		dbHelper.close();
 	}	
-	
+
+	/**
+	 * Add a new column to the list of commands to upgrade the database
+	 * @param arrayList The list that holds the commands
+	 * @param tableName The name of the table to add a column to
+	 * @param oldDatabase the old version number of the database being upgraded
+	 * @param newDatabase the new version number of the database
+	 * @param thresholdDatabase The databaseVersion where we add the column
+	 * @param columnName The column name
+	 * @param columnType The type of the column
+	 */
+	protected static void addColumn(
+			ArrayList<String> arrayList,
+			String tableName,
+			int oldDatabase,
+			int newDatabase,
+			int thresholdDatabase,
+			String columnName,
+			String columnType){
+
+		if (oldDatabase < thresholdDatabase && newDatabase >= thresholdDatabase){
+			StringBuilder builder = new StringBuilder();
+			builder.append("ALTER TABLE ");
+			builder.append(tableName);
+			builder.append(" ADD COLUMN ");
+			builder.append(columnName);
+			builder.append(" ");
+			builder.append(columnType);
+			arrayList.add(builder.toString());
+		}
+	}
+
 	/**
 	 * Return a cursor over all groups and all columns of this database
 	 * @return
@@ -82,11 +114,11 @@ extends CursorWrapper<TYPE>{
 			selectionArgs[i] = columnValues.get(i).toString();
 		}
 		String selection = builder.toString();
-		
+
 		// return the output
 		return new TwoObjects<String, String[]>(selection, selectionArgs);
 	}
-	
+
 	/**
 	 * Query the cursor and return only the values of valuesToCheck that are not present in the database. <br>
 	 * For example, if valuesToCheck is {1, 2, 3, 4} and the database at the column keyToCompare only has {1, 2, 5}, then
@@ -102,22 +134,22 @@ extends CursorWrapper<TYPE>{
 				TABLE_NAME,
 				new String[] {keyToCompare},
 				null, null, null, null, null);
-		
+
 		// null cursor
 		if (cursor == null)
 			return null;
-		
+
 		// loop over cursor filling values
 		HashSet<String> values = new HashSet<String>(cursor.getCount());
 		while(cursor.moveToNext()){
 			values.add(cursor.getString(0));
 		}
 		cursor.close();
-		
+
 		// now remove all values that are already present values
 		HashSet<String> workingCopy = new HashSet<String>(valuesToCheck);
 		workingCopy.removeAll(values);
-		
+
 		return workingCopy;
 	}
 }

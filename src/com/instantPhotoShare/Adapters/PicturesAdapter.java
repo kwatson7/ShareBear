@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.List;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -67,8 +69,7 @@ extends TableAdapter<PicturesAdapter>{
 
 	// some other constants
 	private static String SORT_ORDER = 
-		KEY_DATE_TAKEN + " DESC, " 
-		+ KEY_SERVER_ID + " DESC, "
+		KEY_SERVER_ID + " DESC, "
 		+ KEY_ROW_ID + " DESC"; 			// sort the picture by most recent
 
 	/** table creation string */
@@ -1016,7 +1017,7 @@ extends TableAdapter<PicturesAdapter>{
 	 * or moveToNext() must be called.
 	 * @param nPictures Number of pictures to fetch.
 	 */
-	public void fetchRandomPicture(Context ctx, int nPictures){
+	public void fetchRandomPicture(int nPictures){
 		// no pictures to fetch, so no need to do query
 		if (nPictures < 1){
 			setCursor(null);
@@ -1061,15 +1062,53 @@ extends TableAdapter<PicturesAdapter>{
 		// move to correct location
 		if (nPictures == 1)
 			moveToFirst();
+	}
+	
+	/**
+	 * Fetch random pictures. <br>
+	 * If nPictures <= 1, then we start of positioned at the first (and only)
+	 * item. If nPictures > 1, then we are positioned before the first item, and moveToFirst()
+	 * or moveToNext() must be called.
+	 * @param nPictures Number of pictures to fetch.
+	 */
+	public void fetchNewestPictures(int nPictures){
+		// no pictures to fetch, so no need to do query
+		if (nPictures < 1){
+			setCursor(null);
+			return;
+		}
 
-		/*
-		// create the query where we match up all the pictures that are in the group
-		String query = "SELECT * FROM " + TABLE_NAME + " ORDER BY RANDOM() LIMIT '" + nPictures + "'";
+		// find all the active groups
+		GroupsAdapter groups = new GroupsAdapter(ctx);
+		groups.fetchAllGroups();
+		ArrayList<Long> rowIds = new ArrayList<Long>();
+		while (groups.moveToNext()){
+			rowIds.add(groups.getRowId());
+		}
+		groups.close();
 
+		// create the querey to only return pictures in active groups
+		TwoObjects<String, String[]> selection = createSelection("groups." + PicturesInGroupsAdapter.KEY_GROUP_ID, rowIds);
+
+		String query = 
+			"SELECT pics.* FROM "
+			+PicturesAdapter.TABLE_NAME + " pics "
+			+" INNER JOIN "
+			+PicturesInGroupsAdapter.TABLE_NAME + " groups "
+			+" ON "
+			+"pics." + PicturesAdapter.KEY_ROW_ID + " = "
+			+"groups." + PicturesInGroupsAdapter.KEY_PICTURE_ID;
+		if (selection.mObject1.length() > 0){
+			query+=
+				" WHERE "
+				+selection.mObject1;
+		}
+		query+=" ORDER BY " + SORT_ORDER + " LIMIT '" + nPictures + "'";
+		
 		// do the query
 		Cursor cursor = database.rawQuery(
 				query,
-				null);
+				selection.mObject2);
 
 		// return the cursor
 		setCursor(cursor);
@@ -1077,7 +1116,6 @@ extends TableAdapter<PicturesAdapter>{
 		// move to correct location
 		if (nPictures == 1)
 			moveToFirst();
-		 */
 	}
 
 	/**

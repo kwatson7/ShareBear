@@ -108,7 +108,7 @@ extends CustomActivity{
 		// set the background picture
 		PicturesAdapter pics = new PicturesAdapter(this);
 		String picPath = null;
-		pics.fetchRandomPicture(this, 10);
+		pics.fetchRandomPicture(10);
 		while ((picPath == null || picPath.length() ==0 || !(new File(picPath)).exists()) && pics.moveToNext()){
 			picPath = pics.getThumbnailPath();
 		}

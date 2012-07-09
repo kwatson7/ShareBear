@@ -1,14 +1,17 @@
 package com.instantPhotoShare.Adapters;
 
 import java.util.ArrayList;
+import java.util.Map.Entry;
 
 import com.instantPhotoShare.Prefs;
 import com.instantPhotoShare.Utils;
+import com.tools.ThreeObjects;
 import com.tools.TwoObjects;
 
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.database.SQLException;
 import android.util.Log;
 
 public class UsersInGroupsAdapter
@@ -23,6 +26,10 @@ extends TableAdapter<UsersInGroupsAdapter>{
 	public static final String KEY_GROUP_ID = "groupId";
 	private static final String KEY_IS_UPDATING = "isUpdating";
 	private static final String KEY_IS_SYNCED = "isSynced";
+	
+	// types for some of the keys
+	private static final String LAST_UPDATE_ATTEMPT_TIME_TYPE = " text not null DEFAULT '1900-01-01 01:00:00'";
+	private static final String KEY_LAST_UPDATE_ATTEMPT_TIME = "KEY_LAST_UPDATE_ATTEMPT_TIME";
 
 	/** Table creation string */
 	public static final String TABLE_CREATE = 
@@ -31,6 +38,7 @@ extends TableAdapter<UsersInGroupsAdapter>{
 					+KEY_ROW_ID +" integer primary key autoincrement, "
 					+KEY_USER_ID +" integer not null, "
 					+KEY_GROUP_ID +" integer not null, "
+					+KEY_LAST_UPDATE_ATTEMPT_TIME + LAST_UPDATE_ATTEMPT_TIME_TYPE + ", "
 					+KEY_IS_UPDATING +" boolean DEFAULT 'FALSE', "
 					+KEY_IS_SYNCED +" boolean DEFAULT 'FALSE', "
 					+"foreign key(" +KEY_USER_ID +") references " +UsersAdapter.TABLE_NAME +"(" +PicturesAdapter.KEY_ROW_ID + "), " 
@@ -79,6 +87,23 @@ extends TableAdapter<UsersInGroupsAdapter>{
 			throw new IllegalArgumentException("attempting to update more than one row. This should never happen");
 
 		return newRow;
+	}
+	
+	/**
+	 * Return a list of SQL statements to perform upon an upgrade from oldVersion to newVersion.
+	 * @param oldVersion old version of database
+	 * @param newVersion new version of database
+	 * @return The arraylist of sql statements. Will not be null.
+	 */
+	public static ArrayList<String> upgradeStrings(int oldVersion, int newVersion){
+		// initialize array
+		ArrayList<String> out = new ArrayList<String>(1);
+		
+		// add columns
+		addColumn(out, TABLE_NAME, oldVersion, newVersion, 11, KEY_LAST_UPDATE_ATTEMPT_TIME, LAST_UPDATE_ATTEMPT_TIME_TYPE);
+		
+		// finished
+		return out;
 	}
 
 	/**
@@ -135,7 +160,7 @@ extends TableAdapter<UsersInGroupsAdapter>{
 		}
 
 		// verify we updated the correct number of rows
-		if (nRowsUpdated != otherUserRowIds.size())
+		if (nRowsUpdated != otherUserRowIds.size()+1)
 			Log.e(Utils.LOG_TAG, "Did not update the correct number of rows for id " + userRowIdToKeep);
 	}
 
@@ -241,11 +266,123 @@ extends TableAdapter<UsersInGroupsAdapter>{
 		else 
 			return true;
 	}
+	
+	/**
+	 * If we are synced to the server, then set this field to true.
+	 * Also if we set to synced, then we know we aren't updating, so that is set to false.
+	 * @param rowId the rowId of the picture to update.
+	 * @param isSynced boolean if we are synced
+	 */
+	public void setIsSynced(long rowId, boolean isSynced){
 
-	@Override
-	protected void setColumnNumbers() throws IllegalArgumentException {
-		// TODO Auto-generated method stub
-		throw new UnsupportedOperationException("Not supported yet.");
+		ContentValues values = new ContentValues();
+		values.put(KEY_IS_SYNCED, isSynced);	
+		if (isSynced)
+			values.put(KEY_IS_UPDATING, false);
 
+		// make the update
+		if( database.update(
+				TABLE_NAME,
+				values,
+				KEY_ROW_ID + "='" + rowId + "'", null) <= 0)
+			Log.e(Utils.LOG_TAG, "Could not update row in UsersInGroupsAdapter");
+	}
+
+	/**
+	 * If we are updating to the server, then set this field to true.
+	 * When we are done updating, make sure to set to false. <br>
+	 * If isUpdating is true, then we know we are not synced, so we will set sync to false as well.
+	 * @param rowId the rowId of the picture to update.
+	 * @param isUpdating
+	 */
+	public void setIsUpdating(long rowId, boolean isUpdating){
+
+		ContentValues values = new ContentValues();
+		values.put(KEY_IS_UPDATING, isUpdating);	
+		if (isUpdating)
+			values.put(KEY_IS_SYNCED, false);
+		if (isUpdating)
+			values.put(KEY_LAST_UPDATE_ATTEMPT_TIME, Utils.getNowTime());
+		final String where = KEY_ROW_ID + " =?";
+
+		// make the update
+		if( database.update(
+				TABLE_NAME,
+				values,
+				where, new String[]{String.valueOf(rowId)}) <= 0)	
+				Log.e(Utils.LOG_TAG, "Could not update row in UsersInGroupsAdapter");
+	}
+	
+	/**
+	 * Update an entire list of rowIds
+	 * @param rowIdList the rows to set as updating or not
+	 * @param isUpdating are we updating
+	 */
+	public void setIsUpdating(ArrayList<Long> rowIdList, boolean isUpdating){
+		try{
+			// loop over all values in database
+			database.beginTransaction();
+			for (int i = 0; i < rowIdList.size(); i++) {
+				setIsUpdating(rowIdList.get(i), isUpdating);
+			}
+			database.setTransactionSuccessful();
+		}catch(SQLException e){
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+		}finally{
+			database.endTransaction();
+		}
+	}
+	
+	/**
+	 * Fetch the links that still need to be uploaded to the server for a given group
+	 * @param groupId the group we will search over
+	 */
+	public void fetchLinksNeedUploading(long groupId){
+		// links that haven't been synced but need to be have the following
+		// isUpdating = 0 or last_update is old
+		// isSynced = 0
+
+		// GRAB current time
+		String timeAgo = Utils.getTimeSecondsAgo((int) Utils.SECONDS_SINCE_UPDATE_RESET);
+
+		// build the where clause
+		String where = 
+			"((" + KEY_IS_UPDATING + " =? OR " + KEY_IS_UPDATING + " =?) OR " +
+			"(Datetime(" + KEY_LAST_UPDATE_ATTEMPT_TIME + ") < Datetime('" + timeAgo + "'))) AND " +
+			"(" + KEY_IS_SYNCED + " =? OR " + KEY_IS_SYNCED + " =?) AND " +
+			KEY_GROUP_ID + " =?";
+
+		// where args
+		String[] whereArgs = {
+				String.valueOf(0), "FALSE",
+				String.valueOf(0), "FALSE",
+				String.valueOf(groupId)};
+		
+		Cursor cursor = database.query(TABLE_NAME, null, where, whereArgs, null, null, null);
+
+		// set cursor
+		setCursor(cursor);
+	}
+	
+	/**
+	 * Return the user row id at this given link, or -1 if none
+	 * @return
+	 */
+	public long getUserRowId(){
+		if (!checkCursor())
+			return -1;
+		else
+			return getLong(KEY_USER_ID);
+	}
+	
+	/**
+	 * Return the row id at this given link, or -1 if none
+	 * @return
+	 */
+	public long getRowId(){
+		if (!checkCursor())
+			return -1;
+		else
+			return getLong(KEY_ROW_ID);
 	}
 }

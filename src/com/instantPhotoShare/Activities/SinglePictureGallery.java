@@ -113,7 +113,7 @@ extends CustomActivity{
 			formattedGroupName = groups.getGroup(groupId).toString();
 			unformatedGroupName = groups.getGroup(groupId).getName();
 		}catch(Exception e){
-			e.printStackTrace();
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 			finish();
 			return;
 		}

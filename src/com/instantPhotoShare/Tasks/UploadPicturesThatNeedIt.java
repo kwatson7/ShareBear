@@ -69,12 +69,6 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, Void>{
 					}
 					groupsHelper.close();
 					String ids = groupServerIds.toString();
-					if (ids.length() >= 2)
-						ids = ids.substring(1, ids.length()-1);
-					else{
-						Log.e(Utils.LOG_TAG, "in UploadPicturesThatNeedIt, we somehow have no groups attached to pic");
-						continue;
-					}
 					
 					// grab the thumbnail data
 					//TODO: re-encoding file which will lead to artifacts

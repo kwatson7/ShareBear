@@ -365,7 +365,7 @@ extends TableAdapter <UsersAdapter>{
 	/**
 	 * If we are synced to the server, then set this field to true.
 	 * Also if we set to synced, then we know we aren't updating, so that is set to false.
-	 * @param rowId the rowId of the group to update.
+	 * @param rowId the rowId of the user to update.
 	 * @param isSynced boolean if we are synced
 	 * @param newServerId, input -1, if not known and nothing will be saved
 	 * @param hasAccount, does the user have an account or is this a temp placeholder?
@@ -951,14 +951,14 @@ extends TableAdapter <UsersAdapter>{
 
 	/**
 	 * Return the users name. Usually first + last. Will query the server if not available
-	 * @return
+	 * @return the name
 	 */
 	public String getName(){
 		String first = getFirstName();
 		String last = getLastName();
 		String name = "";
 		if (first != null)
-			name+=first;
+			name = first;
 		if (last != null){
 			if (name.length() > 0)
 				name += " ";
@@ -966,17 +966,14 @@ extends TableAdapter <UsersAdapter>{
 		}
 
 		//TODO: sometimes returns null null
-		//TODO: this is sloppy and doesn't save data locally. Fix.
-		//TODO: make new user with server id, should check that there isn't a server id already present
-		//TODO: when adding new users to group, verify that we didn't already have that server id somewhere else
+
 		// no name, so grab user from the server
 		if (name.length() == 0){
-			ArrayList<Long> userIds = new ArrayList<Long>();
-			userIds.add(getServerId());
-			UsersAdapter users = new UsersAdapter(ctx);
-			long rowId = getRowId();
+			// the list of users to request info on
 			JSONArray array = new JSONArray();
 			array.put(getServerId());
+			
+			// create json to post
 			JSONObject json = new JSONObject();
 			try {
 				json.put("user_id", Prefs.getUserServerId(ctx));
@@ -984,20 +981,48 @@ extends TableAdapter <UsersAdapter>{
 				json.put("user_ids", array);
 			} catch (JSONException e) {
 				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
-				users.close();
 				return name;
 			}
+			
+			// post the data
 			ShareBearServerReturn result = Utils.postToServer("get_users", json, null, null);
+			
+			// grab the name and save to database
 			JSONObject message = result.getMessageObject();
 			try {
-				name = message.optJSONObject(String.valueOf(getServerId())).optString("first_name") + " " +
-						message.getJSONObject(String.valueOf(getServerId())).optString("last_name");
-			} catch (JSONException e) {
-				Log.e("TAG", Log.getStackTraceString(e));
+				String firstName = message.optJSONObject(String.valueOf(getServerId())).optString("first_name");
+				String lastName = message.getJSONObject(String.valueOf(getServerId())).optString("last_name");
+				name = firstName + " " + lastName;		
+			} catch (Exception e) {
+				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 			}
-			users.close();
 		}
 		return name;
+	}
+	
+	/**
+	 * Set the first and last name at the current rowId location
+	 * @param firstName The first name to set
+	 * @param lastName The last name to set
+	 */
+	public void setName(String firstName, String lastName){
+		// grab the rowId
+		long rowId = getRowId();
+		if (rowId == -1){
+			Log.e(Utils.LOG_TAG, "attempted to setName at a bad rowId");
+			return;
+		}
+		
+		// the values to update
+		ContentValues values = new ContentValues(2);
+		if (firstName != null)
+			values.put(KEY_FIRST_NAME, firstName);
+		if (lastName != null)
+			values.put(KEY_LAST_NAME, lastName);
+		
+		// update
+		if (database.update(TABLE_NAME, values, KEY_ROW_ID + " =?", new String[] {String.valueOf(rowId)}) <=0)
+			Log.e(Utils.LOG_TAG, "could not update user " + rowId);
 	}
 
 	/**

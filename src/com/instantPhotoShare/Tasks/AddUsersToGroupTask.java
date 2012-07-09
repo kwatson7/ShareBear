@@ -1,20 +1,17 @@
 package com.instantPhotoShare.Tasks;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.jar.Attributes.Name;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.app.ProgressDialog;
-import android.content.DialogInterface;
-import android.content.DialogInterface.OnCancelListener;
-import android.util.Base64;
 import android.util.Log;
+import android.util.SparseArray;
 import android.widget.Toast;
 
 import com.instantPhotoShare.ContactCheckedArray;
@@ -23,16 +20,12 @@ import com.instantPhotoShare.ShareBearServerReturn;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.GroupsAdapter.Group;
-import com.instantPhotoShare.Adapters.NotificationsAdapter.NOTIFICATION_TYPES;
-import com.instantPhotoShare.Adapters.NotificationsAdapter;
 import com.instantPhotoShare.Adapters.UsersAdapter;
 import com.instantPhotoShare.Adapters.UsersInGroupsAdapter;
 import com.instantPhotoShare.Tasks.AddUsersToGroupTask.ReturnFromAddUsersToGroupTask.ResponseCode;
 import com.tools.CustomActivity;
 import com.tools.CustomAsyncTask;
 import com.tools.ServerPost.ServerReturn;
-import com.tools.SuccessReason;
-import com.tools.ThreeObjects;
 
 public class AddUsersToGroupTask <ACTIVITY_TYPE extends CustomActivity>
 extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAddUsersToGroupTask>{
@@ -44,7 +37,6 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 	// private variables
 	private ContactCheckedArray mContactChecked;
 	private int progressMax = 1;
-	private boolean cancelTask = false;
 	private long groudRowId = -1;
 	private long groupServerId = -1;
 	private int usersAdded = 0;
@@ -68,6 +60,8 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 	// local error
 	private static final String LOCAL_CREATION_ERROR = "USER_COULD_NOT_BE_ADDED_FOR_UNKNOWN_REASON";
 	private static final String ERROR_MESSAGE = "User could not be added for unknown reason on device";
+	private static final String GROUP_EXIST_SERVER_ERROR = "GROUP_EXIST_SERVER_ERROR";
+	private static final String GROUP_EXIST_SERVER_ERROR_MESSAGE = "group is not synced with server. Cannot add members";
 
 	/**
 	 * Make a group and put it into the groups database and then add all the users to it.
@@ -92,15 +86,8 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 		this.mContactChecked = mContactChecked;
 		progressMax = mContactChecked.getNChecked();
 		dialog.setMax(progressMax); // this needs to be done here, because setupDialog is called before we've stored mContactChecked
-
-		// make sure group exists
-		GroupsAdapter groups = new GroupsAdapter(applicationCtx);
-		Group group = groups.getGroup(groudRowId);
-		if (group == null || group.getRowId() == 0 || group.getRowId() == -1
-				|| group.getServerId() == 0 || group.getServerId() == -1)
-			throw new IllegalArgumentException("groupRowId input into AddUsersToGroupTask does not exist");
-		//TODO: handle this exception without crashing program
-		groupServerId = group.getServerId();
+		
+		//TODO: not allowing deletion locally or on server
 	}
 
 	private int getTotalEdits(){
@@ -111,83 +98,123 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 
 	}
 
+	private static class WhichUsersCreated{
+		/**
+		 * The list of new users to add to group
+		 */
+		ArrayList<Long> newUsers = new ArrayList<Long>();
+		/**
+		 * The list of users to delete from group
+		 */
+		ArrayList<Long> deletions = new ArrayList<Long>();
+		/**
+		 * The list of ids that link new users and group(s)
+		 */
+		ArrayList<Long> linkIdsNewUsers = new ArrayList<Long>();
+		/**
+		 * Did we succeeed in updating database locally
+		 */
+		boolean isSuccess = false;
+	}
+
 	@Override
 	protected AddUsersToGroupTask.ReturnFromAddUsersToGroupTask doInBackground(Void... params) {
 
-		// make the new group
-		ThreeObjects<SuccessReason, HashSet<Long>, HashSet<Long>> out = 
-				createPeople(groudRowId);
-		SuccessReason localResult = out.mObject1;
-		HashSet<Long> newUsers = out.mObject2;
-		HashSet<Long> deletions = out.mObject3;
+		// add the people to the group locally
+		WhichUsersCreated localCreation = createPeople(groudRowId);
 
 		// if we errored, then stop
-		if (!localResult.getSuccess()){
+		if (!localCreation.isSuccess){
 			ReturnFromAddUsersToGroupTask serverResponse = 
-					new ReturnFromAddUsersToGroupTask(LOCAL_CREATION_ERROR, ERROR_MESSAGE);
+				new ReturnFromAddUsersToGroupTask(LOCAL_CREATION_ERROR, ERROR_MESSAGE);
 			return serverResponse;
 		}
+
+		// make sure group exists on server
+		GroupsAdapter groups = new GroupsAdapter(applicationCtx);
+		Group group = groups.getGroup(groudRowId);
+		if (group == null || group.getRowId() == 0 || group.getRowId() == -1
+				|| group.getServerId() == 0 || group.getServerId() == -1){
+			ReturnFromAddUsersToGroupTask serverResponse = 
+				new ReturnFromAddUsersToGroupTask(GROUP_EXIST_SERVER_ERROR, GROUP_EXIST_SERVER_ERROR_MESSAGE);
+			return serverResponse;
+		}
+		groupServerId = group.getServerId();
 
 		// no one to edit, so return
 		if (getTotalEdits() == 0)
 			return new ReturnFromAddUsersToGroupTask();
 
 		// now add users to server
-		//TODO: set the links and users to be updating
+		UsersInGroupsAdapter links = new UsersInGroupsAdapter(applicationCtx);
+		links.setIsUpdating(localCreation.linkIdsNewUsers, true);
 		ReturnFromAddUsersToGroupTask serverResponse = new ReturnFromAddUsersToGroupTask();
 		try {
-			serverResponse = new ReturnFromAddUsersToGroupTask(Utils.postToServer(ACTION, getDataToPost(newUsers, deletions), null, null));
+			serverResponse = new ReturnFromAddUsersToGroupTask(
+					Utils.postToServer(
+							ACTION, getDataToPost(
+									localCreation.newUsers), null, null));
 		} catch (JSONException e) {
 			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 			serverResponse.setError(e);
 		}
 
+		// check that the return is the correct size
+		if (serverResponse.getMessageArray().length() != localCreation.newUsers.size() ||
+				localCreation.linkIdsNewUsers.size() != localCreation.newUsers.size()){
+			Log.e(Utils.LOG_TAG, "sizes returned from server are not compatible");
+			serverResponse.setError(new Exception("incompattible sizes returned from server"));
+			return serverResponse;
+		}
+
 		// loop across returned users to check if we added successfully
-		Iterator<String> serverIdIterator = serverResponse.getUserServerIds();
-		Iterator<Long> userRowIdIterator = newUsers.iterator();
 		UsersAdapter users = new UsersAdapter(applicationCtx);
-		UsersInGroupsAdapter inGroups = new UsersInGroupsAdapter(applicationCtx);
-		if (serverResponse.isSuccess() && serverIdIterator != null){
+		if (serverResponse.isSuccess()){
 			
-			while (serverIdIterator.hasNext()){
-				// grab the serverId and row id
-				long userServerId = Long.parseLong(serverIdIterator.next());
-				long userRowId = userRowIdIterator.next();
+			for (int i = 0; i < serverResponse.getMessageArray().length(); i++){
+				
+				// grab the server ids and row ids and link ids
+				long userRowId = localCreation.newUsers.get(i);
+				long linkId = localCreation.linkIdsNewUsers.get(i);
+				long userServerId = serverResponse.getUserServerId(i);
 
 				// loop across all switch possibilities
-				ResponseCode response = serverResponse.getUserCode(userServerId);			
+				ResponseCode response = serverResponse.getUserCode(i);			
 				switch(response){
 				case Server_Error:
-					inGroups.removeUserFromGroup(userRowId, groudRowId);
+					links.removeUserFromGroup(userRowId, groudRowId);
 					users.setIsUpdating(userRowId, false);
 					Log.e(Utils.LOG_TAG, "user did not update for unknown reason: " + serverResponse.getErrorCode());
 					break;
 				case Temp_User_Created_Invite_Sent:
 					users.setIsSynced(userRowId, true, userServerId, false);
+					links.setIsSynced(linkId, true);
 					break;
 				case Temp_User_Exists_Invite_Resent:
 					users.setIsSynced(userRowId, true, userServerId, false);
+					links.setIsSynced(linkId, true);
 					break;
 				case User_Exists_Added_To_Group:
 					users.setIsSynced(userRowId, true, userServerId, true);
+					links.setIsSynced(linkId, true);
 					break;
 				case User_Exists_Already_In_Group:
 					users.setIsSynced(userRowId, true, userServerId, true);
+					links.setIsSynced(linkId, true);
 					break;
 				default:
-					inGroups.removeUserFromGroup(userRowId, groudRowId);
+					links.removeUserFromGroup(userRowId, groudRowId);
 					users.setIsUpdating(userRowId, false);
 					Log.e(Utils.LOG_TAG, "bad response from server for addUserToGroup" + response.getName());
 					serverResponse.setError(new Exception("Unexpected result from server: " + response.getName()));
 				}
 			}
 		}else{
-			
+
 			// remove users from group link
-			while (userRowIdIterator.hasNext()){
-				long userRowId = userRowIdIterator.next();
-				inGroups.removeUserFromGroup(userRowId, groudRowId);
-				users.setIsUpdating(userRowId, false);
+			for (long item : localCreation.newUsers){
+				links.removeUserFromGroup(item, groudRowId);
+				users.setIsUpdating(item, false);
 			}
 		}
 
@@ -200,8 +227,8 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 	 * @return a JSOBObject
 	 * @throws JSONException 
 	 */
-	private JSONArray getDataToPost(HashSet<Long> newAdditions, HashSet<Long> deletions)
-			throws JSONException{	
+	private JSONArray getDataToPost(ArrayList<Long> newAdditions)
+	throws JSONException{	
 
 		// initialize the array
 		JSONArray jsonArray = new JSONArray();
@@ -216,11 +243,9 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 		UsersAdapter users = new UsersAdapter(applicationCtx);
 
 		// loop adding new users to json array
-		Iterator<Long> iterator = newAdditions.iterator();
-		while(iterator.hasNext()){
+		for (Long id : newAdditions){
 
 			// grab the user info
-			Long id = iterator.next();
 			users.fetchUser(id);
 			JSONObject json = new JSONObject();
 			json.put(KEY_PERSON_F_NAME, users.getFirstName());
@@ -254,7 +279,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 			return;
 
 		// no edits
-		if (getTotalEdits() == 0){
+		if (getTotalEdits() == 0 && result.getErrorCode() == ReturnFromAddUsersToGroupTask.UNKNOWN_ERROR_CODE){
 			Toast.makeText(applicationCtx, "No changes", Toast.LENGTH_SHORT).show();
 			sendObjectToActivityFromPostExecute(result);
 			return;
@@ -279,15 +304,10 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 			Toast.makeText(applicationCtx, result.getDetailErrorMessage(), Toast.LENGTH_LONG).show();
 			return;
 
-			// server error
 		}else{
-			// making a dialog has rotation problems, so just allow local creation with server error
-
-			// show the toast
-			Toast.makeText(applicationCtx,
-					getTotalEdits() + " users updated to " + group.getName()
-					+ " on device, but not added to server because:\n" + result.getDetailErrorMessage(),
-					Toast.LENGTH_LONG).show();
+			// the an error message
+			com.tools.Tools.showAlert(null, applicationCtx, getTotalEdits() + " users updated to " + group.getName()
+					+ " on device, but not added to server because:\n" + result.getDetailErrorMessage());
 
 			// store in log
 			Log.e(Utils.LOG_TAG, "Group with name '" + group.getName() + "' and rowId " + groudRowId +
@@ -310,25 +330,19 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 			dialog.setTitle(dialogTitle);
 			dialog.setMessage("Please wait...");
 			dialog.setIndeterminate(false);
-			dialog.setCancelable(true);
+			dialog.setCancelable(false);
 			if (mContactChecked != null){
 				dialog.setMax(progressMax);
 			}
-			dialog.setOnCancelListener(new OnCancelListener() {
-
-				@Override
-				public void onCancel(DialogInterface dialog) {
-					cancelTask = true;
-
-				}
-			});
 		}		
 	}
 
 	/**
 	 * Create/update all the people who are in this group and add to group.
+	 * @param groupId the group to add the people to
+	 * @return The results of local updates
 	 */
-	private ThreeObjects<SuccessReason, HashSet<Long>, HashSet<Long>> createPeople(long groupId){
+	private WhichUsersCreated createPeople(long groupId){
 
 		// the users adapter
 		UsersAdapter users = new UsersAdapter(applicationCtx);
@@ -373,16 +387,17 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 		usersRemoved = deletions.size();
 
 		// initialize ouptut
-		ThreeObjects<SuccessReason, HashSet<Long>, HashSet<Long>> output = 
-				new ThreeObjects<SuccessReason, HashSet<Long>, HashSet<Long>>(null, newAdditions, deletions);
+		WhichUsersCreated output = new WhichUsersCreated();
+		output.newUsers = new ArrayList<Long>(newAdditions);
+		output.deletions = new ArrayList<Long>(deletions);
 
 		// loop over all contacts and adding them to database and to group
 		int i = 1;
-		for (Long id : newAdditions) {
+		for (Long id : output.newUsers) {
 
 			// check we have add successfully
 			if (id < 0){
-				output.mObject1 = new SuccessReason(false, "User could not be added.");
+				output.isSuccess = false;
 				return output;
 			}
 
@@ -391,23 +406,17 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 
 			// check we have add successfully
 			if (linkId < 0){
-				output.mObject1 = new SuccessReason(false, "Link between users and groups could not be added");
+				output.isSuccess = false;
 				return output;
-			}
+			}else
+				output.linkIdsNewUsers.add(linkId);
 
 			// publish progress
 			publishProgress(i);
 			i++;
-
-			if(cancelTask){
-				GroupsAdapter groups = new GroupsAdapter(applicationCtx);
-				groups.deleteGroup(groupId);
-				output.mObject1 = new SuccessReason(false, "User cancelled action.");
-				return output;
-			}
 		}
 
-		output.mObject1 = new SuccessReason(true);
+		output.isSuccess = true;
 		return output;
 	}
 
@@ -429,10 +438,11 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 
 		// response keys
 		private static final String KEY_CODE = "user_message_code";
+		private static final String USER_ID = "user_id";
 
 		// member fields
-		HashMap<Long, JSONObject> userObjects = new HashMap<Long, JSONObject>(10);
-		
+		SparseArray<JSONObject> userObjects = new SparseArray<JSONObject>();
+
 		// error codes
 		public static final String CONVERSION_CODE = "CONVERSION_CODE";
 		private static final String CONVERSION_STRING = "Bad server return";
@@ -446,6 +456,141 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 		}
 
 		private ReturnFromAddUsersToGroupTask(String errorCode, String detailErrorMessage){
+			super();
+			setError(errorCode, detailErrorMessage);
+		}
+
+		/**
+		 * If we had a local error (we couldn't add users locally) then return true, else false
+		 * @return
+		 */
+		public boolean isLocalError(){
+			if (isSuccess())
+				return false;
+			else
+				return getErrorCode().equalsIgnoreCase(LOCAL_CREATION_ERROR);
+		}
+
+		/**
+		 * Boolean if we had a local group creation success.
+		 * @return
+		 */
+		public boolean isLocalSuccess(){
+			if (isSuccess() || !isLocalError())
+				return true;
+			else
+				return false;
+		}
+
+		/**
+		 * Return the code returned for this user.
+		 * @param index The index of which item was return to grab
+		 * @return The code returned by the server. Will not be null
+		 */
+		public ResponseCode getUserCode(int index){		
+
+			// default
+			ResponseCode value = ResponseCode.Server_Error;
+
+			// return null if unsuccessful
+			if (!isSuccess())
+				return value;
+
+			// grab the code
+			JSONObject json = getItemObject(index);
+			if(json == null)
+				return value;
+			String string = json.optString(KEY_CODE);
+
+			// convert to responseCode
+			try{
+				value = ResponseCode.valueOf(string);
+			}catch(IllegalArgumentException e){
+				Log.e(Utils.LOG_TAG, "unknown return from server for user: "+ string);
+			}catch(NullPointerException e){
+				Log.e(Utils.LOG_TAG, "null return from server for user");
+			}
+			return value;
+		}
+
+		/**
+		 * Return the server id of the user at the given index
+		 * @param index The index of which item was return to grab
+		 * @return The serverId of the user, -1 if not found
+		 */
+		public long getUserServerId(int index){		
+
+			// return null if unsuccessful
+			if (!isSuccess())
+				return -1;
+
+			// grab the user serverId
+			JSONObject json = getItemObject(index);
+			if(json == null)
+				return -1;
+			return json.optLong(USER_ID, -1);
+		}
+
+		/**
+		 * Get the json object for this given index, null if unsuccessful
+		 * @param index The index of which item to grab info from
+		 * @return The object for this thumbnail, or null
+		 */
+		private JSONObject getItemObject(int index){
+			// return null if unsuccessful
+			if (!isSuccess())
+				return null;
+
+			// see if we've retreived it already
+			JSONObject item = userObjects.get(index);
+			if (item != null)
+				return item;
+
+			// grab the item at this index
+			JSONArray array = getMessageArray();
+			if (array == null)
+				return null;
+			item = array.optJSONObject(index);
+			userObjects.put(index, item);
+			return item;
+		} 	
+	}
+
+	public static class ReturnFromAddUsersToGroupTaskOld
+	extends ShareBearServerReturn{
+
+		// responase codes
+		public enum ResponseCode{
+			Temp_User_Created_Invite_Sent,
+			Temp_User_Exists_Invite_Resent,
+			User_Exists_Already_In_Group,
+			User_Exists_Added_To_Group,
+			Server_Error;
+
+			public String getName(){
+				return name();
+			}
+		}
+
+		// response keys
+		private static final String KEY_CODE = "user_message_code";
+
+		// member fields
+		HashMap<Long, JSONObject> userObjects = new HashMap<Long, JSONObject>(10);
+
+		// error codes
+		public static final String CONVERSION_CODE = "CONVERSION_CODE";
+		private static final String CONVERSION_STRING = "Bad server return";
+
+		private ReturnFromAddUsersToGroupTaskOld(ServerReturn toCopy) {
+			super(toCopy);ResponseCode.Temp_User_Created_Invite_Sent.name();
+		}
+
+		private ReturnFromAddUsersToGroupTaskOld() {
+			super();
+		}
+
+		private ReturnFromAddUsersToGroupTaskOld(String errorCode, String detailErrorMessage){
 			super();
 			setError(errorCode, detailErrorMessage);
 		}

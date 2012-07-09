@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="fill_parent"
+	android:layout_height="fill_parent"
+	android:background="@android:color/white">
+<LinearLayout
 	android:layout_width="fill_parent"
 	android:layout_height="fill_parent"
 	android:background="@android:color/white">
@@ -10,3 +14,12 @@
     android:cacheColorHint="@android:color/white"
 />
 </LinearLayout>
+<ImageView
+	android:src="@drawable/no_notifications"
+	android:scaleType="centerInside"
+	android:layout_width="fill_parent"
+	android:layout_height="fill_parent"
+	android:visibility="gone"
+	android:id="@+id/noNotifications"
+/>
+</FrameLayout>

@@ -7,6 +7,7 @@ import com.instantPhotoShare.Prefs;
 import com.instantPhotoShare.R;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Parcelable;
@@ -64,10 +65,10 @@ public class InitialLaunch extends Activity {
      * Check if the phone has a user id and secret code.
      * @return true if user id and secret code are available, and false otherwise
      */
-    private boolean isUserAccountInfoAvailable(){
+    public static boolean isUserAccountInfoAvailable(Context ctx){
     	// grab user id and secret code
-    	long id = Prefs.getUserServerId(this);
-    	String secretCode = Prefs.getSecretCode(this);
+    	long id = Prefs.getUserServerId(ctx);
+    	String secretCode = Prefs.getSecretCode(ctx);
     	if (Prefs.debug.forceId){
     		id = 1;
     		secretCode = "secret";
@@ -87,7 +88,7 @@ public class InitialLaunch extends Activity {
     private void launchCorrectActivity(){
     	
     	// check if user account info is available. Then launch appropriate activity
-        if (isUserAccountInfoAvailable()){
+        if (isUserAccountInfoAvailable(this)){
         	Intent intent = new Intent(this, MainScreen.class);
         	intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 			startActivity(intent);

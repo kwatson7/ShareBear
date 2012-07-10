@@ -66,6 +66,15 @@ public class Utils {
 	// file download errors
 	public static final String CODE_SERVER_ERROR = "CODE_SERVER_ERROR";
 	public static final String SERVER_ERROR_MESSAGE = "Server error";
+	
+	// enums for notification ids
+	public enum notificationsIds {
+		GENERIC_NEW_NOTIFICATIONS;
+		public static notificationsIds convert(int value)
+		{
+			return notificationsIds.class.getEnumConstants()[value];
+		}
+	}
 
 	public static void clearApplicationData(Context ctx) {
 		File cache = ctx.getCacheDir();

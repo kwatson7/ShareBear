@@ -357,7 +357,7 @@ extends TableAdapter <NotificationsAdapter>{
 	/**
 	 * Determine the number of new notifications. The number will be returned in teh callback
 	 * @param <ACTIVITY_TYPE>
-	 * @param act The caling activity
+	 * @param act The caling activity, can be null
 	 * @param callback The callback to run when we are finished
 	 */
 	public <ACTIVITY_TYPE extends CustomActivity> void

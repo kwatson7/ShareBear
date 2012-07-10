@@ -29,11 +29,13 @@ public class Prefs {
 	private static final String GROUPS_ARRAY = "GROUPS_ARRAY";
 	private static final String MOST_RECENT_PICTURE_ROW_ID = "MOST_RECENT_PICTURE_ROW_ID";
 	private static final String MOST_RECENT_GROUP = "MOST_RECENT_GROUP";
+	private static final String BACKGROUND_POLLING_AUTO_START = "BACKGROUND_POLLING_AUTO_START";
 	
 	// default values
 	public static final String DEFAULT_STRING = null;
 	public static final long DEFAULT_LONG = -1;
 	public static final int DEFAULT_INT = -1;
+	public static final boolean DEFAULT_BOOLEAN = false;
 	
 	// static values, not stored in file
 	public static final String BASE_URL = "http://www.sharebearapp.com/request.php/";//"https://secure1907.hostgator.com/~bheyde1/";//"http://www.brennanmaxinc.com/";
@@ -209,6 +211,24 @@ public class Prefs {
 	 */
 	public static String getPassword(Context ctx){
 		return getStringPref(ctx, PASSWORD);
+	}
+	
+	/**
+	 * Return whether we should be launching a polling in the background by default
+	 * @param ctx Context required
+	 * @return true if we should, false otherwise
+	 */
+	public static boolean isLaunchBackgroundOnStart(Context ctx){
+		return getBooleanPref(ctx, BACKGROUND_POLLING_AUTO_START);
+	}
+	
+	/**
+	 * Set whether we should launch background polling in the background or not
+	 * @param ctx Context required
+	 * @param isLaunch true if we should, false otherwise
+	 */
+	public static void setLaunchBackgroundOnStart(Context ctx, boolean isLaunch){
+		setBooleanPref(ctx, BACKGROUND_POLLING_AUTO_START, isLaunch);
 	}
 	
 	/**
@@ -404,5 +424,11 @@ public class Prefs {
     }
     public static void setLongPref(Context ctx, String pref, long value) {
         getPrefs(ctx).edit().putLong(pref, value).commit();
+    }
+    public static void setBooleanPref(Context ctx, String pref, boolean value){
+    	getPrefs(ctx).edit().putBoolean(pref, value).commit();
+    }
+    public static boolean getBooleanPref(Context ctx, String pref){
+    	return getPrefs(ctx).getBoolean(pref, DEFAULT_BOOLEAN);
     }
 }

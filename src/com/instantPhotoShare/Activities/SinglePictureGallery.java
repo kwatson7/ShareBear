@@ -263,8 +263,8 @@ extends CustomActivity{
 		super.onCreateOptionsMenu(menu);
 
 		// Add the menu items
-		//	MenuItem rotateCCW = menu.add(0, MENU_ITEMS.ROTATE_CCW.ordinal(), 0, "Rotate CCW");
-		//MenuItem setAsGroupPicture = menu.add(0, MENU_ITEMS.ROTATE_CW.ordinal(), 0, "Rotate CW");
+		MenuItem rotateCCW = menu.add(0, MENU_ITEMS.ROTATE_CCW.ordinal(), 0, "Rotate CCW");
+		MenuItem setAsGroupPicture = menu.add(0, MENU_ITEMS.ROTATE_CW.ordinal(), 0, "Rotate CW");
 		menu.add(0, MENU_ITEMS.SET_AS_DEFAULT_PICTURE.ordinal(), 0, "Set as Group Picture");
 		menu.add(0, MENU_ITEMS.SHARE_PICTURE.ordinal(), 0, "Share Picture");
 
@@ -310,6 +310,7 @@ extends CustomActivity{
 			try {
 				com.tools.ImageProcessing.rotateExif(
 						picturesAdapater.getFullPicturePath(), 1);
+				com.tools.ImageProcessing.rotateExif(picturesAdapater.getThumbnailPath(), 1);
 			} catch (IOException e) {
 				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 				Toast.makeText(ctx, "Could not rotate picture", Toast.LENGTH_SHORT).show();
@@ -381,14 +382,17 @@ extends CustomActivity{
 					PicturesAdapter.imageLoaderCallback(ctx));		
 			
 			nameLoader = new ViewLoader<Long, Long, String, TextView>(
-					"Unknown Person",
+					"Photographer ...",
 					new LoadData<Long, String, TextView>() {
 
 						@Override
 						public String onGetData(Long key) {
 							UsersAdapter users = new UsersAdapter(ctx);
 							users.fetchUser(key);
-							return users.getName();
+							String name = users.getName();
+							if (name.length() == 0)
+								name = null;
+							return name;
 						}
 
 						@Override

@@ -94,6 +94,12 @@ extends CustomActivity{
 		NotificationsAdapter notes = new NotificationsAdapter(ctx);
 		notes.fetchAllNotificationsInBackground(this, new NotesFetched());
 	}
+	
+	@Override
+	public void onPause(){
+		super.onPause();
+		notificationsAdapter.setAllIsNew(false);
+	}
 
 	@Override
 	protected void initializeLayout() {
@@ -122,11 +128,11 @@ extends CustomActivity{
 	public boolean onCreateOptionsMenu(Menu menu) {
 		super.onCreateOptionsMenu(menu);
 		MenuItem delete = menu.add(0,MENU_ITEMS.DELETE_ALL_NOTIFICATIONS.ordinal(), 0, "Delete All");
-		MenuItem markAsRead = menu.add(0, MENU_ITEMS.MARK_ALL_AS_READ.ordinal(), 0, "Mark All as Read");
+	//	MenuItem markAsRead = menu.add(0, MENU_ITEMS.MARK_ALL_AS_READ.ordinal(), 0, "Mark All as Read");
 
 		// add icons
 		delete.setIcon(R.drawable.delete);
-		markAsRead.setIcon(R.drawable.check_box);
+	//	markAsRead.setIcon(R.drawable.check_box);
 		
 		return true;
 	}

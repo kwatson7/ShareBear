@@ -9,12 +9,13 @@ import com.instantPhotoShare.Adapters.UsersAdapter.User;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 import android.text.TextUtils;
 
 public class Prefs {
 	
 	// strings for accessing preferences file
-	private static final String PREF_FILE = "appInfo.prefs";
+	public static final String PREF_FILE = "appInfo.prefs";
 	private static final int MODE_PRIVATE = Context.MODE_PRIVATE;
 	private static final String USER_NAME = "USER_NAME";
 	private static final String FIRST_NAME = "FIRST_NAME";
@@ -29,7 +30,6 @@ public class Prefs {
 	private static final String GROUPS_ARRAY = "GROUPS_ARRAY";
 	private static final String MOST_RECENT_PICTURE_ROW_ID = "MOST_RECENT_PICTURE_ROW_ID";
 	private static final String MOST_RECENT_GROUP = "MOST_RECENT_GROUP";
-	private static final String BACKGROUND_POLLING_AUTO_START = "BACKGROUND_POLLING_AUTO_START";
 	
 	// default values
 	public static final String DEFAULT_STRING = null;
@@ -219,7 +219,7 @@ public class Prefs {
 	 * @return true if we should, false otherwise
 	 */
 	public static boolean isLaunchBackgroundOnStart(Context ctx){
-		return getBooleanPref(ctx, BACKGROUND_POLLING_AUTO_START);
+		return getBooleanPref(ctx, getBACKGROUND_POLLING_AUTO_START(ctx), true);
 	}
 	
 	/**
@@ -228,7 +228,11 @@ public class Prefs {
 	 * @param isLaunch true if we should, false otherwise
 	 */
 	public static void setLaunchBackgroundOnStart(Context ctx, boolean isLaunch){
-		setBooleanPref(ctx, BACKGROUND_POLLING_AUTO_START, isLaunch);
+		setBooleanPref(ctx, getBACKGROUND_POLLING_AUTO_START(ctx), isLaunch);
+	}
+	
+	private static String getBACKGROUND_POLLING_AUTO_START(Context ctx){
+		return ctx.getResources().getString(R.string.BACKGROUND_POLLING_AUTO_START);
 	}
 	
 	/**
@@ -428,7 +432,7 @@ public class Prefs {
     public static void setBooleanPref(Context ctx, String pref, boolean value){
     	getPrefs(ctx).edit().putBoolean(pref, value).commit();
     }
-    public static boolean getBooleanPref(Context ctx, String pref){
-    	return getPrefs(ctx).getBoolean(pref, DEFAULT_BOOLEAN);
+    public static boolean getBooleanPref(Context ctx, String pref, boolean defaultValue){
+    	return getPrefs(ctx).getBoolean(pref, defaultValue);
     }
 }

@@ -370,6 +370,7 @@ extends TableAdapter<PicturesAdapter>{
 
 			// store the important one
 			try {
+				//TODO: if the picture data contains exif info, this process will not work correctly.
 				if (data != null && data.length != 0 && array.getLong(i) == serverId)
 					bmp = com.tools.ImageProcessing.getThumbnail(data, 0);
 			} catch (JSONException e) {
@@ -385,6 +386,7 @@ extends TableAdapter<PicturesAdapter>{
 			String thumbPath = pics.getThumbnailPath();
 
 			// write to file
+			//TODO: if the byte data has exif data, this will not work correctly.
 			if (thumbPath != null && thumbPath.length() != 0){
 				SuccessReason result2 = 
 					com.tools.ImageProcessing.saveByteDataToFile(
@@ -1089,21 +1091,22 @@ extends TableAdapter<PicturesAdapter>{
 
 		// create the querey to only return pictures in active groups
 		TwoObjects<String, String[]> selection = createSelection("groups." + PicturesInGroupsAdapter.KEY_GROUP_ID, rowIds);
+		if (selection.mObject1.length() == 0){
+			setCursor(null);
+			return;
+		}
+			
 
 		String query = 
-			"SELECT pics.* FROM "
+			"SELECT DISTINCT pics.* FROM "
 			+PicturesAdapter.TABLE_NAME + " pics "
 			+" INNER JOIN "
 			+PicturesInGroupsAdapter.TABLE_NAME + " groups "
 			+" ON "
 			+"pics." + PicturesAdapter.KEY_ROW_ID + " = "
-			+"groups." + PicturesInGroupsAdapter.KEY_PICTURE_ID;
-		if (selection.mObject1.length() > 0){
-			query+=
-				" WHERE "
-				+selection.mObject1;
-		}
-		query+=" ORDER BY " + SORT_ORDER + " LIMIT '" + nPictures + "'";
+			+"groups." + PicturesInGroupsAdapter.KEY_PICTURE_ID
+			+" WHERE " +selection.mObject1
+			+" ORDER BY " + SORT_ORDER + " LIMIT '" + nPictures + "'";
 		
 		// do the query
 		Cursor cursor = database.rawQuery(
@@ -1291,9 +1294,9 @@ extends TableAdapter<PicturesAdapter>{
 		String path = getThumbnailPath();
 		if (path.length() == 0)
 			return out;
-
-		// decode the file
-		return BitmapFactory.decodeFile(path);
+		
+		// read the file
+		return com.tools.Tools.getThumbnail(path);
 	}
 
 	/**

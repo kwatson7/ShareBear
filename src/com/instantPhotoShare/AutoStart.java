@@ -12,7 +12,8 @@ public class AutoStart extends BroadcastReceiver
     {   
         if (intent.getAction().equals("android.intent.action.BOOT_COMPLETED"))
         {
-            alarm.SetAlarm(context);
+            Intent intent2 = new Intent(context, MyService.class);
+            context.startService(intent2);
         }
     }
 }

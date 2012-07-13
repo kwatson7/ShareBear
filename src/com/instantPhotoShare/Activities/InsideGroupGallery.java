@@ -260,13 +260,13 @@ extends CustomActivity{
 
 			// if there was an error
 			if (errorCode != null){
-				if (act!= null && errorCode.compareToIgnoreCase(GroupsAdapter.GROUP_ACCESS_ERROR) != 0){
+				if (act!= null && errorCode.compareToIgnoreCase(GroupsAdapter.GROUP_ACCESS_ERROR) == 0){
 					Toast.makeText(act, "Not in group", Toast.LENGTH_LONG).show();
 				}else{
 					String group = "unknown";
 					if (act != null)
 						group = ""+act.groupId;
-					Log.e(Utils.LOG_TAG, "Error code when fetching pictures in this group (: " + group + ") " + errorCode);
+					Log.e(Utils.LOG_TAG, "Error code when fetching pictures in this group: ( " + group + ") " + errorCode);
 				}
 			}
 		}

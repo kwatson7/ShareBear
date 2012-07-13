@@ -951,7 +951,7 @@ extends TableAdapter <UsersAdapter>{
 
 	/**
 	 * Return the users name. Usually first + last. Will query the server if not available
-	 * @return the name
+	 * @return the name, will query server if unavailable and if still unavailable will be ""
 	 */
 	public String getName(){
 		String first = getFirstName();
@@ -968,7 +968,7 @@ extends TableAdapter <UsersAdapter>{
 		//TODO: sometimes returns null null
 
 		// no name, so grab user from the server
-		if (name.length() == 0){
+		if (name.length() == 0 && getServerId() > 0){
 			// the list of users to request info on
 			JSONArray array = new JSONArray();
 			array.put(getServerId());

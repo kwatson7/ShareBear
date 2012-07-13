@@ -15,8 +15,8 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="com.android.launcher.permission.INSTALL_SHORTCUT" />
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />  
-    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <uses-feature android:name="android.hardware.camera" />
     <uses-feature android:name="android.hardware.camera.autofocus" />
@@ -42,6 +42,7 @@
         <activity android:name=".Activities.FirstTimeUseScreen" />
         <activity android:name=".Activities.AddUsersToGroup" />
         <activity android:name=".Activities.ManageGroups" />
+        <activity android:name=".Activities.Preferences" />
         <activity
             android:name=".Activities.EnterIdentifyingInformation"
             android:windowSoftInputMode="stateHidden" />
@@ -78,15 +79,20 @@
             android:name="com.tools.MessageDialog"
             android:configChanges="orientation|keyboardHidden" />
 
-        
         <receiver android:name=".AutoStart" >
             <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" >
-                </action>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
-        <receiver  android:process=":remote" android:name="Alarm"></receiver>
+        <receiver android:name=".Alarm" >
+            <intent-filter>
+                <action android:name="com.instantPhotoShare.myAction" />
+            </intent-filter>
+        </receiver>
 
+        <service
+            android:name=".MyService"
+            android:enabled="true" />
     </application>
 
 </manifest>

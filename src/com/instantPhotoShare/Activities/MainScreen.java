@@ -5,6 +5,8 @@ package com.instantPhotoShare.Activities;
 
 import java.util.ArrayList;
 
+import com.instantPhotoShare.Alarm;
+import com.instantPhotoShare.Prefs;
 import com.instantPhotoShare.R;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
@@ -27,6 +29,8 @@ import android.os.Bundle;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -64,7 +68,7 @@ extends CustomActivity{
 
 	// enums for menu items
 	private enum MENU_ITEMS { 										
-		CLEAR_APP_DATA;
+		CLEAR_APP_DATA, EDIT_PREFERENCES;
 		@SuppressWarnings("unused")
 		private static MENU_ITEMS convert(int value)
 		{
@@ -111,6 +115,32 @@ extends CustomActivity{
 		
 		// upgrade database 
 		(new TableAdapter(ctx)).customUpgrade(this);
+	}
+	
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		super.onCreateOptionsMenu(menu);
+
+		// Add the menu items
+		menu.add(0, MENU_ITEMS.EDIT_PREFERENCES.ordinal(), 0, "Edit Prefernces");
+
+		return true;
+	}
+
+	@Override
+	public boolean onMenuItemSelected(int featureId, MenuItem item) {
+
+		MENU_ITEMS id = MENU_ITEMS.convert(item.getItemId());
+		
+		// decide on what each button should do
+		switch(id) {
+		case EDIT_PREFERENCES:
+			Intent intent = new Intent(ctx, Preferences.class);
+			startActivity(intent);
+			return true;
+		}
+
+		return super.onMenuItemSelected(featureId, item);
 	}
 
 	/**

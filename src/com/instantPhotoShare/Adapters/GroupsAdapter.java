@@ -717,16 +717,17 @@ extends TableAdapter <GroupsAdapter>{
 	 * @param indeterminateProgressBars indetermiante progress bars to show, null if none (the tags to find them)
 	 * @param callback The callback to be called when we are done. Can be null.
 	 * callback 3rd return will be how many new groups there are
+	 * @return did we make it to the post
 	 */
 	public <ACTIVITY_TYPE extends CustomActivity>
-	void fetchAllGroupsFromServer(
+	boolean fetchAllGroupsFromServer(
 			ACTIVITY_TYPE act,
 			ArrayList<String> indeterminateProgressBars,
 			final ItemsFetchedCallback<ACTIVITY_TYPE> callback){
 
 		// we are already doing it, no need to do it twice
 		if(isFetchingGroups)
-			return;
+			return false;
 		isFetchingGroups = true;
 
 		// make json data to post
@@ -736,7 +737,7 @@ extends TableAdapter <GroupsAdapter>{
 			json.put("secret_code", Prefs.getSecretCode(ctx));
 		}catch (JSONException e) {
 			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
-			return;
+			return false;
 		}
 
 		// post the command to the server
@@ -762,7 +763,11 @@ extends TableAdapter <GroupsAdapter>{
 							// not a good return
 							if (!data.isSuccess()){
 								Log.e(Utils.LOG_TAG, data.getDetailErrorMessage());
-								return;
+								// send callback back to activity
+								if (callback != null){
+									callback.onItemsFetchedBackground(act, -1, data.getErrorCode());
+									return;
+								}
 							}
 
 							// grab all the group serverIds and also the number of pictures in each group
@@ -817,21 +822,6 @@ extends TableAdapter <GroupsAdapter>{
 							}
 
 							NotificationsAdapter notes = new NotificationsAdapter(ctx);
-							
-							//TODO: this doesn't have to be called, as we are calling it in fetchPictureIdsFromServer above
-							/*
-							// notifications for new pictures in groups
-							for (Entry<Long, TwoObjects<Integer, String>> entry : newPictures.entrySet()) {
-								long rowId = entry.getKey();
-								TwoObjects<Integer, String> val = entry.getValue();
-								int nNewPictures = val.mObject1;
-								String name = val.mObject2;
-								notes.createNotification(
-										"You have " + nNewPictures + " new pictures in " + name,
-										NotificationsAdapter.NOTIFICATION_TYPES.NEW_PICTURE_IN_GROUP,
-										String.valueOf(rowId));	
-							}
-							*/
 
 							// determine which groups are new
 							UsersAdapter users = new UsersAdapter(ctx);
@@ -890,7 +880,7 @@ extends TableAdapter <GroupsAdapter>{
 								if (data.isSuccess())
 									callback.onItemsFetchedBackground(act, nNewGroups, null);
 								else
-									callback.onItemsFetchedBackground(act, nNewGroups, result.getErrorCode());
+									callback.onItemsFetchedBackground(act, nNewGroups, data.getErrorCode());
 							}
 						}finally{
 							isFetchingGroups = false;
@@ -909,6 +899,8 @@ extends TableAdapter <GroupsAdapter>{
 								callback.onItemsFetchedUiThread(act, result2.getErrorCode());
 					}
 				});
+		
+		return true;
 	}
 
 	/**

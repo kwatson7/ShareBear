@@ -23,4 +23,5 @@
 	<string name="chooseDefaultSpinner">Choose default contact method</string>
 	<string name="pickGroupString">&quot;Pick a group to add to list&quot;</string>
 	<string name="pick_a_group_to_edit">&quot;Pick a group to edit&quot;</string>
+	<string name="BACKGROUND_POLLING_AUTO_START">&quot;BACKGROUND_POLLING_AUTO_START&quot;</string>
 </resources>

@@ -2,6 +2,7 @@ package com.instantPhotoShare;
 
 import com.instantPhotoShare.Activities.InitialLaunch;
 import com.instantPhotoShare.Activities.MainScreen;
+import com.instantPhotoShare.Activities.NotificationsScreen;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.NotificationsAdapter;
 import com.instantPhotoShare.Adapters.GroupsAdapter.ItemsFetchedCallback;
@@ -20,7 +21,7 @@ import android.util.Log;
 public class Alarm extends BroadcastReceiver 
 {    
 	// constants
-	private static final int POLLING_MINUTES = 10;
+	private static final float POLLING_MINUTES = 10f;
 
 	// members
 	private PowerManager.WakeLock wakeLock = null;
@@ -33,13 +34,16 @@ public class Alarm extends BroadcastReceiver
 
 		// wake the cpu
 		PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
-		wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "YOUR TAG");
+		wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, Utils.LOG_TAG);
 		wakeLock.acquire();
 
 		try{
 			if (InitialLaunch.isUserAccountInfoAvailable(ctx) && Prefs.isLaunchBackgroundOnStart(ctx)){
 				GroupsAdapter groups = new GroupsAdapter(ctx);
-				groups.fetchAllGroupsFromServer(null, null, groupsFetchedCallback);
+				if(!groups.fetchAllGroupsFromServer(null, null, groupsFetchedCallback)){
+					wakeLock.release();
+					wakeLock = null;
+				}
 			}else{
 				wakeLock.release();
 				wakeLock = null;
@@ -59,7 +63,6 @@ public class Alarm extends BroadcastReceiver
 
 		@Override
 		public void onItemsFetchedUiThread(CustomActivity act, String errorCode) {
-
 		}
 
 		@Override
@@ -101,13 +104,13 @@ public class Alarm extends BroadcastReceiver
 
 		@Override
 		public void onFinish(CustomActivity activity, Integer result) {
-			if (result == null || activity == null){
+			if (result == null){
 				wakeLock.release();
 				wakeLock = null;
 				return;
 			}			
 
-			//TODO: set the notification here
+			// set the notification here
 			try{
 				int unreadNotifications = (java.lang.Integer) result;
 				if (unreadNotifications > 0){
@@ -117,7 +120,7 @@ public class Alarm extends BroadcastReceiver
 					else
 						str = " notifications.";
 
-					Intent intent = new Intent(ctx, MainScreen.class);
+					Intent intent = new Intent(ctx, NotificationsScreen.class);
 					intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
 					com.tools.Tools.postNotification(
@@ -140,21 +143,21 @@ public class Alarm extends BroadcastReceiver
 	 * Set an alarm to go off every x minutes
 	 * @param context context required to set the alarm
 	 */
-	public void SetAlarm(Context context)
+	public void startAlarm(Context context)
 	{
 		AlarmManager am = (AlarmManager)context.getSystemService(Context.ALARM_SERVICE);
-		Intent i = new Intent(context, Alarm.class);
-		PendingIntent pi = PendingIntent.getBroadcast(context, 0, i, 0);
-		am.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), 1000 * 60 * POLLING_MINUTES, pi);
+		Intent intent = new Intent("com.instantPhotoShare.myAction");
+		PendingIntent pi = PendingIntent.getBroadcast(context, 0, intent, 0);
+		am.setInexactRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), (long) (1000 * 60 * POLLING_MINUTES), pi);
 	}
 
 	/**
 	 * Cancel this alarm
 	 * @param context The context required to cancel the alarm
 	 */
-	public void CancelAlarm(Context context)
+	public void cancelAlarm(Context context)
 	{
-		Intent intent = new Intent(context, Alarm.class);
+		Intent intent = new Intent("com.instantPhotoShare.myAction");
 		PendingIntent sender = PendingIntent.getBroadcast(context, 0, intent, 0);
 		AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
 		alarmManager.cancel(sender);

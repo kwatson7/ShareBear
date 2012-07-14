@@ -159,9 +159,8 @@ extends TableAdapter<UsersInGroupsAdapter>{
 			nRowsUpdated = database.update(TABLE_NAME, values, selection.mObject1, selection.mObject2);
 		}
 
-		// verify we updated the correct number of rows
-		if (nRowsUpdated != otherUserRowIds.size()+1)
-			Log.e(Utils.LOG_TAG, "Did not update the correct number of rows for id " + userRowIdToKeep);
+		if (nRowsUpdated > 0)
+			Log.w(Utils.LOG_TAG, "updated " + nRowsUpdated + " rows for user id " + userRowIdToKeep + " in UsersInGroupsAdapter");
 	}
 
 	/**

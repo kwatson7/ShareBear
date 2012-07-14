@@ -2,6 +2,7 @@ package com.instantPhotoShare;
 
 import java.util.HashMap;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import android.util.Base64;
@@ -10,18 +11,15 @@ import android.util.Log;
 import com.tools.ServerPost.ServerReturn;
 
 public class ThumbnailServerReturn
-extends ShareBearServerReturn{
+extends ShareBearServerReturnWithArray{
 
 	// constants
 	private static final int IGNORE_CHARACTERS_BEGINNING_BASE64 = 23; 		// these characters should be ingnored when reading base64
 	private static final int BASE64_FORMAT = Base64.DEFAULT; 				// type of encoding
 	private static final String KEY_THUMBNAIL_DATA = "thumbnail_data";
 	private static final String KEY_OWNER_ID = "owner_id";
-	private static final String KEY_DATE_UPLOADED = "date_uploaded";
-	
-	// member
-	HashMap<Long, JSONObject> thumbnailObjects = new HashMap<Long, JSONObject>(10);
-	
+	private static final String KEY_DATE_UPLOADED = "date_uploaded";	
+	private static final String KEY_THUMBNAIL_ID = "thumbnail_id";
 	
 	public ThumbnailServerReturn(ServerReturn toCopy) {
 		super(toCopy);
@@ -29,17 +27,17 @@ extends ShareBearServerReturn{
 	
 	/**
 	 * Return thumbnail data as a byte array.
-	 * @param serverId The serverId of the thumbnail data
+	 * @param index The index of the thumbnail data to grab
 	 * @return The byte[] array of data. Will be null if not present.
 	 */
-	public byte[] getThumbnailBytes(long serverId){		
-		
+	public byte[] getThumbnailBytes(int index){		
+			
 		// return null if unsuccessful
 		if (!isSuccess())
 			return null;
 		
 		// grab the base64 data
-		JSONObject json = getItemObject(serverId);
+		JSONObject json = getItemObject(index);
 		if(json == null)
 			return null;
 		String base64 = json.optString(KEY_THUMBNAIL_DATA);
@@ -66,65 +64,40 @@ extends ShareBearServerReturn{
 	
 	/**
 	 * Return the serverId of the user who created the picture, or -1 if none
-	 * @param serverId The serverId of the thumbnail
-	 * @return The serverId of the user
+	 * @param index The index of the thumbnail data
+	 * @return The serverId of the user who created picture
 	 */
-	public long getUserServerIdWhoCreated(long serverId){
-		// return null if unsuccessful
-		if (!isSuccess())
-			return -1;
-		
-		// grab the base64 data
-		JSONObject json = getItemObject(serverId);
-		if(json == null)
-			return -1;
-		return json.optLong(KEY_OWNER_ID, -1);
+	public long getUserServerIdWhoCreated(int index){
+		return getLongFromMessageArray(index, KEY_OWNER_ID);
 	}
 	
 	/**
 	 * Return the date the picture was create or 1900-01-01 01:00:00 if not known
-	 * @param serverId The serverId of the thumbnail
+	 * @param index The index of the picture in question
 	 * @return The date
 	 */
-	public String getDateCreated(long serverId){
-		// return null if unsuccessful
-		if (!isSuccess())
-			return "1900-01-01 01:00:00";
-		
-		// grab the base64 data
-		JSONObject json = getItemObject(serverId);
-		if(json == null)
-			return "1900-01-01 01:00:00";
-		String date = json.optString(KEY_DATE_UPLOADED);
-		
+	public String getDateCreated(int index){
+		String date = getStringFromMessageArray(index, KEY_DATE_UPLOADED);
 		if (date == null || date.length() == 0)
-			return "1900-01-01 01:00:00";
-		else
-			return date;
+			date = "1900-01-01 01:00:00";
+		
+		return date;	
 	}
 	
 	/**
-	 * Get the json object for this given serverId, null if unsuccseefsull
-	 * @param serverId The serverId of the object to get
-	 * @return The object for this thumbnial, or null
+	 * Return the serverId of the picture or -1 if none
+	 * @param index the index of the picture to grab
+	 * @return The serverId of the picture or -1 if none
 	 */
-	private JSONObject getItemObject(long serverId){
+	public long getPictureServerId(int index){
 		// return null if unsuccessful
 		if (!isSuccess())
-			return null;
-		
-		// see if we've retreived it already
-		JSONObject message = thumbnailObjects.get(serverId);
-		if (message != null)
-			return message;
-		
-		// grab the item at this index
-		message = getMessageObject();
-		if (message == null)
-			return null;
-		JSONObject item = message.optJSONObject(String.valueOf(serverId));
-		thumbnailObjects.put(serverId, item);
-		return item;
-		
+			return -1;
+
+		// grab the data
+		JSONObject json = getItemObject(index);
+		if(json == null)
+			return -1;
+		return json.optLong(KEY_THUMBNAIL_ID, -1);
 	}
 }

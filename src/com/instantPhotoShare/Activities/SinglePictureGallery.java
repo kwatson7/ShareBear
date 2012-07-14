@@ -383,6 +383,7 @@ extends CustomActivity{
 			
 			nameLoader = new ViewLoader<Long, Long, String, TextView>(
 					"Photographer ...",
+					5,
 					new LoadData<Long, String, TextView>() {
 
 						@Override

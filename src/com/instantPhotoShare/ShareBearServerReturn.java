@@ -162,6 +162,7 @@ extends ServerPost.ServerReturn{
 			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 			return null;
 		}
+		messageArray = json;
 		return json;
 	}
 	

@@ -1,6 +1,9 @@
 package com.instantPhotoShare;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
+
+import android.util.SparseArray;
 
 import com.tools.ServerPost.ServerReturn;
 
@@ -11,9 +14,13 @@ extends ShareBearServerReturn{
 	private static final String KEY_DATE_CREATED = "date_created";
 	private static final String KEY_OWNER_ID = "owner_id";
 	private static final String KEY_NAME = "name";
+	private static final String KEY_GROUP_ID = "group_id";
 	private static final String KEY_USER_COUNT = "user_count";
 	//TODO: read user_count from this return
 	private static final String KEY_PHOTO_COUNT = "photo_count";
+	
+	// member fields
+	SparseArray<JSONObject> userObjects = new SparseArray<JSONObject>();
 	
 	public GetGroupsServerReturn(ServerReturn toCopy) {
 		super(toCopy);
@@ -21,33 +28,61 @@ extends ShareBearServerReturn{
 	
 	/**
 	 * Return the serverId of the user who created the picture, or -1 if none
-	 * @param serverId The serverId of the thumbnail
+	 * @param index the group index to grab
 	 * @return The serverId of the user
 	 */
-	public long getUserServerIdWhoCreated(long serverId){
+	public long getUserServerIdWhoCreated(int index){
 		// return null if unsuccessful
 		if (!isSuccess())
 			return -1;
 		
-		// grab the base64 data
-		JSONObject json = getItemObject(serverId);
+		// grab the data
+		JSONObject json = getItemObject(index);
 		if(json == null)
 			return -1;
 		return json.optLong(KEY_OWNER_ID, -1);
 	}
 	
 	/**
+	 * Return the number of groups in this object
+	 * @return
+	 */
+	public int getNGroups(){
+		if (!isSuccess())
+			return 0;
+		else
+			return getMessageArray().length();
+	}
+	
+	/**
+	 * Return the serverId of the group or -1 if none
+	 * @param index the index of the group to grab
+	 * @return The serverId of the group or -1 if none
+	 */
+	public long getGroupServerId(int index){
+		// return null if unsuccessful
+		if (!isSuccess())
+			return -1;
+
+		// grab the data
+		JSONObject json = getItemObject(index);
+		if(json == null)
+			return -1;
+		return json.optLong(KEY_GROUP_ID, -1);
+	}
+	
+	/**
 	 * Return the name of the group, "" if none
-	 * @param serverId The serverId of the thumbnail
+	 * @param index The index of the group to grab info from
 	 * @return The name of the group
 	 */
-	public String getName(long serverId){
+	public String getName(int index){
 		// return null if unsuccessful
 		if (!isSuccess())
 			return "";
 		
 		// grab the base64 data
-		JSONObject json = getItemObject(serverId);
+		JSONObject json = getItemObject(index);
 		if(json == null)
 			return "";
 		return json.optString(KEY_NAME);
@@ -55,17 +90,17 @@ extends ShareBearServerReturn{
 	
 	/**
 	 * Return the number of pictures that are in this group on the server
-	 * @param serverId
+	 * @param index the index of which group to grab
 	 * @return The number of pictures, -1 if there was an error or unavailable
 	 */
-	public int getNPictures(long serverId){
+	public int getNPictures(int index){
 
 		// return null if unsuccessful
 		if (!isSuccess())
 			return -1;
 
-		// grab the base64 data
-		JSONObject json = getItemObject(serverId);
+		// grab the data
+		JSONObject json = getItemObject(index);
 		if(json == null)
 			return -1;
 		return json.optInt(KEY_PHOTO_COUNT);
@@ -73,16 +108,16 @@ extends ShareBearServerReturn{
 	
 	/**
 	 * Return the date the picture was create or 1900-01-01 01:00:00 if not known
-	 * @param serverId The serverId of the thumbnail
+	 * @param index The index of group to grab from
 	 * @return The date
 	 */
-	public String getDateCreated(long serverId){
+	public String getDateCreated(int index){
 		// return null if unsuccessful
 		if (!isSuccess())
 			return "1900-01-01 01:00:00";
 		
 		// grab the base64 data
-		JSONObject json = getItemObject(serverId);
+		JSONObject json = getItemObject(index);
 		if(json == null)
 			return "1900-01-01 01:00:00";
 		String date = json.optString(KEY_DATE_CREATED);
@@ -94,21 +129,34 @@ extends ShareBearServerReturn{
 	}
 	
 	/**
-	 * Get the json object for this given serverId, null if unsuccseefsull
-	 * @param serverId The serverId of the object to get
-	 * @return The object for this thumbnial, or null
+	 * Get the json object for this given index, null if unsuccessful
+	 * @param index The index of which item to grab info from
+	 * @return The object for this thumbnail, or null
 	 */
-	private JSONObject getItemObject(long serverId){
+	private JSONObject getItemObject(int index){
 		// return null if unsuccessful
 		if (!isSuccess())
 			return null;
-		
+
+		// see if we've retreived it already
+		JSONObject item = userObjects.get(index);
+		if (item != null)
+			return item;
+
 		// grab the item at this index
-		JSONObject json = getMessageObject();
-		if (json == null)
+		JSONArray array = getMessageArray();
+		if (array == null)
 			return null;
-		JSONObject item = json.optJSONObject(String.valueOf(serverId));
+		item = array.optJSONObject(index);
+		userObjects.put(index, item);
 		return item;
-		
+	}
+	
+	@Override
+	protected boolean isSuccessCustom2(){
+		if (getMessageArray() == null)
+			return false;
+		else
+			return true;
 	}
 }

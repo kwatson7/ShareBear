@@ -25,6 +25,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.database.StaleDataException;
 import android.os.Bundle;
 import android.util.Log;
 import android.util.TypedValue;
@@ -60,7 +61,7 @@ extends CustomActivity{
 	private PicturesGridAdapter adapter; 		// the adapter to show pictures
 	private PicturesAdapter picturesAdapater;	// An array of all the pictures
 	private TextView nNotificationsText;
-	
+
 	// misc private variables
 	private CustomActivity act = this;
 	private AlertDialog noEmailDialog = null;
@@ -109,14 +110,14 @@ extends CustomActivity{
 		// check for any groups that need to be synced
 		SyncGroupsThatNeedIt<MainScreen> task2 = new SyncGroupsThatNeedIt<MainScreen>(this);
 		task2.execute();
-		
+
 		// sync any users that need to be synced
 		(new SyncUsersInGroupThatNeedIt<CustomActivity>(act)).execute();	
-		
+
 		// upgrade database 
 		(new TableAdapter(ctx)).customUpgrade(this);
 	}
-	
+
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		super.onCreateOptionsMenu(menu);
@@ -131,7 +132,7 @@ extends CustomActivity{
 	public boolean onMenuItemSelected(int featureId, MenuItem item) {
 
 		MENU_ITEMS id = MENU_ITEMS.convert(item.getItemId());
-		
+
 		// decide on what each button should do
 		switch(id) {
 		case EDIT_PREFERENCES:
@@ -158,9 +159,9 @@ extends CustomActivity{
 		// fetch the groups
 		groups.fetchAllGroupsFromServer(this, bars, new FetchGroupsCallback());
 	}
-	
+
 	private static class FetchGroupsCallback 
-		implements GroupsAdapter.ItemsFetchedCallback<MainScreen> {
+	implements GroupsAdapter.ItemsFetchedCallback<MainScreen> {
 
 		@Override
 		public void onItemsFetchedBackground(
@@ -222,37 +223,37 @@ extends CustomActivity{
 		picturesAdapater = new PicturesAdapter(this);
 		picturesAdapater.fetchRandomPicture(N_RANDOM_PICTURES);
 		picturesAdapater.startManagingCursor(this);
-		
+
 		// set adapter
 		adapter = new PicturesGridAdapter(this, picturesAdapater);
 		gallery.setAdapter(adapter);
 	}
-	
+
 	/**
 	 * Find the cursor required for searching Contacts and load into gridView
 	 */
 	private void getPictures(){
-		
+
 		// create the new searcher if needed
 		if (picturesAdapater == null)
 			picturesAdapater = new PicturesAdapter(this);
 		else
 			picturesAdapater.stopManagingCursor(this);
-		
-		
+
+
 		// do the search and manage
 		if (!IS_GET_RANDOM_PICS)
 			picturesAdapater.fetchNewestPictures(N_RANDOM_PICTURES);
 		else
 			picturesAdapater.fetchRandomPicture(N_RANDOM_PICTURES);
 		picturesAdapater.startManagingCursor(this);	
-		
+
 		// set adapter
 		if (adapter == null){
 			adapter = new PicturesGridAdapter(this, picturesAdapater);
 			gallery.setAdapter(adapter);
 		}		
-		
+
 		adapter.notifyDataSetChanged();
 	}
 
@@ -400,7 +401,7 @@ extends CustomActivity{
 		intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 		startActivity(intent);
 	}
-	
+
 	public void notificationsClicked(View v){
 		Intent intent = new Intent(this, NotificationsScreen.class);
 		intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -412,7 +413,7 @@ extends CustomActivity{
 		intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 		startActivity(intent);
 	}
-	
+
 	/**
 	 * Set the number of new notifications
 	 */
@@ -421,7 +422,7 @@ extends CustomActivity{
 		NotificationsAdapter notes = new NotificationsAdapter(ctx);
 		notes.getNumberNewNotifications(this, new GetNumberNewNotificationsCallback());
 	}
-	
+
 	/**
 	 * Helper class used to retrieve and set the number of new notifications
 	 */
@@ -432,7 +433,7 @@ extends CustomActivity{
 		public void onFinish(MainScreen activity, Integer result) {
 			if (result == null || activity == null)
 				return;
-			
+
 			int unreadNotifications = (java.lang.Integer) result;
 			// set the number, but clip at 99
 			if (unreadNotifications == 0){
@@ -529,8 +530,12 @@ extends CustomActivity{
 
 			// move to correct location and fill views
 			if (data.moveToPosition(position)){
-				TwoObjects<Long, Long> loaderData = new TwoObjects<Long, Long>(data.getRowId(), (long) -1);
-				imageLoader.DisplayImage(data.getRowId(), loaderData, loaderData, imageView, null);
+				try{
+					TwoObjects<Long, Long> loaderData = new TwoObjects<Long, Long>(data.getRowId(), (long) -1);
+					imageLoader.DisplayImage(data.getRowId(), loaderData, loaderData, imageView, null);
+				}catch(StaleDataException e){
+					Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+				}
 			}
 
 			return imageView;

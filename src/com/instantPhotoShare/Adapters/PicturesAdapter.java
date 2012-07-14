@@ -252,6 +252,7 @@ extends TableAdapter<PicturesAdapter>{
 		pics.fetchPicture(pictureRowId);
 		if (!pics.checkCursor()){
 			Log.e(Utils.LOG_TAG, "tried to download picture with a bad rowId");
+			pics.close();
 			return null;
 		}
 
@@ -356,34 +357,30 @@ extends TableAdapter<PicturesAdapter>{
 		}
 
 		// loop over return grabbing thumbnail data
-		for (int i = 0; i < array.length(); i++){
+		for (int iii = 0; iii < result.getNItems(); iii++){
 
 			// grab the thumbnail data
-			byte[] data;
-			try {
-				data = result.getThumbnailBytes(array.getLong(i));
-			} catch (JSONException e) {
-				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
-				pics.setFinishedDownloadingThumbnail(rowIds.get(i), false);
-				continue;
-			}
+			byte[] data = result.getThumbnailBytes(iii);
 
 			// store the important one
-			try {
-				//TODO: if the picture data contains exif info, this process will not work correctly.
-				if (data != null && data.length != 0 && array.getLong(i) == serverId)
-					bmp = com.tools.ImageProcessing.getThumbnail(data, 0);
-			} catch (JSONException e) {
-				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
-				pics.setFinishedDownloadingThumbnail(pictureRowId, false);
-				continue;
-			}
+			//TODO: if the picture data contains exif info, this process will not work correctly.
+			if (data != null && data.length != 0 && result.getPictureServerId(iii) == serverId)
+				bmp = com.tools.ImageProcessing.getThumbnail(data, 0);
 
 			// move the adapter to the correct row
-			pics.fetchPicture(rowIds.get(i));
-
+			pics.fetchPictureFromServerId(result.getPictureServerId(iii));
+			
 			// determine where to save it
+			long currentPictureRowId = pics.getRowId();
+			if(currentPictureRowId <= 0){
+				Log.e(Utils.LOG_TAG, "picture with serverId: "+result.getPictureServerId(iii) + " is not available");
+				for (int ii = 0; ii < rowIds.size(); ii++)
+					pics.setFinishedDownloadingThumbnail(rowIds.get(ii), false);
+				pics.close();
+				continue;
+			}
 			String thumbPath = pics.getThumbnailPath();
+			pics.close();
 
 			// write to file
 			//TODO: if the byte data has exif data, this will not work correctly.
@@ -398,291 +395,31 @@ extends TableAdapter<PicturesAdapter>{
 							false);
 
 				// grab the id of the picture
-				long pictureServerId;
-				try {
-					pictureServerId = array.getLong(i);
-				} catch (JSONException e) {
-					Log.e("TAG", Log.getStackTraceString(e));
-					continue;
-				}
+				long pictureServerId = result.getPictureServerId(iii);
 
 				// find the user who took this picture
 				UsersAdapter users = new UsersAdapter(appCtx);
-				users.fetchUserByServerId(result.getUserServerIdWhoCreated(pictureServerId));
+				users.fetchUserByServerId(result.getUserServerIdWhoCreated(iii));
 				long userRowId = users.getRowId();
 
 				// unknown user, so create him.
-				if (userRowId == -1 || userRowId == 0){
+				if (userRowId <= 0){
 					users.close();
-					userRowId = users.makeNewUser(result.getUserServerIdWhoCreated(pictureServerId));
+					userRowId = users.makeNewUser(result.getUserServerIdWhoCreated(iii));
 				}
 
 				// update the picture in the database
 				pics.updatePicture(
-						rowIds.get(i),
+						currentPictureRowId,
 						userRowId,
-						result.getDateCreated(
-								pictureServerId));
+						result.getDateCreated(iii));
 
 				if (result2.getSuccess())
-					pics.setFinishedDownloadingThumbnail(rowIds.get(i), true);
+					pics.setFinishedDownloadingThumbnail(currentPictureRowId, true);
 				else
-					pics.setFinishedDownloadingThumbnail(rowIds.get(i), false);
+					pics.setFinishedDownloadingThumbnail(currentPictureRowId, false);
 			}else
-				pics.setFinishedDownloadingThumbnail(rowIds.get(i), false);
-			pics.close();
-
-			// notify anyone waiting that we are done saveing a file
-			synchronized (PicturesAdapter.class) {
-				PicturesAdapter.class.notifyAll();
-			}
-		}
-
-		// return the data
-		return bmp;
-	}
-
-	/**
-	 * Grab the bitmap from the server for a given picture. This method is synchronized because we will fetch more than 
-	 * one picture at a time. When we go into this method, we will check if the picture is available locally first.
-	 * Because while we were waiting to sync, it may have been downloaded. <br>
-	 * *** Slow make sure to call on background thread ***
-	 * @param ctx Context required to search
-	 * @param pictureRowId The picture id we want to fetch
-	 * @param groupRowId The groupRowId we want to limit ourselves to when fetching other pictures. Enter -1 if you only want to grab this individual picture
-	 * @return The bitmap of the given picture
-	 */
-	public static Bitmap getThumbnailFromServerOLD(Context ctx, long pictureRowId, long groupRowId){
-
-		// pictureRowId -1 or 0 break
-		if (pictureRowId == 0 || pictureRowId == -1){
-			Log.e(Utils.LOG_TAG, "entered " + pictureRowId + " which is unallowed into getThumbnailFromServer");
-			return null;
-		}
-
-		// we need a context
-		if (ctx == null){
-			Log.e(Utils.LOG_TAG, "entered a null context into getThumbnailFromServer");
-			return null;
-		}
-
-		// grab the app context
-		Context appCtx = ctx.getApplicationContext();
-		ctx = null;
-
-		// grab which picture we are talking about
-		PicturesAdapter pics = new PicturesAdapter(appCtx);
-		pics.fetchPicture(pictureRowId);
-		if (!pics.checkCursor()){
-			Log.e(Utils.LOG_TAG, "tried to download picture with a bad rowId");
-			return null;
-		}
-
-		// if we are updating, then wait
-		Bitmap bmp = null;
-		while (pics.isDownloadingThumbnail() && bmp == null){
-			synchronized (PicturesAdapter.class) {
-				try {
-					PicturesAdapter.class.wait(TIMEOUT_ON_THUMBNAIL*1000);
-				} catch (InterruptedException e) {
-					Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
-				}
-				bmp = pics.getThumbnail();
-			}
-		}
-
-		// check if we had an update while we were waiting
-		if (bmp == null)
-			bmp = pics.getThumbnail();
-		if (bmp != null){
-			pics.close();
-			synchronized (PicturesAdapter.class) {
-				pics.setFinishedDownloadingThumbnail(pictureRowId, true);
-			}
-			return bmp;
-		}
-
-		// grab the serverId
-		long serverId = pics.getServerId();
-		pics.close();
-
-		// we haven't found it locally, so grab from server, but also grab 9 more pics	
-
-		// the array to grab the thumbnails
-		JSONArray array = new JSONArray();
-		ArrayList <Long> rowIds = new ArrayList<Long>(10);
-		if (!(serverId == -1 || serverId == 0)){
-			array.put(serverId);
-			rowIds.add(pictureRowId);
-			synchronized (PicturesAdapter.class) {
-				pics.setIsDownloadingThumbnail(pictureRowId);
-			}
-		}
-
-		// grab the 9 other pictures
-		if (groupRowId != -1){
-			pics.fetchThumbnailsNeedDownloading(groupRowId, THUMBNAILS_TO_GRAB_AT_ONCE-1);
-
-			// fill the json array
-			while(pics.moveToNext()){
-				long server = pics.getServerId();
-				if (!(server == -1 || server == 0)){
-					// check that we actually don't have data
-					Bitmap tmp = pics.getThumbnail();
-					if (tmp != null){
-						synchronized (PicturesAdapter.class) {
-							pics.setFinishedDownloadingThumbnail(pics.getRowId(), true);
-						}
-						continue;
-					}
-
-					// fill the array
-					array.put(server);
-					rowIds.add(pics.getRowId());
-					synchronized (PicturesAdapter.class) {
-						pics.setIsDownloadingThumbnail(pics.getRowId());
-					}
-				}
-			}
-			pics.close();
-		}
-
-		// empty array break
-		if (array.length() == 0)
-			return null;
-
-		// grab the group serverId
-		long groupServerId = -1;
-		if (groupRowId != -1){
-			GroupsAdapter groups = new GroupsAdapter(appCtx);
-			Group group = groups.getGroup(groupRowId);
-			groupServerId = group.getServerId();
-		}else{
-			GroupsAdapter groups = new GroupsAdapter(appCtx);
-			groups.fetchGroupsContainPicture(pictureRowId);
-			while(groupServerId == -1 && groups.moveToNext()){
-				groupServerId = groups.getServerId();
-				groupRowId = groups.getRowId();
-			}
-			groups.close();
-		}
-
-		// no group, can't get picture
-		if (groupServerId == -1){
-			Log.e(Utils.LOG_TAG, "bad group serverId, so we can't grab the thumbnail");
-			return null;
-		}
-
-		// write the required folders
-		Group group = (new GroupsAdapter(appCtx)).getGroup(groupRowId);
-		try {
-			group.writeFoldersIfNeeded();
-		} catch (IOException e1) {
-			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e1));
-			return null;
-		}
-
-		// create the data required to post to server
-		JSONObject json = new JSONObject();
-		try{
-			json.put("user_id", Prefs.getUserServerId(appCtx));
-			json.put("secret_code", Prefs.getSecretCode(appCtx));
-			json.put("thumbnail_ids", array);
-			json.put("group_id", groupServerId);
-		}catch (JSONException e) {
-			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
-			return null;
-		}
-
-		// post to the server
-		ThumbnailServerReturn result = new ThumbnailServerReturn(Utils.postToServer("get_thumbnails", json, null, null));
-
-		// check success
-		if (!result.isSuccess()){
-			Log.e(Utils.LOG_TAG, result.getDetailErrorMessage());
-			return null;
-		}
-
-		// loop over return grabbing thumbnail data
-		for (int i = 0; i < array.length(); i++){
-
-			// grab the thumbnail data
-			byte[] data;
-			try {
-				data = result.getThumbnailBytes(array.getLong(i));
-			} catch (JSONException e) {
-				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
-				synchronized (PicturesAdapter.class) {
-					pics.setFinishedDownloadingThumbnail(rowIds.get(i), false);
-				}
-				continue;
-			}
-
-			// store the important one
-			try {
-				if (data != null && data.length != 0 && array.getLong(i) == serverId)
-					bmp = com.tools.ImageProcessing.getThumbnail(data, 0);
-			} catch (JSONException e) {
-				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
-				continue;
-			}
-
-			// move the adapter to the correct row
-			pics.fetchPicture(rowIds.get(i));
-
-			// determine wehre to save it
-			String thumbPath = pics.getThumbnailPath();
-
-			// write to file
-			if (thumbPath != null && thumbPath.length() != 0){
-				SuccessReason result2 = 
-					com.tools.ImageProcessing.saveByteDataToFile(
-							appCtx,
-							data,
-							false,
-							thumbPath,
-							ExifInterface.ORIENTATION_NORMAL,
-							false);
-
-				// grab the id of the picture
-				long pictureServerId;
-				try {
-					pictureServerId = array.getLong(i);
-				} catch (JSONException e) {
-					Log.e("TAG", Log.getStackTraceString(e));
-					continue;
-				}
-
-				// find the user who took this picture
-				UsersAdapter users = new UsersAdapter(appCtx);
-				users.fetchUserByServerId(result.getUserServerIdWhoCreated(pictureServerId));
-				long userRowId = users.getRowId();
-
-				// unknown user, so create him.
-				if (userRowId == -1 || userRowId == 0){
-					users.close();
-					userRowId = users.makeNewUser(result.getUserServerIdWhoCreated(pictureServerId));
-				}
-
-				// update the picture in the database
-				pics.updatePicture(
-						rowIds.get(i),
-						userRowId,
-						result.getDateCreated(
-								pictureServerId));
-
-				if (result2.getSuccess())
-					synchronized (PicturesAdapter.class) {
-						pics.setFinishedDownloadingThumbnail(rowIds.get(i), true);
-					}
-				else
-					synchronized (PicturesAdapter.class) {
-						pics.setFinishedDownloadingThumbnail(rowIds.get(i), false);
-					}
-			}else
-				synchronized (PicturesAdapter.class) {
-					pics.setFinishedDownloadingThumbnail(rowIds.get(i), false);
-				}
+				pics.setFinishedDownloadingThumbnail(currentPictureRowId, false);
 			pics.close();
 
 			// notify anyone waiting that we are done saveing a file
@@ -1200,10 +937,9 @@ extends TableAdapter<PicturesAdapter>{
 			// update the rows
 			nRowsUpdated = database.update(TABLE_NAME, values, selection.mObject1, selection.mObject2);
 		}
-
-		// verify we updated the correct number of rows
-		if (nRowsUpdated != otherUserRowIds.size())
-			Log.e(Utils.LOG_TAG, "Did not update the correct number of rows for id " + userRowIdToKeep);
+		
+		if (nRowsUpdated > 0)
+			Log.w(Utils.LOG_TAG, "updated " + nRowsUpdated + " rows for user id " + userRowIdToKeep + " in PicturesAdapter");
 	}
 
 	/**
@@ -1544,7 +1280,7 @@ extends TableAdapter<PicturesAdapter>{
 			if (database.update(
 					TABLE_NAME,
 					values,
-					KEY_ROW_ID + "='" + rowId + "'", null) <=0)
+					KEY_ROW_ID + " =?", new String[] {String.valueOf(rowId)}) <=0)
 				Log.e(Utils.LOG_TAG, "setDownloadingThumbnail did not update properly");
 		}
 	}	
@@ -1592,7 +1328,7 @@ extends TableAdapter<PicturesAdapter>{
 		return database.update(
 				TABLE_NAME,
 				values,
-				KEY_ROW_ID + "='" + rowId + "'", null) > 0;	
+				KEY_ROW_ID + " =?", new String[]{String.valueOf(rowId)}) > 0;	
 	}
 
 	/**
@@ -1617,7 +1353,6 @@ extends TableAdapter<PicturesAdapter>{
 	 * @param rowId id of picture to update
 	 * @param userIdWhoCreated the rowId of the user who created this picture
 	 * @param dateTaken The date this picture was take
-	 * @param the url to the fullsize picture
 	 * @return true if the picture was successfully updated, false otherwise
 	 */
 	public void updatePicture(

@@ -46,7 +46,7 @@ public class Prefs {
 	// debugging strings
 	public static class debug{
 		/** force the id of the user to have a value of 1 and "secret" */
-		public static final boolean forceId = false;
+		public static final boolean forceId = true;
 		/** allow for multiple updates to database rows when we dont' expect it, or throw exception othrwise */
 		public static final boolean allowMultipleUpdates = false;
 	}

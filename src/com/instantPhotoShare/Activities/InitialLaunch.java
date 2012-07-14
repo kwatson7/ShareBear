@@ -5,6 +5,7 @@ package com.instantPhotoShare.Activities;
 
 import com.instantPhotoShare.Prefs;
 import com.instantPhotoShare.R;
+import com.instantPhotoShare.Adapters.UsersAdapter;
 
 import android.app.Activity;
 import android.content.Context;
@@ -70,8 +71,28 @@ public class InitialLaunch extends Activity {
     	long id = Prefs.getUserServerId(ctx);
     	String secretCode = Prefs.getSecretCode(ctx);
     	if (Prefs.debug.forceId){
-    		id = 1;
-    		secretCode = "secret";
+    		UsersAdapter adapter = new UsersAdapter(ctx);
+    		Long rowId = adapter.makeNewUser(
+    				ctx,
+    				"",
+    				"",
+    				"",
+    				"",
+    				null,
+    				null,
+    				true,
+    				"",
+    				null);
+
+    		// store the rest of the settings
+    		Prefs.setUserRowId(ctx, rowId);
+    		Prefs.setUserServerId(ctx, 2l);
+    		Prefs.setUserServerId(ctx, 2l);
+    		id = 2;
+    		Prefs.setSecretCode(ctx, "uaeyeVAozQzZaJW");
+    		secretCode = "uaeyeVAozQzZaJW";
+    		//id = 2;
+    		//secretCode = "secret";
     	}
     	
     	// check if we have good values

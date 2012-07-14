@@ -268,8 +268,8 @@ extends TableAdapter <GroupsAdapter>{
 			nRowsUpdated = database.update(TABLE_NAME, values, selection.mObject1, selection.mObject2);
 		}
 
-		if (nRowsUpdated != otherUserRowIds.size())
-			Log.e(Utils.LOG_TAG, "Did not update the correct number of rows for id " + userRowIdToKeep);
+		if (nRowsUpdated > 0)
+			Log.w(Utils.LOG_TAG, "updated " + nRowsUpdated + " rows for user id " + userRowIdToKeep + " in GroupsAdapter for user who created");
 	}
 
 	/**
@@ -767,21 +767,22 @@ extends TableAdapter <GroupsAdapter>{
 								if (callback != null){
 									callback.onItemsFetchedBackground(act, -1, data.getErrorCode());
 									return;
-								}
+								}else
+									return;
 							}
+							
+							// keep trak of how many pictures in each group
+							HashMap<Long, Integer> nPicturesInGroupsFromServer = new HashMap<Long, Integer>();
 
 							// grab all the group serverIds and also the number of pictures in each group
 							GroupsAdapter adapter = new GroupsAdapter(ctx);
-							@SuppressWarnings("unchecked") //Using legacy API
-							Iterator<String> iterator = data.getMessageObject().keys();
-							HashSet<String> allServerids = new HashSet<String>(data.getMessageObject().length());
-							HashMap<Long, Integer> nPicturesInGroupsFromServer = new HashMap<Long, Integer>();
-							while(iterator.hasNext()){
-								String val = iterator.next();
-								long groupServerId = Long.valueOf(val);
+							int nGroups = data.getNGroups();
+							HashSet<String> allServerids = new HashSet<String>(nGroups);
+							for (int i = 0; i < nGroups; i++){
+								long groupServerId = data.getGroupServerId(i);
 								if (groupServerId != 0)
-									allServerids.add(val);
-								nPicturesInGroupsFromServer.put(groupServerId, data.getNPictures(groupServerId));
+									allServerids.add(String.valueOf(groupServerId));
+								nPicturesInGroupsFromServer.put(groupServerId, data.getNPictures(i));
 							}
 
 							// determine if there are new pictures in any of the groups.
@@ -821,6 +822,7 @@ extends TableAdapter <GroupsAdapter>{
 								
 							}
 
+							// used for adding notifications
 							NotificationsAdapter notes = new NotificationsAdapter(ctx);
 
 							// determine which groups are new
@@ -829,11 +831,14 @@ extends TableAdapter <GroupsAdapter>{
 							int nNewGroups = newIds.size();
 
 							// add new groups
-							for (String item : newIds){
-								long groupServerId = Long.valueOf(item);
+							for (int i = 0; i < nGroups; i++){
+								// if not new, then skip
+								String groupServerId = String.valueOf(data.getGroupServerId(i));
+								if (!newIds.contains(groupServerId))
+									continue;
 
 								// see if the user exists, if it doesn't then add it
-								long userServerId = data.getUserServerIdWhoCreated(groupServerId);
+								long userServerId = data.getUserServerIdWhoCreated(i);
 								users.fetchUserByServerId(userServerId);
 								long userRowId = users.getRowId();
 								if(userRowId == 0 ||userRowId == -1){
@@ -848,22 +853,27 @@ extends TableAdapter <GroupsAdapter>{
 								//TODO: read lat and long
 								//TODO: read picture id for group
 								long groupRowId = adapter.makeNewGroup(ctx,
-										data.getName(groupServerId),
+										data.getName(i),
 										null,
-										data.getDateCreated(groupServerId),
+										data.getDateCreated(i),
 										userRowId,
 										true, 
 										null,
 										null,
 										-1,
 										false,
-										data.getNPictures(groupServerId));
+										data.getNPictures(i));
 
 								if (groupRowId != -1){
-									adapter.setIsSynced(groupRowId, true, groupServerId);
+									adapter.setIsSynced(groupRowId, true, Long.valueOf(groupServerId));
 									notes.createNotification(
-											"You've been added to " + data.getName(groupServerId),
+											"You've been added to " + data.getName(i),
 											NotificationsAdapter.NOTIFICATION_TYPES.ADD_TO_NEW_GROUP, String.valueOf(groupRowId));
+
+									// fetch new pictures
+									if(data.getNPictures(i) > 0)
+										adapter.fetchPictureIdsFromServer(act, Long.valueOf(groupServerId), null, null);
+
 								}else
 									nNewGroups--;
 							}

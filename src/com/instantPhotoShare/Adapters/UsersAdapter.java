@@ -965,10 +965,9 @@ extends TableAdapter <UsersAdapter>{
 			name+=last;
 		}
 
-		//TODO: sometimes returns null null
-
 		// no name, so grab user from the server
 		if (name.length() == 0 && getServerId() > 0){
+			
 			// the list of users to request info on
 			JSONArray array = new JSONArray();
 			array.put(getServerId());
@@ -997,6 +996,7 @@ extends TableAdapter <UsersAdapter>{
 				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 			}
 		}
+		
 		return name;
 	}
 	

@@ -67,7 +67,7 @@
 	android:gravity="left"
 	android:inputType="phone" 
 	android:imeOptions="actionNext"
-	android:state_enabled="false"/>
+	android:enabled="false"/>
 <EditText
 	android:id="@+id/yourEmailAddresses"
 	android:layout_width="fill_parent"

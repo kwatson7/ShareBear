@@ -3,13 +3,19 @@ package com.instantPhotoShare.Activities;
 import java.util.ArrayList;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.text.Html;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -58,6 +64,16 @@ extends CustomActivity{
 
 	// variables to indicate what can be passed in through intents
 	public static final String GROUP_ID = "GROUP_ID";
+	
+	// enums for menu items
+	private enum MENU_ITEMS { 										
+		DELETE_GROUP;
+		@SuppressWarnings("unused")
+		private static MENU_ITEMS convert(int value)
+		{
+			return MENU_ITEMS.class.getEnumConstants()[value];
+		}
+	}
 
 	@Override
 	protected void onCreateOverride(Bundle savedInstanceState) {
@@ -97,6 +113,64 @@ extends CustomActivity{
 
 		// grab cursor for all the groups
 		getPictures();
+	}
+	
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		super.onCreateOptionsMenu(menu);
+
+		// Add the menu items
+		menu.add(0, MENU_ITEMS.DELETE_GROUP.ordinal(), 0, "Delete Group");
+
+		return true;
+	}
+
+	@Override
+	public boolean onMenuItemSelected(int featureId, MenuItem item) {
+
+		MENU_ITEMS id = MENU_ITEMS.convert(item.getItemId());
+
+		// decide on what each button should do
+		switch(id) {
+		case DELETE_GROUP:
+			deleteGroupClicked();
+			return true;
+		}
+
+		return super.onMenuItemSelected(featureId, item);
+	}
+	
+	public void deleteGroupClicked(){
+		DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+		    @Override
+		    public void onClick(DialogInterface dialog, int which) {
+		        switch (which){
+		        case DialogInterface.BUTTON_POSITIVE:
+		            GroupsAdapter groups = new GroupsAdapter(ctx);
+		            groups.deleteGroup(groupId);
+		            groupId = -1;
+		            finish();
+		            break;
+
+		        case DialogInterface.BUTTON_NEGATIVE:
+		            //No button clicked
+		            break;
+		        }
+		    }
+		};
+
+		// find number of pictures in group
+		PicturesAdapter pics = new PicturesAdapter(this);
+		pics.fetchPicturesInGroup(groupId);
+		int numPics = pics.size();
+		pics.close();
+		
+		// show the dialog
+		AlertDialog.Builder builder = new AlertDialog.Builder(this);
+		AlertDialog dialog = builder.setMessage("Are you sure you want to delete this group? There are " +numPics + " pictures in this group.").setPositiveButton("Yes", dialogClickListener)
+		    .setNegativeButton("No", dialogClickListener).create();
+		addDialog(dialog);
+		dialog.show();
 	}
 
 	// fill list with the pictures
@@ -344,7 +418,8 @@ extends CustomActivity{
 	protected void onDestroyOverride() {
 
 		// null out adapter
-		gridView.setAdapter(null);	
+		if (gridView != null)
+			gridView.setAdapter(null);	
 	}
 
 	private class PicturesGridAdapter

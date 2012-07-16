@@ -991,10 +991,66 @@ extends TableAdapter <UsersAdapter>{
 			try {
 				String firstName = message.optJSONObject(String.valueOf(getServerId())).optString("first_name");
 				String lastName = message.getJSONObject(String.valueOf(getServerId())).optString("last_name");
-				name = firstName + " " + lastName;		
+				name = firstName + " " + lastName;	
+				this.setName(firstName, lastName);
 			} catch (Exception e) {
 				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 			}
+		}
+		
+		// no user present, fetch it
+		if (getServerId() <= 0){
+			// find a picture with this user row
+			long userRowId = getRowId();
+			if (userRowId <= 0)
+				return name;
+			PicturesAdapter pics = new PicturesAdapter(ctx);
+			GroupsAdapter groups = new GroupsAdapter(ctx);
+			pics.fetchPicturesByUser(userRowId);
+			
+			// now find a picture that has a server id and the group with a serverid
+			long pictureServerId = -1;
+			long groupServerId = -1;
+			long pictureRowId = -1;
+			long groupRowId = -1;
+			while (pics.moveToNext()){
+				// the picture
+				pictureServerId = pics.getServerId();
+				pictureRowId = pics.getRowId();
+				if (pictureServerId <= 0)
+					continue;
+				
+				// fetch the group
+				groups.fetchGroupsContainPicture(pictureRowId);
+				while(groups.moveToNext()){
+					groupServerId = groups.getServerId();
+					groupRowId = groups.getRowId();
+
+					// found a good group
+					if (groupServerId > 0)
+						break;
+				}
+				groups.close();
+				
+				if (groupServerId > 0)
+					break;
+			}
+			pics.close();
+			
+			// no good picture and group
+			if (groupServerId <= 0 || pictureServerId <= 0)
+				return name;
+			
+			// now query the server
+			PicturesAdapter.getThumbnailFromServer(ctx, pictureRowId, groupRowId);
+			
+			// requery this picture
+			pics.fetchPicture(pictureRowId);
+			UsersAdapter users = new UsersAdapter(ctx);
+			users.fetchUser(pics.getUserIdWhoTook());
+			name = users.getName();
+			pics.close();
+			users.close();
 		}
 		
 		return name;

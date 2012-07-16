@@ -647,6 +647,23 @@ extends TableAdapter<PicturesAdapter>{
 		setCursor(fetchPicturePrivate(rowId));
 		moveToFirst();
 	}
+	
+	/**
+	 * Fetch the pictures with the given user id took. <br>
+	 * @param rowId The rowId of the user
+	 */
+	public void fetchPicturesByUser(long userRowId){
+		
+		final String where = KEY_USER_ID_TOOK + " = ?";
+		Cursor cursor = database.query(
+				TABLE_NAME,
+				null,
+				where,
+				new String[] {String.valueOf(userRowId)},
+				null, null, SORT_ORDER);
+
+		setCursor(cursor);
+	}
 
 	/**
 	 * Fetch the picture with the given serverId. <br>

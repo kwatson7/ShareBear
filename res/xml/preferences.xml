@@ -3,7 +3,7 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
     <PreferenceCategory 
-        android:title="First Category"
+        android:title="Preferences"
         android:key="first_category">
         
         <CheckBoxPreference 
@@ -13,20 +13,6 @@
             android:defaultValue="true"
         />
            
-    </PreferenceCategory>
-
-    <PreferenceCategory 
-        android:title="Second Category"
-        android:key="second_category">
-
-        <EditTextPreference
-            android:key="welcome_message"
-            android:title="Welcome Message" 
-            android:summary="Define the Welcome message to be shown"
-            android:dialogTitle="Welcome Message"
-            android:dialogMessage="Provide a message"    
-            android:defaultValue="Default welcome message" />
-
     </PreferenceCategory>
     
 </PreferenceScreen>

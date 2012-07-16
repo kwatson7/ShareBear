@@ -122,6 +122,7 @@ public class Alarm extends BroadcastReceiver
 
 					Intent intent = new Intent(ctx, NotificationsScreen.class);
 					intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+					//intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
 					com.tools.Tools.postNotification(
 							ctx,

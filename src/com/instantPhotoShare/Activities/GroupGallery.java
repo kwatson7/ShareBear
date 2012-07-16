@@ -2,8 +2,6 @@ package com.instantPhotoShare.Activities;
 
 import java.io.File;
 import java.lang.ref.WeakReference;
-import java.util.ArrayList;
-
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -12,6 +10,7 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.text.Html;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -29,9 +28,7 @@ import com.instantPhotoShare.R;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.PicturesAdapter;
-import com.instantPhotoShare.Adapters.GroupsAdapter.Group;
 import com.tools.CustomActivity;
-import com.tools.TwoObjects;
 import com.tools.images.ImageLoader.LoadImage;
 
 public class GroupGallery 
@@ -40,16 +37,14 @@ extends CustomActivity{
 	// private variables
 	private GridView gridView; 				// the gridview to show folder
 	private LazyAdapter adapter; 			// the adapter to show folders
-	private ArrayList<Group> groupsArray; 	// An array of all the groups
+	//private ArrayList<Group> groupsArray; 	// An array of all the groups
+	private GroupsAdapter groupsArray;
 	private CustomActivity act = this; 		// This activity
 	private ImageView takePictureButton; 	// the pointer to the take picture button
 	private ImageView screen;
 
 	@Override
 	protected void onCreateOverride(Bundle savedInstanceState) {
-		// grab cursor for all the groups
-		GroupsAdapter groupsAdapter = new GroupsAdapter(this);
-		groupsArray = groupsAdapter.getAllGroups();
 
 		// initialize layout
 		initializeLayout();	
@@ -75,10 +70,6 @@ extends CustomActivity{
 		// grab pointers to objects
 		gridView = (GridView)findViewById(R.id.groupsView);
 
-		// set adapter
-		adapter=new LazyAdapter(this, groupsArray);
-		gridView.setAdapter(adapter);
-
 		// add click listener
 		gridView.setOnItemClickListener(gridViewClick);
 
@@ -100,6 +91,20 @@ extends CustomActivity{
 
 	@Override
 	public void onResume(){
+		// make adapter
+		if (groupsArray == null)
+			groupsArray = new GroupsAdapter(ctx);
+		groupsArray.stopManagingCursor(act);
+		groupsArray.fetchAllGroups();
+		groupsArray.startManagingCursor(act);
+		if (adapter == null){
+			adapter=new LazyAdapter(this, groupsArray);
+			gridView.setAdapter(adapter);
+		}else{
+			adapter.updateGroups(groupsArray);
+			adapter.notifyDataSetChanged();
+		}
+
 		if (adapter != null){
 			adapter.imageLoader.restartThreads();
 			adapter.notifyDataSetChanged();
@@ -150,7 +155,7 @@ extends CustomActivity{
 
 	@Override
 	protected void additionalConfigurationStoring() {
-	
+
 	}
 
 	@Override
@@ -159,29 +164,39 @@ extends CustomActivity{
 		// null out adapter
 		adapter.imageLoader.clearCache();
 		gridView.setAdapter(null);	
+		
+		// delete screen bitmap
+		if (screen != null){
+			Drawable drawable = screen.getDrawable();
+			if (drawable instanceof BitmapDrawable) {
+				BitmapDrawable bitmapDrawable = (BitmapDrawable) drawable;
+				Bitmap bitmap = bitmapDrawable.getBitmap();
+				bitmap.recycle();
+			}
+		}
 	}
 
 	private class LazyAdapter
 	extends BaseAdapter {
 
-		private ArrayList<Group> data;
+		private GroupsAdapter data;
 		private LayoutInflater inflater = null;
-		public com.tools.images.ImageLoader<Long,Group,Group> imageLoader; 
+		public com.tools.images.ImageLoader<Long,GroupHelper,GroupHelper> imageLoader; 
 
-		public LazyAdapter(Activity a, ArrayList<Group> groups) {
+		public LazyAdapter(Activity a, GroupsAdapter groups) {
 			data = groups;
 			inflater = (LayoutInflater)a.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-			imageLoader = new com.tools.images.ImageLoader<Long, GroupsAdapter.Group, Group>(
+			imageLoader = new com.tools.images.ImageLoader<Long, GroupHelper, GroupHelper>(
 					R.drawable.stub,
 					0,
 					0,
 					false,
-					new LoadImage<Group, Group>() {
+					new LoadImage<GroupHelper, GroupHelper>() {
 
 						@Override
-						public Bitmap onThumbnailLocal(Group thumbnailData) {
-							long picId = thumbnailData.getPictureId(act);
-							if (picId == -1)
+						public Bitmap onThumbnailLocal(GroupHelper thumbnailData) {
+							long picId = thumbnailData.picId;
+							if (picId <= 0)
 								return null;
 							PicturesAdapter pics = new PicturesAdapter(ctx);
 							pics.fetchPicture(picId);
@@ -192,36 +207,45 @@ extends CustomActivity{
 						}
 
 						@Override
-						public Bitmap onThumbnailWeb(Group thumbnailData) {
-							long picId = thumbnailData.getPictureId(act);
-							if (picId == -1)
+						public Bitmap onThumbnailWeb(GroupHelper thumbnailData) {
+							long picId = thumbnailData.picId;
+							long groupId = thumbnailData.groupId;
+							if (picId <= 0 || groupId <= 0)
 								return null;
-							return PicturesAdapter.getThumbnailFromServer(ctx, picId, thumbnailData.getRowId());
+							return PicturesAdapter.getThumbnailFromServer(ctx, picId, groupId);
 						}
 
 						@Override
-						public Bitmap onFullSizeLocal(Group fullSizeData,
+						public Bitmap onFullSizeLocal(GroupHelper fullSizeData,
 								int desiredWidth, int desiredHeight) {
 							return null;
 						}
 
 						@Override
-						public Bitmap onFullSizeWeb(Group fullSizeData,
+						public Bitmap onFullSizeWeb(GroupHelper fullSizeData,
 								int desiredWidth, int desiredHeight, WeakReference<ProgressBar> weakProgress) {
 							return null;
 						}
 
 						@Override
 						public void createThumbnailFromFull(
-								Group thumbnailData, Group fullSizeData) {
+								GroupHelper thumbnailData, GroupHelper fullSizeData) {
+							long picId = thumbnailData.picId;
+							PicturesAdapter pics = new PicturesAdapter(ctx);
+							pics.fetchPicture(picId);
 							com.tools.images.ImageLoader.createThumbnailFromFull(
-									thumbnailData.getPictureThumbnailPath(act),
-									thumbnailData.getPictureFullPath(act),
+									pics.getThumbnailPath(),
+									pics.getFullPicturePath(),
 									Utils.MAX_THUMBNAIL_DIMENSION,
 									Utils.FORCE_BASE2_THUMBNAIL_RESIZE,
 									Utils.IMAGE_QUALITY);
 						}
 					});
+		}
+
+		public void updateGroups(GroupsAdapter groups){
+			//imageLoader.clearCache();
+			this.data = groups;
 		}
 
 		public int getCount() {
@@ -237,27 +261,34 @@ extends CustomActivity{
 		}
 
 		public View getView(int position, View convertView, ViewGroup parent) {
-			Group group = data.get(position);
 			View vi=convertView;
 			if(convertView==null)
 				vi = inflater.inflate(R.layout.group_view_item, null);
 
 			TextView text=(TextView)vi.findViewById(R.id.groupName);
 			ImageView image=(ImageView)vi.findViewById(R.id.groupImage);
-			text.setText(Html.fromHtml(group.toString()));
 
-			// recycle bitmaps
-			/*
-			if (convertView != null){
-				Drawable toRecycle= image.getDrawable();
-				if (toRecycle != null) {
-					((BitmapDrawable)image.getDrawable()).getBitmap().recycle();
-				}
+			// move to correct position
+			if (!data.moveToPosition(position)){
+				Log.e(Utils.LOG_TAG, "could not move to correct position in group gallery");
+				return vi;
+			}else{
+				text.setText(Html.fromHtml(data.toString()));
+				GroupHelper helper = new GroupHelper(data.getPictureId(), data.getRowId());
+				imageLoader.DisplayImage(helper.picId, helper, helper, image, null);
 			}
-			*/
-
-			imageLoader.DisplayImage(group.getPictureId(act), group, null, image, null);
+			
 			return vi;
+		}
+	}
+
+	private static class GroupHelper{
+		private long picId;
+		private long groupId;
+
+		private GroupHelper(long picId, long groupId){
+			this.picId = picId;
+			this.groupId = groupId;
 		}
 	}
 }

@@ -159,6 +159,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 				Utils.MAX_THUMBNAIL_DIMENSION,
 				Utils.FORCE_BASE2_THUMBNAIL_RESIZE);
 		byte[] thumbByte = com.tools.ImageProcessing.getByteArray(thumbnail, Utils.IMAGE_QUALITY);
+		thumbnail.recycle();
 		
 		// save the thumbnail
 		SuccessReason thumbnailSave = 

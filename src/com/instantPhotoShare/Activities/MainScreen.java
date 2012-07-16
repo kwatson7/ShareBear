@@ -70,7 +70,6 @@ extends CustomActivity{
 	// enums for menu items
 	private enum MENU_ITEMS { 										
 		CLEAR_APP_DATA, EDIT_PREFERENCES;
-		@SuppressWarnings("unused")
 		private static MENU_ITEMS convert(int value)
 		{
 			return MENU_ITEMS.class.getEnumConstants()[value];

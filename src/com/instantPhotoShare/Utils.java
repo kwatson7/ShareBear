@@ -27,6 +27,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Environment;
 import android.util.Log;
 import android.view.View;
@@ -526,12 +527,23 @@ public class Utils {
 				// make the drawable
 				final BitmapDrawable draw = new BitmapDrawable(bmp);
 				draw.setAlpha((int)(BACKGROUND_ALPHA*(alphaMultiplier/avg)));
+				
+				// recyle the old bitmap if one exists
+				Drawable drawable = image.getDrawable();
+				final Bitmap bitmapOld;
+				if (drawable instanceof BitmapDrawable) {
+				    BitmapDrawable bitmapDrawable = (BitmapDrawable) drawable;
+				    bitmapOld = bitmapDrawable.getBitmap();
+				}else
+					bitmapOld = null;
 
 				// post it on the ui thread
 				Activity a=(Activity)image.getContext();
 				a.runOnUiThread(new Runnable() {
 					public void run() {
 						image.setImageDrawable(draw);
+						if (bitmapOld != null)
+							bitmapOld.recycle();
 					}
 				});
 			}

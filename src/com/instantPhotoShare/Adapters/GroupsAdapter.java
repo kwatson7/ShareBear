@@ -21,6 +21,7 @@ import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Tasks.CreateGroupTask;
 import com.tools.CustomActivity;
 import com.tools.CustomAsyncTask;
+import com.tools.ExpiringValue;
 import com.tools.ServerPost.PostCallback;
 import com.tools.ServerPost.ServerReturn;
 import com.tools.ThreeObjects;
@@ -82,8 +83,7 @@ extends TableAdapter <GroupsAdapter>{
 	public static final String GROUP_ACCESS_ERROR = "GROUP_ACCESS_ERROR";
 
 	// static variables
-	private static boolean isFetchingGroups = false;
-
+	private com.tools.ExpiringValue<Boolean> isFetchingGroups = new com.tools.ExpiringValue<Boolean>(50f, false, false);
 
 	/** Table creation string */
 	public static final String TABLE_CREATE = 
@@ -726,9 +726,11 @@ extends TableAdapter <GroupsAdapter>{
 			final ItemsFetchedCallback<ACTIVITY_TYPE> callback){
 
 		// we are already doing it, no need to do it twice
-		if(isFetchingGroups)
+		if (isFetchingGroups == null)
+			isFetchingGroups = new ExpiringValue<Boolean>(50f, false, false);
+		if(isFetchingGroups.getValue())
 			return false;
-		isFetchingGroups = true;
+		isFetchingGroups.setValue(true);
 
 		// make json data to post
 		JSONObject json = new JSONObject();
@@ -893,7 +895,9 @@ extends TableAdapter <GroupsAdapter>{
 									callback.onItemsFetchedBackground(act, nNewGroups, data.getErrorCode());
 							}
 						}finally{
-							isFetchingGroups = false;
+							if (isFetchingGroups == null)
+								isFetchingGroups = new ExpiringValue<Boolean>(50f, false, false);
+							isFetchingGroups.setValue(false);
 						}
 					}
 
@@ -1464,6 +1468,31 @@ extends TableAdapter <GroupsAdapter>{
 			return "<font color='"+NON_SYNCED_PUBLIC_GROUPS_COLOR+"'>" + getName() + "</font>";
 		else
 			return getName();
+	}
+	
+	/**
+	 * Return the pictureId of this group. If none available, then grabs the most recent picture
+	 * @param ctx The context is rewquired, if no picture is stored, and we are going to find the most recent. use null if we dont care about that.
+	 * @return The picture rowId, -1 if none
+	 */
+	public long getPictureId() {
+		if(!checkCursor())
+			return -1;
+		
+		long pictureId = getLong(KEY_PICTURE_ID);
+		
+		// check if it is 0, if so, then just grab the most recent picture
+		if (pictureId == 0)
+			pictureId = -1;
+		if (pictureId == -1){
+			PicturesAdapter pics = new PicturesAdapter(ctx);
+			pics.fetchPicturesInGroup(getRowId());
+			pics.moveToFirst();
+			pictureId = pics.getRowId();
+			pics.close();
+		}
+
+		return pictureId;
 	}
 
 	// private helper classes

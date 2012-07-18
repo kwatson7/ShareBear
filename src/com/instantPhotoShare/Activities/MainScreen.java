@@ -239,7 +239,6 @@ extends CustomActivity{
 		else
 			picturesAdapater.stopManagingCursor(this);
 
-
 		// do the search and manage
 		if (!IS_GET_RANDOM_PICS)
 			picturesAdapater.fetchNewestPictures(N_RANDOM_PICTURES);
@@ -251,24 +250,25 @@ extends CustomActivity{
 		if (adapter == null){
 			adapter = new PicturesGridAdapter(this, picturesAdapater);
 			gallery.setAdapter(adapter);
-		}		
+		}
 
 		adapter.notifyDataSetChanged();
 	}
 
 	@Override
 	public void onPause(){
+		super.onPause();
 		//overridePendingTransition(0, R.anim.picture_scale_down_animation);
 		if (adapter != null)
 			adapter.imageLoader.stopThreads();
-		super.onPause();
+		
 	}
 
 	@Override
 	public void onResume(){
+		super.onResume();
 		if (adapter != null)
 			adapter.imageLoader.restartThreads();
-		super.onResume();
 		adapter.notifyDataSetChanged();
 		fetchNewGroups();
 		setNotificationsNumber();

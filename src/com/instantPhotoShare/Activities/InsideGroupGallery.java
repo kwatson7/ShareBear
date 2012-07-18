@@ -172,51 +172,6 @@ extends CustomActivity{
 		addDialog(dialog);
 		dialog.show();
 	}
-
-	// fill list with the pictures
-	private void fillPicturesOld() {
-		// stop old thread if we need to
-		//if (adapter != null)
-		//	adapter.imageLoader.stopThreads();
-
-		// set the adapter
-		//  adapter = new PicturesGridAdapter(this, picturesAdapater);
-		//  gridView.setAdapter(adapter);
-
-
-
-		// save index and top position
-		int index = gridView.getFirstVisiblePosition();
-
-		// set adapter
-		MemoryCache<Long> cache = null;
-		if (adapter != null){
-			adapter.imageLoader.stopThreads();
-			cache = adapter.imageLoader.getMemoryCache();
-		}
-		adapter = new PicturesGridAdapter(this, picturesAdapater);
-		if (cache != null)
-			adapter.imageLoader.restoreMemoryCache(cache);
-		gridView.setAdapter(adapter);
-
-		// restore
-		if (index != GridView.INVALID_POSITION)
-			gridView.smoothScrollToPosition(index);	
-	}
-
-	/**
-	 * Find the cursor required for searching Contacts
-	 */
-	private void getPicturesOld(){
-		if (picturesAdapater != null){
-			picturesAdapater.stopManagingCursor(this);
-			picturesAdapater.close();
-		}
-			
-		picturesAdapater = new PicturesAdapter(this);
-		picturesAdapater.fetchPicturesInGroup(groupId);
-		picturesAdapater.startManagingCursor(this);
-	}
 	
 	/**
 	 * Find the cursor required for searching Contacts and load into gridView
@@ -351,16 +306,29 @@ extends CustomActivity{
 		//	overridePendingTransition(0, R.anim.picture_scale_down_animation);
 		if (adapter != null)
 			adapter.imageLoader.stopThreads();
+		
+		// recyle the old bitmap if one exists
+		Drawable drawable = screen.getDrawable();
+		Bitmap bitmapOld = null;
+		if (drawable instanceof BitmapDrawable) {
+			BitmapDrawable bitmapDrawable = (BitmapDrawable) drawable;
+			bitmapOld = bitmapDrawable.getBitmap();
+		}
+		screen.setImageResource(android.R.color.background_dark);
+		if (bitmapOld != null)
+			bitmapOld.recycle();
+		screen.invalidate();
+				
 		super.onPause();
 	}
 
 	@Override
 	public void onResume(){
+		super.onResume();
 		if (adapter != null){
 			adapter.imageLoader.restartThreads();
 			adapter.notifyDataSetChanged();
 		}
-		super.onResume();
 	}
 
 	private OnItemClickListener gridViewClick =  new OnItemClickListener() {

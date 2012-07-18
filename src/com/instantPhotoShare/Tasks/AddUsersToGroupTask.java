@@ -186,19 +186,15 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 					users.setIsUpdating(userRowId, false);
 					Log.e(Utils.LOG_TAG, "user did not update for unknown reason: " + serverResponse.getErrorCode());
 					break;
-				case Temp_User_Created_Invite_Sent:
-					users.setIsSynced(userRowId, true, userServerId, false);
+				case No_User_Account_Invites_Sent:
+					users.setIsSynced(userRowId, true, -1, false);
 					links.setIsSynced(linkId, true);
 					break;
-				case Temp_User_Exists_Invite_Resent:
-					users.setIsSynced(userRowId, true, userServerId, false);
-					links.setIsSynced(linkId, true);
-					break;
-				case User_Exists_Added_To_Group:
+				case User_Added_To_Group:
 					users.setIsSynced(userRowId, true, userServerId, true);
 					links.setIsSynced(linkId, true);
 					break;
-				case User_Exists_Already_In_Group:
+				case User_Already_In_Group:
 					users.setIsSynced(userRowId, true, userServerId, true);
 					links.setIsSynced(linkId, true);
 					break;
@@ -425,12 +421,11 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 
 		// responase codes
 		public enum ResponseCode{
-			Temp_User_Created_Invite_Sent,
-			Temp_User_Exists_Invite_Resent,
-			User_Exists_Already_In_Group,
-			User_Exists_Added_To_Group,
+			No_User_Account_Invites_Sent,
+			User_Already_In_Group,
+			User_Added_To_Group,
 			Server_Error;
-
+			
 			public String getName(){
 				return name();
 			}
@@ -448,7 +443,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 		private static final String CONVERSION_STRING = "Bad server return";
 
 		private ReturnFromAddUsersToGroupTask(ServerReturn toCopy) {
-			super(toCopy);ResponseCode.Temp_User_Created_Invite_Sent.name();
+			super(toCopy);
 		}
 
 		private ReturnFromAddUsersToGroupTask() {

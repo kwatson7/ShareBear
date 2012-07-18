@@ -6,6 +6,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
@@ -83,14 +84,28 @@ extends CustomActivity{
 
 	@Override
 	public void onPause(){
-		//overridePendingTransition(0, R.anim.picture_scale_down_animation);
+		super.onPause();
+
 		if (adapter != null)
 			adapter.imageLoader.stopThreads();
-		super.onPause();
+		
+		// recyle the old bitmap if one exists
+		Drawable drawable = screen.getDrawable();
+		Bitmap bitmapOld = null;
+		if (drawable instanceof BitmapDrawable) {
+		    BitmapDrawable bitmapDrawable = (BitmapDrawable) drawable;
+		    bitmapOld = bitmapDrawable.getBitmap();
+		}
+		screen.setImageResource(android.R.color.background_dark);
+		if (bitmapOld != null)
+			bitmapOld.recycle();
+		screen.invalidate();
 	}
 
 	@Override
 	public void onResume(){
+		super.onResume();
+		
 		// make adapter
 		if (groupsArray == null)
 			groupsArray = new GroupsAdapter(ctx);
@@ -119,7 +134,6 @@ extends CustomActivity{
 		}
 		pics.close();
 		Utils.setBackground(this, picPath, screen, 0.5f);
-		super.onResume();
 	}
 
 	private OnItemClickListener gridViewClick =  new OnItemClickListener() {
@@ -261,6 +275,7 @@ extends CustomActivity{
 		}
 
 		public View getView(int position, View convertView, ViewGroup parent) {
+			
 			View vi=convertView;
 			if(convertView==null)
 				vi = inflater.inflate(R.layout.group_view_item, null);

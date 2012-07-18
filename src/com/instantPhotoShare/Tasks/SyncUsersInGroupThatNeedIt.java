@@ -49,11 +49,11 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, Void>{
 				true,
 				false,
 				null);
-		
+
 		//TODO: massive overlap in code between this and AddUsersToGroupTask - consolidate
 	}
 
-	
+
 	@Override
 	protected void onPreExecute() {
 
@@ -61,29 +61,29 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, Void>{
 
 	@Override
 	protected Void doInBackground(Void... params) {
-		
+
 		// the required adapters
 		UsersInGroupsAdapter usersInGroups = new UsersInGroupsAdapter(applicationCtx);
 		UsersAdapter users = new UsersAdapter(applicationCtx);
-		
+
 		// find all the groups and then loop over them
 		GroupsAdapter groups = new GroupsAdapter(applicationCtx);
 		groups.fetchAllGroups();
 		while(groups.moveToNext()){
-			
+
 			// if the group is private or doesn't have an id, then skip
 			if (groups.getServerId() == 0 || groups.getServerId() == -1 || groups.isKeepLocal())
 				continue;
-			
+
 			// fetch the links that need to be updated
 			usersInGroups.fetchLinksNeedUploading(groups.getRowId());
-			
+
 			// create an arraylist of which users to add
 			ArrayList<Long> newUsers = new ArrayList<Long>(usersInGroups.size());
-			
+
 			// keep track of which links we are updating
 			ArrayList<Long> links = new ArrayList<Long>(usersInGroups.size());
-			
+
 			// do the iterating
 			while(usersInGroups.moveToNext()){
 				long id = usersInGroups.getUserRowId();
@@ -93,11 +93,11 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, Void>{
 				}
 			}
 			usersInGroups.close();
-			
+
 			// no new links
 			if (newUsers.size() == 0)
 				continue;
-			
+
 			// upload to server
 			usersInGroups.setIsUpdating(links, true);
 			ReturnFromAddUsersToGroupTask serverResponse = new ReturnFromAddUsersToGroupTask();
@@ -110,12 +110,12 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, Void>{
 				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 				continue;
 			}
-			
+
 			// loop across returned users to check if we added successfully
 			if (serverResponse.isSuccess()){
-				
+
 				for (int i = 0; i < serverResponse.getMessageArray().length(); i++){
-					
+
 					// grab the server ids and row ids and link ids
 					long userRowId = newUsers.get(i);
 					long linkId = links.get(i);
@@ -123,25 +123,21 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, Void>{
 
 					// loop across all switch possibilities
 					com.instantPhotoShare.Tasks.SyncUsersInGroupThatNeedIt.ReturnFromAddUsersToGroupTask.ResponseCode response =
-						serverResponse.getUserCode(i);			
+							serverResponse.getUserCode(i);			
 					switch(response){
 					case Server_Error:
 						users.setIsUpdating(userRowId, false);
 						Log.e(Utils.LOG_TAG, "user did not update for unknown reason: " + serverResponse.getErrorCode());
 						break;
-					case Temp_User_Created_Invite_Sent:
-						users.setIsSynced(userRowId, true, userServerId, false);
+					case No_User_Account_Invites_Sent:
+						users.setIsSynced(userRowId, true, -1, false);
 						usersInGroups.setIsSynced(linkId, true);
 						break;
-					case Temp_User_Exists_Invite_Resent:
-						users.setIsSynced(userRowId, true, userServerId, false);
-						usersInGroups.setIsSynced(linkId, true);
-						break;
-					case User_Exists_Added_To_Group:
+					case User_Added_To_Group:
 						users.setIsSynced(userRowId, true, userServerId, true);
 						usersInGroups.setIsSynced(linkId, true);
 						break;
-					case User_Exists_Already_In_Group:
+					case User_Already_In_Group:
 						users.setIsSynced(userRowId, true, userServerId, true);
 						usersInGroups.setIsSynced(linkId, true);
 						break;
@@ -154,10 +150,10 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, Void>{
 				Log.e(Utils.LOG_TAG, "Bad return from server while adding users to groups");
 			}
 		}
-		
+
 		// close the group cursor
 		groups.close();
-		
+
 		return null;
 
 	}
@@ -170,7 +166,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, Void>{
 	 * @throws JSONException
 	 */
 	private static JSONArray getDataToPost(ArrayList<Long> newAdditions, long groupServerId, Context ctx)
-	throws JSONException{	
+			throws JSONException{	
 
 		// initialize the array
 		JSONArray jsonArray = new JSONArray();
@@ -216,7 +212,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, Void>{
 
 	@Override
 	protected void setupDialog() {
-		
+
 	}
 
 	private static class ReturnFromAddUsersToGroupTask
@@ -224,10 +220,9 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, Void>{
 
 		// responase codes
 		public enum ResponseCode{
-			Temp_User_Created_Invite_Sent,
-			Temp_User_Exists_Invite_Resent,
-			User_Exists_Already_In_Group,
-			User_Exists_Added_To_Group,
+			No_User_Account_Invites_Sent,
+			User_Already_In_Group,
+			User_Added_To_Group,
 			Server_Error;
 
 			public String getName(){
@@ -243,7 +238,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, Void>{
 		SparseArray<JSONObject> userObjects = new SparseArray<JSONObject>();
 
 		private ReturnFromAddUsersToGroupTask(ServerReturn toCopy) {
-			super(toCopy);ResponseCode.Temp_User_Created_Invite_Sent.name();
+			super(toCopy);
 		}
 
 		private ReturnFromAddUsersToGroupTask() {
@@ -325,118 +320,6 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, Void>{
 				return null;
 			item = array.optJSONObject(index);
 			userObjects.put(index, item);
-			return item;
-		} 	
-	}
-	
-	private static class ReturnFromAddUsersToGroupTaskOld
-	extends ShareBearServerReturn{
-
-		// responase codes
-		public enum ResponseCode{
-			Temp_User_Created_Invite_Sent,
-			Temp_User_Exists_Invite_Resent,
-			User_Exists_Already_In_Group,
-			User_Exists_Added_To_Group,
-			Server_Error;
-
-			public String getName(){
-				return name();
-			}
-		}
-
-		// response keys
-		private static final String KEY_CODE = "user_message_code";
-
-		// member fields
-		HashMap<Long, JSONObject> userObjects = new HashMap<Long, JSONObject>(10);
-
-		private ReturnFromAddUsersToGroupTaskOld(ServerReturn toCopy) {
-			super(toCopy);ResponseCode.Temp_User_Created_Invite_Sent.name();
-		}
-
-		private ReturnFromAddUsersToGroupTaskOld() {
-			super();
-		}
-
-		private ReturnFromAddUsersToGroupTaskOld(String errorCode, String detailErrorMessage){
-			super();
-			setError(errorCode, detailErrorMessage);
-		}
-
-		/**
-		 * Return the code returned for this user.
-		 * @param serverId The serverId of the thumbnail data
-		 * @return The code returned by the server. Will not be null
-		 */
-		public ResponseCode getUserCode(long serverId){		
-
-			// default
-			ResponseCode value = ResponseCode.Server_Error;
-
-			// return null if unsuccessful
-			if (!isSuccess())
-				return value;
-
-			// grab the code
-			JSONObject json = getItemObject(serverId);
-			if(json == null)
-				return value;
-			String string = json.optString(KEY_CODE);
-
-			// convert to responseCode
-			try{
-				value = ResponseCode.valueOf(string);
-			}catch(IllegalArgumentException e){
-				Log.e(Utils.LOG_TAG, "unknown return from server for user: " +serverId + ", "+ string);
-			}catch(NullPointerException e){
-				Log.e(Utils.LOG_TAG, "null return from server for user: " +serverId);
-			}
-			return value;
-		}
-
-		/**
-		 * Get all the serverIds that were return, will be null if unsuccessful.
-		 * @return The iterator, or null if we had an error
-		 */
-		public Iterator<String> getUserServerIds(){
-			// return null if unsuccessful
-			if (!isSuccess())
-				return null;
-
-			// grab the message
-			JSONObject json = getMessageObject();
-			if (json == null)
-				return null;
-
-			// the keys
-			@SuppressWarnings("unchecked") // legacy api
-			Iterator<String> iterator = json.keys();
-
-			return iterator;
-		}
-
-		/**
-		 * Get the json object for this given serverId, null if unsuccessful
-		 * @param serverId The serverId of the object to get
-		 * @return The object for this thumbnail, or null
-		 */
-		private JSONObject getItemObject(long serverId){
-			// return null if unsuccessful
-			if (!isSuccess())
-				return null;
-
-			// see if we've retreived it already
-			JSONObject message = userObjects.get(serverId);
-			if (message != null)
-				return message;
-
-			// grab the item at this index
-			message = getMessageObject();
-			if (message == null)
-				return null;
-			JSONObject item = message.optJSONObject(String.valueOf(serverId));
-			userObjects.put(serverId, item);
 			return item;
 		} 	
 	}

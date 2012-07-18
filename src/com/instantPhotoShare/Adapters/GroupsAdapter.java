@@ -394,16 +394,13 @@ extends TableAdapter <GroupsAdapter>{
 		String topPath = group.getGroupFolderName();
 
 		// add marke for deletion to row
-		boolean updateVal =  database.update(
-				TABLE_NAME,
-				values,
-				where, selectionArgs) > 0;
+		boolean updateVal =  database.update(TABLE_NAME, values, where, selectionArgs) > 0;
 
-				// delete folders if they are empty
-				if (com.tools.Tools.isFolderEmpty(topPath))
-					com.tools.Tools.deleteEmptyFolder(new File(topPath));
+		// delete folders if they are empty
+		if (com.tools.Tools.isFolderEmpty(topPath, ".nomedia"))
+			com.tools.Tools.deleteEmptyFolder(new File(topPath), ".nomedia");
 
-				return updateVal;					
+		return updateVal;					
 	}
 
 	/**
@@ -435,8 +432,8 @@ extends TableAdapter <GroupsAdapter>{
 			throw new IllegalArgumentException("attempting to delete more than one row in groups. This should never happen");
 
 		// delete folders if they are empty
-		if (com.tools.Tools.isFolderEmpty(topPath))
-			com.tools.Tools.deleteEmptyFolder(new File(topPath));
+		if (com.tools.Tools.isFolderEmpty(topPath, ".nomedia"))
+			com.tools.Tools.deleteEmptyFolder(new File(topPath), ".nomedia");
 
 		return effected;
 	}
@@ -475,6 +472,30 @@ extends TableAdapter <GroupsAdapter>{
 					null,
 					KEY_ROW_ID + "='" + rowId +"'" + ADDITIONAL_QUERY,
 					null,
+					null,
+					null,
+					SORT_ORDER,
+					null);
+
+		setCursor(cursor);
+		moveToFirst();
+	}
+	
+	/**
+	 * Fetch the group with the given rowId into this main cursor
+	 * @param serverId the server id of this group
+	 */
+	public void fetchGroupByServerId(long serverId){
+
+		// grab the cursor
+		Cursor cursor =
+
+			database.query(
+					true,
+					TABLE_NAME,
+					null,
+					KEY_SERVER_ID + " =? " + ADDITIONAL_QUERY,
+					new String[]{String.valueOf(serverId)},
 					null,
 					null,
 					SORT_ORDER,
@@ -632,7 +653,7 @@ extends TableAdapter <GroupsAdapter>{
 						Group group = adapter.getGroupByServerId(groupServerId);
 						if(group == null || group.keepLocal)
 							return;
-						int counter = 0;
+						int counter = 0;						
 						for (int i = 0; i < array.length(); i++){
 
 							synchronized (GroupsAdapter.class) {
@@ -675,6 +696,11 @@ extends TableAdapter <GroupsAdapter>{
 								}
 							}
 						}	
+						
+						// update number of pictures
+						adapter.fetchGroupByServerId(groupServerId);
+						adapter.setNPictures(array.length());
+						adapter.close();
 
 						// notification for new pictures
 						if (counter > 0){
@@ -1516,7 +1542,11 @@ extends TableAdapter <GroupsAdapter>{
 	private ThreeObjects<String, String, String>
 	makeRequiredFolders(Context ctx, String groupName, String dateCreated)
 	throws IOException{
-
+		
+		// check sd card mounted
+		if (!com.tools.Tools.isStorageAvailable(true))
+			throw new IOException("SD card not mounted and writable");
+			
 		// the name
 		String folderName = getAllowableFolderName(ctx, groupName, dateCreated);
 

@@ -365,10 +365,11 @@ extends TableAdapter <UsersAdapter>{
 	/**
 	 * If we are synced to the server, then set this field to true.
 	 * Also if we set to synced, then we know we aren't updating, so that is set to false.
+	 * 
 	 * @param rowId the rowId of the user to update.
 	 * @param isSynced boolean if we are synced
-	 * @param newServerId, input -1, if not known and nothing will be saved
-	 * @param hasAccount, does the user have an account or is this a temp placeholder?
+	 * @param newServerId input -1, if not known and this value will not be stored
+	 * @param hasAccount does the user have an account or is this a temp placeholder?
 	 * @return boolean if we updated successfully to sql table.
 	 */
 	public boolean setIsSynced(long rowId, boolean isSynced, long newServerId, boolean hasAccount){

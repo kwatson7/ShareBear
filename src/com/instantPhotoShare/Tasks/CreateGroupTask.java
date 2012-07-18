@@ -43,7 +43,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, CreateGroupTask.ReturnFromCreate
 
 	// local error
 	private static final String LOCAL_CREATION_ERROR = "LOCAL_CREATION_ERROR";
-	private static final String ERROR_MESSAGE = "Group could not be created for unknown reason";
+	private static final String ERROR_MESSAGE = "Error, check that SD card is mounted";
 	private static final String LOCAL_ONLY = "LOCAL_ONLY";
 
 	/**

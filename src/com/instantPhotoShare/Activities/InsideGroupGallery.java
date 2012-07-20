@@ -60,7 +60,8 @@ extends CustomActivity{
 	private String groupName; 					// The name of the group we are in
 	private int nNewPictures = 0;
 	private com.tools.images.MemoryCache<Long> oldCache = null; 		// the old imageloader cache. use this to handle screen rotations.
-
+	//private float lastXPosition = 0.5f;
+	//private float lastYPosition = 0.5f;
 
 	// variables to indicate what can be passed in through intents
 	public static final String GROUP_ID = "GROUP_ID";
@@ -68,7 +69,6 @@ extends CustomActivity{
 	// enums for menu items
 	private enum MENU_ITEMS { 										
 		DELETE_GROUP;
-		@SuppressWarnings("unused")
 		private static MENU_ITEMS convert(int value)
 		{
 			return MENU_ITEMS.class.getEnumConstants()[value];
@@ -303,7 +303,6 @@ extends CustomActivity{
 
 	@Override
 	public void onPause(){
-		//	overridePendingTransition(0, R.anim.picture_scale_down_animation);
 		if (adapter != null)
 			adapter.imageLoader.stopThreads();
 		
@@ -330,6 +329,26 @@ extends CustomActivity{
 			adapter.notifyDataSetChanged();
 		}
 	}
+	
+	/*
+	@Override
+	public boolean onTouchEvent(MotionEvent event) {
+		int x = (int)event.getX();
+		int y = (int)event.getY();
+		switch (event.getAction()) {
+			case MotionEvent.ACTION_DOWN:
+			case MotionEvent.ACTION_MOVE:
+			case MotionEvent.ACTION_UP:
+		}
+		int width = act.getWindowManager().getDefaultDisplay().getWidth(); 
+		int height = act.getWindowManager().getDefaultDisplay().getHeight();
+		
+		lastXPosition = ((float) x)/width;
+		lastYPosition = ((float) y)/height;
+
+		return false;
+	}
+	*/
 
 	private OnItemClickListener gridViewClick =  new OnItemClickListener() {
 

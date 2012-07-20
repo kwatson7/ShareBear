@@ -21,7 +21,6 @@ import android.graphics.PixelFormat;
 import android.hardware.Camera;
 import android.hardware.Camera.AutoFocusCallback;
 import android.hardware.Camera.ShutterCallback;
-import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.AlertDialog;
 import android.media.AudioManager;
@@ -54,12 +53,12 @@ import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.Toast;
 
 import com.tools.CameraHelper;
+import com.tools.CameraHelper.*;
 import com.tools.CustomActivity;
 import com.tools.MultipleCheckPopUp;
 
-public class TakePicture 
-extends CustomActivity
-implements SurfaceHolder.Callback{
+public class TakePicture
+extends CustomActivity{
 
 	// private misc variables
 	private CustomActivity act = this; 													// the activity
@@ -68,7 +67,6 @@ implements SurfaceHolder.Callback{
 
 	// pointers to graphics
 	private com.tools.TextViewMarquee groupsPortraitView;								// The groups we have selected
-	private SurfaceView surfaceView; 		 											// The surface view for camera
 	private ImageView goButton; 														// the take picture button
 	private LinearLayout bottomLinearLayout; 											// the layout holding keep and retake
 	private ImageView lastPictureButton; 												// button for last picture taken
@@ -80,18 +78,11 @@ implements SurfaceHolder.Callback{
 	// private constants
 	private static final String DEFAULT_PRIVATE_NAME = "Private"; 						// String to show when no group is selected
 	private static long ANIM_DURATION = 500; 											// how many ms to take for the rotation
-	private static int PIXEL_FORMAT = PixelFormat.RGB_565; 								// pixel format of preview
 
 	// camera private variables
-	private android.hardware.Camera camera = null;					// camera object
-	private Boolean isTryingToTakePicture = false;					// boolean used by autofocus callback
-	private boolean isFocused = false; 								// keep track if camer is focused
-	private CameraHelper cameraHelper; 								// helper for taking care of camera rotations and other camera stuff
+	private CameraHelper cameraHelper; 							// helper for taking care of camera rotations and other camera stuff
 	private int camRotation = 0; 									// the current rotation of the camera
 	private byte[] camBytes = null; 								// The bytes of the camera data
-	private SurfaceHolder previewHolder = null; 					// holds the camera preview
-	private boolean isSurfaceCreated = false; 						// boolean to keep track if surface is created.
-	private boolean isWaitingForPictureSave = false; 				// is the take picture deactivated and we are waiting for user to choose
 	private MediaPlayer shutterSound = null; 						// sound for shutter
 	private MediaPlayer autoFocusSound = null; 						// sound for auto-focus
 	
@@ -123,6 +114,123 @@ implements SurfaceHolder.Callback{
 		}
 
 		initializeLayout();	
+	}
+	
+	@Override
+	protected void initializeLayout() {
+
+		// make full screen
+		this.requestWindowFeature(Window.FEATURE_NO_TITLE);
+		getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+				WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
+		// set layout
+		setContentView(R.layout.take_picture);
+
+		// find graphics pointers
+		groupsPortraitView = (com.tools.TextViewMarquee) findViewById(R.id.groupsPortrait);
+		SurfaceView surfaceView = (SurfaceView) findViewById(R.id.surface_camera);
+		goButton = (ImageView) findViewById(R.id.goButton);
+		bottomLinearLayout = (LinearLayout) findViewById(R.id.linearLayoutBottom);
+		lastPictureButton = (ImageView) findViewById(R.id.goToGallery);
+		goHomeButton = (ImageButton) findViewById(R.id.homeButton);
+		zoomBar = (android.widget.VerticalSeekBar) findViewById(R.id.zoomBar);
+		flashButton = (ImageView) findViewById(R.id.flashButton);
+
+		// read the last groups
+		readLastGroups();
+
+		// set the string to the current groups
+		setGroupsString(); 
+
+		// class for keeping camera orientated properly, and force to stay in landscape
+		cameraHelper = new CameraHelper(Utils.IMAGE_QUALITY, new ExceptionCaught() {
+			
+			@Override
+			public void onExceptionCaught(Exception e) {
+				String msg = e.getMessage();
+				if (msg == null || msg.length() == 0)
+					msg = "Camera not working. Try again.";
+				else
+					msg += " Try again";
+				Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show();
+				finish();
+			}
+		});
+		cameraHelper.onCreate(this, surfaceView);
+
+		// set the picture thumbnail
+		setLastPictureImage();
+
+		// setup long click listener for button
+		goButton.setOnLongClickListener(new OnLongClickListener() {
+
+			@Override
+			public boolean onLongClick(View v) {
+
+				// cancel if we are already auto-focusing
+				cameraHelper.getCamera().cancelAutoFocus();
+
+				// start the auto-focus
+				cameraHelper.getCamera().autoFocus(myAutoFocusCallback);
+
+				return false;
+			}
+		});
+
+		// setup listener for surface view to hide and show settings
+		surfaceView.setOnTouchListener(new OnTouchListener() {
+
+			@Override
+			public boolean onTouch(View v, MotionEvent event) {
+				// if we touch, then show zoom
+				int action = event.getAction();
+				boolean returnValue = false;
+
+				switch(action){
+				case MotionEvent.ACTION_DOWN:
+					if (cameraHelper.isZoomSupported()){
+						if (zoomBar.getVisibility() == View.VISIBLE)
+							zoomBar.setVisibility(View.INVISIBLE);
+						else
+							zoomBar.setVisibility(View.VISIBLE);
+					}else
+						zoomBar.setVisibility(View.INVISIBLE);
+					returnValue = true;
+					break;
+				case MotionEvent.ACTION_UP:
+					break;
+				case MotionEvent.ACTION_CANCEL:
+					zoomBar.setVisibility(View.INVISIBLE);
+					break;
+				}
+
+				return returnValue;
+			}
+		});
+
+		// set listener for seekbar
+		zoomBar.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
+
+			@Override
+			public void onStopTrackingTouch(SeekBar seekBar) {				
+			}
+
+			@Override
+			public void onStartTrackingTouch(SeekBar seekBar) {
+
+			}
+
+			@Override
+			public void onProgressChanged(SeekBar seekBar, int progress,
+					boolean fromUser) {
+
+				// set the zoom accordingly
+				cameraHelper.setZoom(progress/100.0f);		
+			}
+		});
+
+		setupFlashMenu();
 	}
 
 	/**
@@ -194,7 +302,7 @@ implements SurfaceHolder.Callback{
 		if (action == KeyEvent.ACTION_DOWN &&
 				(keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
 						keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) &&
-						!isWaitingForPictureSave){
+						!cameraHelper.isWaitingForPictureSave()){
 			goClicked(goButton);
 			return true;
 
@@ -207,118 +315,6 @@ implements SurfaceHolder.Callback{
 
 		// all other keypress do normal
 		return super.dispatchKeyEvent(event);	
-	}
-
-	@Override
-	protected void initializeLayout() {
-
-		// make full screen
-		this.requestWindowFeature(Window.FEATURE_NO_TITLE);
-		getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-				WindowManager.LayoutParams.FLAG_FULLSCREEN);
-
-		// set layout
-		setContentView(R.layout.take_picture);
-
-		// find graphics pointers
-		groupsPortraitView = (com.tools.TextViewMarquee) findViewById(R.id.groupsPortrait);
-		surfaceView = (SurfaceView) findViewById(R.id.surface_camera);
-		goButton = (ImageView) findViewById(R.id.goButton);
-		bottomLinearLayout = (LinearLayout) findViewById(R.id.linearLayoutBottom);
-		lastPictureButton = (ImageView) findViewById(R.id.goToGallery);
-		goHomeButton = (ImageButton) findViewById(R.id.homeButton);
-		zoomBar = (android.widget.VerticalSeekBar) findViewById(R.id.zoomBar);
-		flashButton = (ImageView) findViewById(R.id.flashButton);
-
-		// read the last groups
-		readLastGroups();
-
-		// set the string to the current groups
-		setGroupsString(); 
-
-		// class for keeping camera orientated properly, and force to stay in landscape
-		cameraHelper = new CameraHelper(null, Utils.IMAGE_QUALITY, false, onRotate);
-		cameraHelper.onCreate(this);
-
-		// setup surface for holding camera
-		//getWindow().setFormat(PixelFormat.TRANSLUCENT)
-		previewHolder = surfaceView.getHolder();
-		previewHolder.addCallback(this);
-		previewHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-		previewHolder.setFormat(PIXEL_FORMAT);
-
-		// set the picture thumbnail
-		setLastPictureImage();
-
-		// setup long click listener for button
-		goButton.setOnLongClickListener(new OnLongClickListener() {
-
-			@Override
-			public boolean onLongClick(View v) {
-
-				// cancel if we are already auto-focusing
-				camera.cancelAutoFocus();
-
-				// start the auto-focus
-				camera.autoFocus(myAutoFocusCallback);
-
-				return false;
-			}
-		});
-
-		// setup listener for surface view to hide and show settings
-		surfaceView.setOnTouchListener(new OnTouchListener() {
-
-			@Override
-			public boolean onTouch(View v, MotionEvent event) {
-				// if we touch, then show zoom
-				int action = event.getAction();
-				boolean returnValue = false;
-
-				switch(action){
-				case MotionEvent.ACTION_DOWN:
-					if (cameraHelper.isZoomSupported()){
-						if (zoomBar.getVisibility() == View.VISIBLE)
-							zoomBar.setVisibility(View.INVISIBLE);
-						else
-							zoomBar.setVisibility(View.VISIBLE);
-					}else
-						zoomBar.setVisibility(View.INVISIBLE);
-					returnValue = true;
-					break;
-				case MotionEvent.ACTION_UP:
-					break;
-				case MotionEvent.ACTION_CANCEL:
-					zoomBar.setVisibility(View.INVISIBLE);
-					break;
-				}
-
-				return returnValue;
-			}
-		});
-
-		// set listener for seekbar
-		zoomBar.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
-
-			@Override
-			public void onStopTrackingTouch(SeekBar seekBar) {				
-			}
-
-			@Override
-			public void onStartTrackingTouch(SeekBar seekBar) {
-
-			}
-
-			@Override
-			public void onProgressChanged(SeekBar seekBar, int progress,
-					boolean fromUser) {
-
-				// set the zoom accordingly
-				cameraHelper.setZoom(progress/100.0f);		
-			}
-		});
-
-		setupFlashMenu();
 	}
 
 	/**
@@ -430,63 +426,16 @@ implements SurfaceHolder.Callback{
 		return set;
 	}
 
-	@TargetApi(9)
 	@Override 
 	protected void onResume() {
 		super.onResume();
-		cameraHelper.onResume(this);
-		cameraHelper.setRotationCallback(onRotate);
 
-		setupForNewPicture();
+		// open the correct camera
+		cameraHelper.openFrontCamera();
 
-		// get the api version
-		int currentApiVersion = android.os.Build.VERSION.SDK_INT;
-
-		// open the correct back facing camera
-		if (currentApiVersion >= Build.VERSION_CODES.GINGERBREAD) {	
-			Camera.CameraInfo info=new Camera.CameraInfo();
-
-			// loop across all cameras
-			for (int i=0; i < Camera.getNumberOfCameras(); i++) {
-				Camera.getCameraInfo(i, info);
-
-				// open the back facing one
-				if (info.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
-					camera = Camera.open(i);
-					break;
-				}
-			}
-		}
-
-		// open the camera if it is still null
-		if (camera == null) {
-			camera = Camera.open();
-		}
-
-		//TODO: this is messy, and we should be utilizing surfaceChanged properly.
-
-		// update the rotateHelper
-		if (cameraHelper != null)
-			cameraHelper.updateCam(camera);
-
-		// set sizes manually
-		try {
-			cameraHelper.setSurfacePreviewHolderSize(
-					this,
-					null,
-					null,
-					null,
-					true,
-					surfaceView);
-		} catch (Exception e) {
-			Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
-		}
-
-		// change the surface manually
-		if (isSurfaceCreated){
-			surfaceCreated(previewHolder);
-			surfaceChanged(previewHolder, PIXEL_FORMAT, surfaceView.getWidth(), surfaceView.getHeight());
-		}
+		cameraHelper.onResume(onRotate, null);
+		if (!cameraHelper.isWaitingForPictureSave())
+			setupForNewPicture();
 
 		// check if we have a flash
 		List<String> modes = cameraHelper.getSupportedFlashModes();
@@ -494,31 +443,24 @@ implements SurfaceHolder.Callback{
 			flashButton.setVisibility(View.INVISIBLE);
 		else
 			flashButton.setVisibility(View.VISIBLE);
-
 	}
 
 	@Override
 	protected void onPause() {
 
-		// stop the preview
-		cameraHelper.stopPreview();
-
-		// release teh camera
-		cameraHelper.updateCam(null);
-		camera.release();
-		camera=null;
-
-		// other pauses that need to be called.
 		super.onPause();
+		
+		// other pauses that need to be called.
 		cameraHelper.onPause();
-		cameraHelper.setRotationCallback(null);
+		if (shutterSound != null)
+			shutterSound.release();
+		shutterSound = null;
+		if (autoFocusSound != null)
+			autoFocusSound.release();
+		autoFocusSound = null;
+		
 	}
-
-	@Override
-	public void surfaceDestroyed(SurfaceHolder holder) {
-		isSurfaceCreated = false;
-	}
-
+	
 	@Override
 	protected void additionalConfigurationStoring() {
 
@@ -717,47 +659,7 @@ implements SurfaceHolder.Callback{
 		if (selectedGroups.size() == 0)
 			changeGroupClicked(groupsPortraitView);
 	}
-
-	@Override
-	public void surfaceChanged(
-			SurfaceHolder holder,
-			int format,
-			int width,
-			int height) {
-
-		// set sizes manually
-		try {
-			cameraHelper.setSurfaceSizePreviewSizeCameraSize(
-					this,
-					null,
-					null,
-					null,
-					true,
-					surfaceView);
-		} catch (Exception e) {
-			e.printStackTrace();
-			Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
-		}
-
-		if (!isWaitingForPictureSave)
-			cameraHelper.startPreview();
-	}
-
-	@Override
-	public void surfaceCreated(SurfaceHolder holder) {
-		isSurfaceCreated = true;
-		try {
-			camera.setPreviewDisplay(previewHolder);  
-		}
-		catch (Throwable t) {
-			Log.e(Utils.LOG_TAG,
-					"Exception in setPreviewDisplay()", t);
-			Toast.makeText(this,
-					t.getMessage(),
-					Toast.LENGTH_LONG).show();
-		}
-	}
-
+	
 	/** Reset standard buttons and launch next window */
 	public void keepClicked(View view){
 		// switch views for buttons
@@ -779,7 +681,7 @@ implements SurfaceHolder.Callback{
 				camBytes,
 				camRotation,
 				this.selectedGroups,
-		"");
+				"");
 		task.execute();
 
 		camBytes = null;
@@ -830,8 +732,8 @@ implements SurfaceHolder.Callback{
 		bottomLinearLayout.invalidate();
 
 		// keep track if we are waiting for the picture to be saved
-		isWaitingForPictureSave = false;
-		isTryingToTakePicture = false;
+		cameraHelper.setIsWaitingForPictureSave(false);
+		cameraHelper.setTryingToTakePicture(false);
 
 		// start preview again
 		cameraHelper.startPreview();
@@ -876,9 +778,9 @@ implements SurfaceHolder.Callback{
 				camBytes = data;
 
 				// keep track that we are trying to take a picture
-				isTryingToTakePicture = false;
-				isFocused = false;
-				isWaitingForPictureSave = true;
+				cameraHelper.setTryingToTakePicture(false);
+				cameraHelper.setFocused(false);
+				cameraHelper.setIsWaitingForPictureSave(true);
 
 				// camera not generating any data	
 			}else{
@@ -895,16 +797,16 @@ implements SurfaceHolder.Callback{
 		@Override
 		public void onAutoFocus(boolean arg0, Camera arg1) {
 			// keep track that we are currently focused
-			isFocused = true;
+			cameraHelper.setFocused(true);
 
 			// if we are trying to take a picture then make 
 			// that callback and tell this class that we are no longer previewing
-			if (isTryingToTakePicture){
+			if (cameraHelper.isTryingToTakePicture()){
 
 				// take the picture
 				AudioManager mgr = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
 				mgr.setStreamMute(AudioManager.STREAM_SYSTEM, true);
-				camera.takePicture(shutterCallback, null, pictureCallback); 
+				cameraHelper.getCamera().takePicture(shutterCallback, null, pictureCallback); 
 				cameraHelper.setIsPreviewRunning(false);
 			}else{
 				// play auto-focus sound
@@ -927,26 +829,26 @@ implements SurfaceHolder.Callback{
 	public void goClicked(View view) {
 
 		// check if the preview is running, if not, we can't take a picture. We should never have gotten here
-		if (isWaitingForPictureSave){
+		if (cameraHelper.isWaitingForPictureSave()){
 			Toast.makeText(this, "Complete last picture first.", Toast.LENGTH_LONG).show();
 			return;
 		}
 
 		// currently trying to take a picture, so dont' take another
-		if (isTryingToTakePicture)
+		if (cameraHelper.isTryingToTakePicture())
 			return;
 
 		// now we are trying to take a pciture, so keep track
-		isTryingToTakePicture = true;
+		cameraHelper.setTryingToTakePicture(true);
 
 		// start the auto-focus or take the picture if we need to.
-		if (!isFocused){
-			camera.cancelAutoFocus();
-			camera.autoFocus(myAutoFocusCallback);
+		if (!cameraHelper.isFocused()){
+			cameraHelper.getCamera().cancelAutoFocus();
+			cameraHelper.getCamera().autoFocus(myAutoFocusCallback);
 		}else{
 			AudioManager mgr = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
 			mgr.setStreamMute(AudioManager.STREAM_SYSTEM, true);
-			camera.takePicture(shutterCallback, null, pictureCallback); 
+			cameraHelper.getCamera().takePicture(shutterCallback, null, pictureCallback); 
 			cameraHelper.setIsPreviewRunning(false);
 		}
 	}

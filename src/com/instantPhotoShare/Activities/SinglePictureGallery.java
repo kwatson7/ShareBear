@@ -44,6 +44,8 @@ import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.PicturesAdapter;
 import com.instantPhotoShare.Adapters.UsersAdapter;
 import com.tools.CustomActivity;
+import com.tools.CustomAsyncTask;
+import com.tools.CustomAsyncTask.FinishedCallback;
 import com.tools.TwoObjects;
 import com.tools.ViewLoader;
 import com.tools.ViewLoader.LoadData;
@@ -148,8 +150,10 @@ extends CustomActivity{
 	@Override
 	public void onPause(){
 		overridePendingTransition(0, R.anim.picture_scale_down_animation);
-		if (adapter != null)
+		if (adapter != null){
 			adapter.imageLoader.stopThreads();
+			adapter.nameLoader.stopThreads();
+		}
 		super.onPause();
 	}
 
@@ -196,7 +200,7 @@ extends CustomActivity{
 		getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
 				WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
-		overridePendingTransition(R.anim.picture_scale_up_animation, 0);
+		overridePendingTransition(R.anim.picture_scale_up_animation, R.anim.fade_out);
 
 		// set main view
 		setContentView(R.layout.single_picture_gallery);
@@ -278,10 +282,30 @@ extends CustomActivity{
 	public boolean onMenuItemSelected(int featureId, MenuItem item) {
 
 		MENU_ITEMS id = MENU_ITEMS.convert(item.getItemId());
+		View view = gallery.getChildAt(0);
+		
+		// move to correct location
+		picturesAdapater.moveToPosition(gallery.getLastVisiblePosition());
+		String path = picturesAdapater.getFullPicturePath();
+		String thumbPath = picturesAdapater.getThumbnailPath();
+		TwoObjects<Long, Long> loaderData = new TwoObjects<Long, Long>(picturesAdapater.getRowId(), groupId);
+		
 		// decide on what each button should do
 		switch(id) {
 		case ROTATE_CCW:
-			View view = gallery.getChildAt(0);//gallery.getLastVisiblePosition());
+			
+			// rotate teh picture in the background
+			// rotate teh picture in the background
+			try{
+				com.tools.ImageProcessing.rotateExif(path, -1);//, new OnRotateCallback());
+				com.tools.ImageProcessing.rotateExif(thumbPath, -1);//, new OnRotateCallback());
+			}catch(IOException e){
+				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+				return true;
+			}
+			adapter.imageLoader.clearCacheAtId(picturesAdapater.getRowId());
+			
+			/*
 			// rotation animation
 			RotateAnimation rot = new RotateAnimation(
 					0, -90,
@@ -294,30 +318,42 @@ extends CustomActivity{
 			set.setFillAfter(true);
 			set.setDuration(300);
 			view.startAnimation(set);
-			//	picturesAdapater.moveToPosition(gallery.getLastVisiblePosition());
-			//com.tools.Tools.rotateExif(
-			//			picturesAdapater.getFullPicturePath(), -1);
-			//	adapter.clearCache();
-			//	adapter.notifyDataSetChanged();
+			*/
+
+			adapter.imageLoader.DisplayImage(picturesAdapater.getRowId(), loaderData, loaderData, (ImageViewTouch)view.findViewById(R.id.picture), null);
+			
 			return true;
 		case SET_AS_DEFAULT_PICTURE:
-			picturesAdapater.moveToPosition(gallery.getLastVisiblePosition());
 			GroupsAdapter groups = new GroupsAdapter(this);
 			groups.setPictureId(groupId, picturesAdapater.getRowId());
 			return true;
 		case ROTATE_CW:
-			picturesAdapater.moveToPosition(gallery.getLastVisiblePosition());
-			try {
-				com.tools.ImageProcessing.rotateExif(
-						picturesAdapater.getFullPicturePath(), 1);
-				com.tools.ImageProcessing.rotateExif(picturesAdapater.getThumbnailPath(), 1);
-			} catch (IOException e) {
+			// rotate teh picture in the background
+			try{
+				com.tools.ImageProcessing.rotateExif(path, 1);//, new OnRotateCallback());
+				com.tools.ImageProcessing.rotateExif(thumbPath, 1);//, new OnRotateCallback());
+			}catch(IOException e){
 				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
-				Toast.makeText(ctx, "Could not rotate picture", Toast.LENGTH_SHORT).show();
 				return true;
 			}
-			adapter.clearCache();
-			adapter.notifyDataSetChanged();
+			adapter.imageLoader.clearCacheAtId(picturesAdapater.getRowId());
+			
+			/*
+			// rotation animation
+			RotateAnimation rot2 = new RotateAnimation(
+					0, 90,
+					Animation.RELATIVE_TO_SELF, 0.5f,
+					Animation.RELATIVE_TO_SELF, 0.5f);
+
+			// add animations to set
+			AnimationSet set2 = new AnimationSet(false);
+			set2.addAnimation(rot2);
+			set2.setFillAfter(true);
+			set2.setDuration(300);
+			view.startAnimation(set2);
+			*/
+			
+			adapter.imageLoader.DisplayImage(picturesAdapater.getRowId(), loaderData, loaderData, (ImageViewTouch)view.findViewById(R.id.picture), null);
 			return true;
 		case SHARE_PICTURE:
 			sharePicture();
@@ -326,6 +362,22 @@ extends CustomActivity{
 
 		return super.onMenuItemSelected(featureId, item);
 	}
+	
+	private static class OnRotateCallback
+	implements CustomAsyncTask.FinishedCallback<SinglePictureGallery, IOException>{
+
+			@Override
+			public void onFinish(
+					SinglePictureGallery activity,
+					IOException result) {
+				if (result != null){
+					Log.e(Utils.LOG_TAG, Log.getStackTraceString(result));
+					if (activity != null)
+						Toast.makeText(activity, "Picture could not be rotated", Toast.LENGTH_SHORT).show();
+				}
+				
+			}
+	};
 
 	/**
 	 * Share the current picture with a sharing intent
@@ -380,7 +432,7 @@ extends CustomActivity{
 					pictureWindowHeight,
 					true,
 					PicturesAdapter.imageLoaderCallback(ctx));		
-			
+
 			nameLoader = new ViewLoader<Long, Long, String, TextView>(
 					"Photographer ...",
 					5,

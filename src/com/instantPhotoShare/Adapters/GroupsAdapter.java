@@ -73,6 +73,8 @@ extends TableAdapter <GroupsAdapter>{
 	private static final String DEFAULT_PRIVATE_NAME = "Private"; 			// default group name for the auto-generated private group
 	private static final String PRIVATE_GROUP_COLOR = "#ADD8E6"; 			// color for private groups when toString is called
 	private static final String NON_SYNCED_PUBLIC_GROUPS_COLOR = "red"; 	// color for non-synced groups when toString is called
+	private static final String SOMEONE_ELSE_MADE_GROUPS_COLOR = "#E066FF"; // color for groups other people made
+	
 	private static final String SORT_ORDER = KEY_DATE_CREATED + " DESC"; 	// sort the picture by most recent
 	private static final String ADDITIONAL_QUERY_NO_AND = 
 		"(" + KEY_AM_I_MEMBER + " ='TRUE' OR " + KEY_AM_I_MEMBER + " = '1') AND (" 
@@ -657,12 +659,13 @@ extends TableAdapter <GroupsAdapter>{
 						for (int i = 0; i < array.length(); i++){
 
 							synchronized (GroupsAdapter.class) {
-								// determine the path to store files
-								TwoStrings picNames = group.getNextPictureName();
 								try {
 
 									// create a new picture in database
 									if(!pics.isPicturePresent(array.getLong(i))){
+										// determine the path to store files
+										TwoStrings picNames = group.getNextPictureName();
+										
 										long rowId = pics.createPicture(
 												ctx,
 												picNames.mObject1,
@@ -1492,6 +1495,8 @@ extends TableAdapter <GroupsAdapter>{
 			return "<font color='"+PRIVATE_GROUP_COLOR+"'>" + getName() + "</font>";
 		else if (!isKeepLocal() && !isSynced())
 			return "<font color='"+NON_SYNCED_PUBLIC_GROUPS_COLOR+"'>" + getName() + "</font>";
+		else if (!didIMakeGroup(ctx))
+			return "<font color='"+SOMEONE_ELSE_MADE_GROUPS_COLOR+"'>" + getName() + "</font>";
 		else
 			return getName();
 	}
@@ -1926,6 +1931,8 @@ extends TableAdapter <GroupsAdapter>{
 				return "<font color='"+PRIVATE_GROUP_COLOR+"'>" + getName() + "</font>";
 			else if (!isKeepLocal() && !isSynced())
 				return "<font color='"+NON_SYNCED_PUBLIC_GROUPS_COLOR+"'>" + getName() + "</font>";
+			else if (!didIMakeGroup(ctx))
+				return "<font color='"+SOMEONE_ELSE_MADE_GROUPS_COLOR+"'>" + getName() + "</font>";
 			else
 				return getName();
 		}
@@ -2040,6 +2047,10 @@ extends TableAdapter <GroupsAdapter>{
 
 		private void setPicturePath(String path){
 			picturePath = path;
+		}
+		
+		public boolean didIMakeGroup(Context ctx){
+			return (getUserIdWhoCreated() == Prefs.getUserRowId(ctx));
 		}
 
 		/**

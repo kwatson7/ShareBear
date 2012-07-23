@@ -810,8 +810,13 @@ extends TableAdapter <GroupsAdapter>{
 						// notification for new pictures
 						if (counter > 0){
 							NotificationsAdapter notes = new NotificationsAdapter(ctx);
+							String msg;
+							if (counter == 1)
+								msg = " new picture in ";
+							else
+								msg = " new pictures in ";
 							notes.createNotification(
-									"You have " + counter + " new pictures in " + group.getName(),
+									"You have " + counter + msg + group.getName(),
 									NotificationsAdapter.NOTIFICATION_TYPES.NEW_PICTURE_IN_GROUP,
 									String.valueOf(group.getRowId()));
 						}

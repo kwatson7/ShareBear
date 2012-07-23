@@ -258,11 +258,12 @@ extends CustomActivity{
 
 	@Override
 	public void onPause(){
-		super.onPause();
+		
 		//overridePendingTransition(0, R.anim.picture_scale_down_animation);
 		if (adapter != null)
 			adapter.imageLoader.stopThreads();
 
+		super.onPause();
 	}
 
 	@Override

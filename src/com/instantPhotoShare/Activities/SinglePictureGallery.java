@@ -25,6 +25,8 @@ import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.BaseAdapter;
 import android.widget.FrameLayout;
+import android.widget.Gallery;
+import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -62,7 +64,7 @@ extends CustomActivity{
 	private int pictureWindowHeight; 			// the height of the area the picture fits inside
 	private com.tools.images.MemoryCache<Long> oldCache = null; 		// the old imageloader cache. use this to handle screen rotations.
 	private boolean isChangeGroupShowing = false;		// boolean to keep track if group selector is showing
-	
+
 	// graphics
 	private CustomGallery gallery; 				// the gallery to show pictures
 	private ImageView takePictureButton; 		// the pointer to the take picture button
@@ -163,6 +165,12 @@ extends CustomActivity{
 
 	// fill list with the pictures
 	private void fillPictures() {
+		// save index and top position
+		int index = Gallery.INVALID_POSITION;
+		index = gallery.getFirstVisiblePosition();
+		if (index == 0)
+			index = Gallery.INVALID_POSITION;
+				
 		// set adapter
 		if (adapter != null)
 			adapter.imageLoader.stopThreads();
@@ -172,6 +180,12 @@ extends CustomActivity{
 			oldCache = null;
 		}
 		gallery.setAdapter(adapter);
+		
+		// restore position
+		if (index >= picturesAdapater.size())
+			index = picturesAdapater.size()-1;
+		if (index != Gallery.INVALID_POSITION)
+			gallery.setSelection(index);	
 	}
 
 	/**
@@ -270,7 +284,7 @@ extends CustomActivity{
 		MenuItem delete = menu.add(0, MENU_ITEMS.DELETE_PICTURE.ordinal(), 0, "Delete Picture");
 		MenuItem rotateCW = menu.add(0, MENU_ITEMS.ROTATE_CW.ordinal(), 0, "Rotate");
 		MenuItem rotateCCW = menu.add(0, MENU_ITEMS.ROTATE_CCW.ordinal(), 0, "Rotate");
-		
+
 
 		// add icons
 		delete.setIcon(R.drawable.delete);
@@ -285,20 +299,20 @@ extends CustomActivity{
 
 		MENU_ITEMS id = MENU_ITEMS.convert(item.getItemId());
 		View view = gallery.getChildAt(0);
-		
+
 		// move to correct location
 		picturesAdapater.moveToPosition(gallery.getLastVisiblePosition());
 		String path = picturesAdapater.getFullPicturePath();
 		String thumbPath = picturesAdapater.getThumbnailPath();
 		TwoObjects<Long, Long> loaderData = new TwoObjects<Long, Long>(picturesAdapater.getRowId(), groupId);
-		
+
 		boolean isFullRotated = false;
 		boolean isThumbRotated = false;
-		
+
 		// decide on what each button should do
 		switch(id) {
 		case ROTATE_CCW:
-			
+
 			// rotate teh picture in the background
 			try{
 				com.tools.ImageProcessing.rotateExif(path, -1);//, new OnRotateCallback());
@@ -320,7 +334,7 @@ extends CustomActivity{
 				return true;
 			}
 			adapter.imageLoader.clearCacheAtId(picturesAdapater.getRowId());
-			
+
 			/*
 			// rotation animation
 			RotateAnimation rot = new RotateAnimation(
@@ -334,10 +348,10 @@ extends CustomActivity{
 			set.setFillAfter(true);
 			set.setDuration(300);
 			view.startAnimation(set);
-			*/
+			 */
 
 			adapter.imageLoader.DisplayImage(picturesAdapater.getRowId(), loaderData, loaderData, (ImageViewTouch)view.findViewById(R.id.picture), null);
-			
+
 			return true;
 		case SET_AS_DEFAULT_PICTURE:
 			GroupsAdapter groups = new GroupsAdapter(this);
@@ -353,7 +367,7 @@ extends CustomActivity{
 				com.tools.ImageProcessing.rotateExif(thumbPath, 1);//, new OnRotateCallback());
 				isThumbRotated = true;
 			}catch(IOException e){
-				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+				Log.w(Utils.LOG_TAG, Log.getStackTraceString(e));
 				if (!isFullRotated && !isThumbRotated)
 					Toast.makeText(ctx, "Rotation error. Full picture probably not downloaded yet", Toast.LENGTH_LONG).show();
 				else if (isFullRotated && !isThumbRotated){
@@ -367,7 +381,7 @@ extends CustomActivity{
 				return true;
 			}
 			adapter.imageLoader.clearCacheAtId(picturesAdapater.getRowId());
-			
+
 			/*
 			// rotation animation
 			RotateAnimation rot2 = new RotateAnimation(
@@ -381,8 +395,8 @@ extends CustomActivity{
 			set2.setFillAfter(true);
 			set2.setDuration(300);
 			view.startAnimation(set2);
-			*/
-			
+			 */
+
 			adapter.imageLoader.DisplayImage(picturesAdapater.getRowId(), loaderData, loaderData, (ImageViewTouch)view.findViewById(R.id.picture), null);
 			return true;
 		case SHARE_PICTURE:
@@ -392,26 +406,26 @@ extends CustomActivity{
 			showChooseGroup();
 			return true;
 		case DELETE_PICTURE:
-			
-			DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
-			    @Override
-			    public void onClick(DialogInterface dialog, int which) {
-			        switch (which){
-			        case DialogInterface.BUTTON_POSITIVE:
-			        	deletePicture();
-			            break;
 
-			        case DialogInterface.BUTTON_NEGATIVE:
-			            //No button clicked
-			            break;
-			        }
-			    }
+			DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+				@Override
+				public void onClick(DialogInterface dialog, int which) {
+					switch (which){
+					case DialogInterface.BUTTON_POSITIVE:
+						deletePicture();
+						break;
+
+					case DialogInterface.BUTTON_NEGATIVE:
+						//No button clicked
+						break;
+					}
+				}
 			};
-			
+
 			// show the dialog
 			AlertDialog.Builder builder = new AlertDialog.Builder(this);
-			AlertDialog dialog = builder.setMessage("Are you sure you want to delete this picture?").setPositiveButton("Yes", dialogClickListener)
-			    .setNegativeButton("No", dialogClickListener).create();
+			AlertDialog dialog = builder.setMessage("Are you sure you want to delete this picture? It will be gone from all groups forever.").setPositiveButton("Yes", dialogClickListener)
+					.setNegativeButton("No", dialogClickListener).create();
 			addDialog(dialog);
 			dialog.show();
 			return true;
@@ -419,7 +433,7 @@ extends CustomActivity{
 
 		return super.onMenuItemSelected(featureId, item);
 	}
-	
+
 	/**
 	 * Delete the picture at the given location
 	 */
@@ -439,8 +453,8 @@ extends CustomActivity{
 						Toast.makeText(act, msg, Toast.LENGTH_LONG).show();
 					}else{
 						Toast.makeText(act, "Picture deleted", Toast.LENGTH_SHORT).show();
-					getPictures();
-					fillPictures();
+						getPictures();
+						fillPictures();
 					}
 				}
 
@@ -456,21 +470,21 @@ extends CustomActivity{
 			Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show();
 		}
 	}
-	
+
 	private static class OnRotateCallback
 	implements CustomAsyncTask.FinishedCallback<SinglePictureGallery, IOException>{
 
-			@Override
-			public void onFinish(
-					SinglePictureGallery activity,
-					IOException result) {
-				if (result != null){
-					Log.e(Utils.LOG_TAG, Log.getStackTraceString(result));
-					if (activity != null)
-						Toast.makeText(activity, "Picture could not be rotated", Toast.LENGTH_SHORT).show();
-				}
-				
+		@Override
+		public void onFinish(
+				SinglePictureGallery activity,
+				IOException result) {
+			if (result != null){
+				Log.e(Utils.LOG_TAG, Log.getStackTraceString(result));
+				if (activity != null)
+					Toast.makeText(activity, "Picture could not be rotated", Toast.LENGTH_SHORT).show();
 			}
+
+		}
 	};
 
 	/**
@@ -478,7 +492,7 @@ extends CustomActivity{
 	 */
 	private void sharePicture(){
 		// create subject, body, and prompt
-		String shareBody = "Take a look at my picture from Share Bear. To share with me, download Share Bear and we can share instantly!";
+		String shareBody = "Take a look at my picture from Share Bear. You can share instantly by downloading Share Bear at " + Utils.APP_URL;
 		String shareSubject = "A Picture from my Share Bear group " + unformatedGroupName;
 		String prompt = "Share picture";
 
@@ -494,7 +508,7 @@ extends CustomActivity{
 		if(!com.tools.Tools.sharePicture(this, shareSubject, shareBody, fileName, prompt))
 			Toast.makeText(this, "Picture could not be sent", Toast.LENGTH_SHORT).show();
 	}
-	
+
 	private void showChooseGroup(){
 		// grab the spinner
 		com.tools.NoDefaultSpinner spinner = (com.tools.NoDefaultSpinner) findViewById(R.id.spinner);
@@ -504,7 +518,7 @@ extends CustomActivity{
 		// grab all groups
 		GroupsAdapter groupsAdapter = new GroupsAdapter(this);
 		final ArrayList<Group> groups = groupsAdapter.getAllGroups();
-		
+
 		// make sure there are groups
 		if (groups == null || groups.size() == 0){
 			Toast.makeText(this, "No groups to add to. Create one First", Toast.LENGTH_LONG).show();
@@ -526,23 +540,23 @@ extends CustomActivity{
 
 				if (!isChangeGroupShowing){
 					isChangeGroupShowing = !isChangeGroupShowing;
-						return;
+					return;
 				}else
 					isChangeGroupShowing = !isChangeGroupShowing;
-					
+
 				long sourceGroupId = groups.get(position).getRowId();
 				addToAnotherGroup(sourceGroupId);
 			}
 
 			@Override
 			public void onNothingSelected(AdapterView<?> parentView) {
-				
+
 			}
 		});
 
 		// set adapter and launch it
 		spinner.setAdapter(spinnerArrayAdapter);
-		
+
 		// find which group is currenlty selected
 		spinner.setSelection(0);
 		for (int i = 0; i < groups.size(); i++){
@@ -554,7 +568,7 @@ extends CustomActivity{
 		isChangeGroupShowing = false;
 		spinner.performClick();
 	}
-	
+
 	/**
 	 * Add this picture to another group
 	 * @param sourceGroupId the groupRowId to move to

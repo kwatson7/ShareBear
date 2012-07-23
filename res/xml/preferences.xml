@@ -9,8 +9,15 @@
         <CheckBoxPreference 
             android:key="@string/BACKGROUND_POLLING_AUTO_START"
             android:summary="Enable or disable background updates"
-            android:title="Enable background updates" 
+            android:title="Background notifications?" 
             android:defaultValue="true"
+        />
+        <CheckBoxPreference 
+            android:key="@string/BACKGROUND_NOTIFICATION_SOUND"
+            android:summary="Play sound on new picture"
+            android:title="Play Notification Sound?" 
+            android:defaultValue="true"
+            android:dependency="@string/BACKGROUND_POLLING_AUTO_START"
         />
            
     </PreferenceCategory>

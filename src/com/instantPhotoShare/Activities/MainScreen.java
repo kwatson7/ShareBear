@@ -26,6 +26,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.database.StaleDataException;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.util.TypedValue;
@@ -261,7 +262,7 @@ extends CustomActivity{
 		//overridePendingTransition(0, R.anim.picture_scale_down_animation);
 		if (adapter != null)
 			adapter.imageLoader.stopThreads();
-		
+
 	}
 
 	@Override
@@ -413,6 +414,22 @@ extends CustomActivity{
 		startActivity(intent);
 	}
 
+	public void contactDeveloperClicked(View v){
+		Intent emailIntent = new Intent(android.content.Intent.ACTION_SENDTO);
+		emailIntent.setType("text/plain");
+
+		String uriText;
+
+		uriText = "mailto:capnhaddoc@gmail.com" + 
+		"?subject=A question about ShareBear" + 
+		"&body=";
+		uriText = uriText.replace(" ", "%20");
+		Uri uri = Uri.parse(uriText);
+
+		emailIntent.setData(uri);
+		startActivity(Intent.createChooser(emailIntent, "Email The Developer"));
+	}
+
 	/**
 	 * Set the number of new notifications
 	 */
@@ -474,17 +491,27 @@ extends CustomActivity{
 		}
 
 		public Object getItem(int position) {
-			if(data.moveToPosition(position))
-				return data;
-			else
+			try{
+				if(data.moveToPosition(position))
+					return data;
+				else
+					return null;
+			}catch(StaleDataException e){
+				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 				return null;
+			}
 		}
 
 		public long getItemId(int position) {
-			if(data.moveToPosition(position))
-				return data.getRowId();
-			else
+			try{
+				if(data.moveToPosition(position))
+					return data.getRowId();
+				else
+					return 0;
+			}catch(StaleDataException e){
+				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 				return 0;
+			}
 		}
 
 		/**

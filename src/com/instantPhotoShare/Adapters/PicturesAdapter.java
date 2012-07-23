@@ -1,9 +1,12 @@
 package com.instantPhotoShare.Adapters;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 
 import org.json.JSONArray;
@@ -15,6 +18,9 @@ import com.instantPhotoShare.ShareBearServerReturn;
 import com.instantPhotoShare.ThumbnailServerReturn;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter.Group;
+import com.instantPhotoShare.Tasks.SaveTakenPictureTask;
+import com.tools.CustomActivity;
+import com.tools.ServerPost.ServerReturn;
 import com.tools.SuccessReason;
 import com.tools.TwoObjects;
 import com.tools.images.ImageLoader.LoadImage;
@@ -28,6 +34,7 @@ import android.media.ExifInterface;
 import android.util.Log;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.Toast;
 
 public class PicturesAdapter 
 extends TableAdapter<PicturesAdapter>{
@@ -431,24 +438,177 @@ extends TableAdapter<PicturesAdapter>{
 		// return the data
 		return bmp;
 	}
-
+	
 	/**
-	 * Remove the picture from this table and all tables where it appears. Just locally removed however.
-	 * @param pictureRowId The picture rowId to remove
+	 * Move a picture from one group to another both on the server and locally
+	 * @param <ACTIVITY_TYPE>
+	 * @param indeterminateProgressBarTags progress bar tags to update while posting. can be null
+	 * @param act The activity required to call this post. can be null
+	 * @param sourceGroupRowId the rowId of the group we are starting from
+	 * @param destinationGroupRowId the rowId of the group we are copying to
+	 * @param callback teh callback when finished. can be null
+	 * @throws Exception if we could not upload request to server
 	 */
-	public void removePictureFromDatabase(long pictureRowId){
-		//TODO: figure out how to remove picture everywhere, after we add picture to new tables. For example when I add comments and ratings.
+	public <ACTIVITY_TYPE extends CustomActivity> void addPictureToGroup(
+			ArrayList<String> indeterminateProgressBarTags,
+			ACTIVITY_TYPE act,
+			final long sourceGroupRowId,
+			final long destinationGroupRowId,
+			final ItemsFinished<ACTIVITY_TYPE> callback) throws Exception{
+		
+		// show toast
+		if (act != null)
+			Toast.makeText(act, "Copying picture...", Toast.LENGTH_SHORT).show();
+		
+		// get some data 
+		final long rowId = getRowId();
+		long serverId = getServerId();
+		GroupsAdapter groups = new GroupsAdapter(ctx);
+		groups.fetchGroup(sourceGroupRowId);
+		long sourceGroupServerId = groups.getServerId();
+		boolean isSourceLocal = groups.isKeepLocal();
+		groups.fetchGroup(destinationGroupRowId);
+		long destinationGroupServerId = groups.getServerId();
+		boolean isDestinationLocal = groups.isKeepLocal();
+		groups.close();
+		
+		// check good data
+		if (rowId <= 0 || sourceGroupRowId <= 0 || destinationGroupRowId <= 0)
+			throw new Exception("acces to group or picture that don't exist");
+		
+		// check if both local
+		if (isSourceLocal && isDestinationLocal){
+			addPictureToGroupLocally(sourceGroupRowId, destinationGroupRowId);
+			if (callback != null)
+				callback.onItemsFinishedUI(act, null);
+			return;
+		}
+		
+		// source local, destination public
+		if (isSourceLocal && !isDestinationLocal){
+			//TODO: make it possible to coppy private picture to public groups
+			throw new Exception("cannot currently copy pictures from private group to public group");
+		}
+		
+		// source public, destination private
+		if (!isSourceLocal && isDestinationLocal){
+			addPictureToGroupLocally(sourceGroupRowId, destinationGroupRowId);
+			if (callback != null)
+				callback.onItemsFinishedUI(act,null);
+			return;
+		}
+		
+		// bad row access
+		if (serverId <= 0 || sourceGroupServerId <= 0 || destinationGroupServerId <= 0)
+			throw new Exception("Pictures or groups are not on server yet");
+		
+		// first add on server
+		// create the data required to post to server
+		JSONObject json = new JSONObject();
+		try{
+			json.put("user_id", Prefs.getUserServerId(ctx));
+			json.put("secret_code", Prefs.getSecretCode(ctx));
+			json.put("image_id", serverId);
+			json.put("source_group_id", sourceGroupServerId);
+			json.put("new_group_id", destinationGroupServerId);
+		}catch (JSONException e) {
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			throw new Exception("bad json data");
+		}
+		
+		// post to server
+		Utils.postToServer(
+				"copy_image",
+				json.toString(),
+				null,
+				null,
+				null,
+				act,
+				indeterminateProgressBarTags,
+				new com.tools.ServerPost.PostCallback<ACTIVITY_TYPE>(){
 
-		// first delete the rows in this database
-		int effected = database.delete(
-				TABLE_NAME,
-				KEY_ROW_ID + " =?",
-				new String[] {String.valueOf(pictureRowId)});
-		Log.v(Utils.LOG_TAG, effected + " pictures removed from pic table");
+					@Override
+					public void onPostFinished(
+							ACTIVITY_TYPE act,
+							ServerReturn result) {
+						
+						// convert return
+						ShareBearServerReturn data = new ShareBearServerReturn(result);
+						
+						// check if error
+						if (!data.isSuccess()){
+							if (callback != null)
+								callback.onItemsFinishedBackground(act, new Exception(data.getDetailErrorMessage()));
+							return;
+						}
+						
+						// success - copy on local database
+						PicturesAdapter pics = new PicturesAdapter(ctx);
+						pics.fetchPicture(rowId);
+						try {
+							pics.addPictureToGroupLocally(sourceGroupRowId, destinationGroupRowId);
+						} catch (Exception e) {
+							Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+							if (callback != null)
+								callback.onItemsFinishedBackground(act, e);
+							pics.close();
+							return;
+						}
+						pics.close();
+						
+						// user supplied callback
+						if (callback != null)
+							callback.onItemsFinishedBackground(act, null);
+					}
 
-		// now update all the rows in the groups adapter
+					@Override
+					public void onPostFinishedUiThread(
+							ACTIVITY_TYPE act,
+							ServerReturn result) {
+						
+						// convert return
+						ShareBearServerReturn data = new ShareBearServerReturn(result);
+						
+						// user supplied callback
+						// check if error
+						if (!data.isSuccess()){
+							if (callback != null)
+								callback.onItemsFinishedUI(act, new Exception(data.getDetailErrorMessage()));
+						}else if (callback != null)
+							callback.onItemsFinishedUI(act, null);
+					}
+					
+				});
+	}
+	
+	/**
+	 * Add the current picture to the new group locally
+	 * @param sourceGroupId The original group, the picture must be in
+	 * @param destinationGroupId The final group the picture must be in
+	 * @throws Exception if we could not add the picture to the new group
+	 */
+	private void addPictureToGroupLocally(long sourceGroupId, long destinationGroupId) throws Exception{
+		// grab picture
+		long picRowId = getRowId();
+		if (picRowId <= 0)
+			throw new Exception("picture doesn't exist");
+		
+		// make sure picture is in group
+		if(!isPictureInGroup(picRowId, sourceGroupId))
+			throw new Exception("Picture is not in this group");
+		
+		// make sure not already in new group
+		if (isPictureInGroup(picRowId, destinationGroupId))
+			throw new Exception("Picture already in group");
+		
+		// add the picture
 		PicturesInGroupsAdapter inGroups = new PicturesInGroupsAdapter(ctx);
-		inGroups.removePictureFromAllGroups(pictureRowId);
+		long linkRow = inGroups.addPictureToGroup(ctx, picRowId, destinationGroupId);
+		if (linkRow == -1){
+			String msg = "link between picture and group could be made for unknown reason";
+			Log.e(Utils.LOG_TAG, msg);
+			throw new Exception("Picture could not be added to group for unknown reason");
+		}
 	}
 
 	/**
@@ -850,7 +1010,6 @@ extends TableAdapter<PicturesAdapter>{
 			return;
 		}
 			
-
 		String query = 
 			"SELECT DISTINCT pics.* FROM "
 			+PicturesAdapter.TABLE_NAME + " pics "
@@ -873,6 +1032,156 @@ extends TableAdapter<PicturesAdapter>{
 		// move to correct location
 		if (nPictures == 1)
 			moveToFirst();
+	}
+	
+	/**
+	 * Deelete the picture both locally and on server
+	 * @param <ACTIVITY_TYPE>
+	 * @param indeterminateProgressBarTags progress bar tags to update while posting. can be null
+	 * @param act The activity required to call this post. can be null
+	 * @param callback teh callback when finished. can be null
+	 * @throws Exception if we could not upload request to server
+	 */
+	public <ACTIVITY_TYPE extends CustomActivity> void deletePicture(
+			ArrayList<String> indeterminateProgressBarTags,
+			ACTIVITY_TYPE act,
+			final ItemsFinished<ACTIVITY_TYPE> callback) throws Exception{
+		
+		// show toast
+		if (act != null)
+			Toast.makeText(act, "Deleting...", Toast.LENGTH_SHORT).show();
+		
+		// get some data 
+		final long rowId = getRowId();
+		long serverId = getServerId();
+		
+		// check if local
+		if (serverId <= 0 && rowId >= 1){
+			// success - delete from local databases
+			PicturesAdapter pics = new PicturesAdapter(ctx);
+			pics.fetchPicture(rowId);
+			pics.deleteImageLocally();
+			pics.close();
+			if (callback != null)
+				callback.onItemsFinishedUI(act,null);
+			return;
+		}
+		
+		// bad row access
+		if (rowId == -1 || serverId == -1)
+			throw new Exception("bad row access");
+		
+		// first delete from server
+		// create the data required to post to server
+		JSONObject json = new JSONObject();
+		try{
+			json.put("user_id", Prefs.getUserServerId(ctx));
+			json.put("secret_code", Prefs.getSecretCode(ctx));
+			json.put("image_id", serverId);
+		}catch (JSONException e) {
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			throw new Exception("bad json data");
+		}
+		
+		// post to server
+		Utils.postToServer(
+				"delete_image",
+				json.toString(),
+				null,
+				null,
+				null,
+				act,
+				indeterminateProgressBarTags,
+				new com.tools.ServerPost.PostCallback<ACTIVITY_TYPE>(){
+
+					@Override
+					public void onPostFinished(
+							ACTIVITY_TYPE act,
+							ServerReturn result) {
+						
+						// convert return
+						ShareBearServerReturn data = new ShareBearServerReturn(result);
+						
+						// check if error
+						if (!data.isSuccess() && !data.getErrorCode().equalsIgnoreCase("IMAGE_DOES_NOT_EXIST")){
+							if (callback != null)
+								callback.onItemsFinishedBackground(act, new Exception(data.getDetailErrorMessage()));
+							return;
+						}
+						
+						// success - delete from local databases
+						PicturesAdapter pics = new PicturesAdapter(ctx);
+						pics.fetchPicture(rowId);
+						pics.deleteImageLocally();
+						pics.close();
+						
+						// user supplied callback
+						if (callback != null)
+							callback.onItemsFinishedBackground(act, null);
+					}
+
+					@Override
+					public void onPostFinishedUiThread(
+							ACTIVITY_TYPE act,
+							ServerReturn result) {
+						
+						// convert return
+						ShareBearServerReturn data = new ShareBearServerReturn(result);
+						
+						// user supplied callback
+						// check if error
+						if (!data.isSuccess()){
+							if (callback != null)
+								callback.onItemsFinishedUI(act, new Exception(data.getDetailErrorMessage()));
+						}else if (callback != null)
+							callback.onItemsFinishedUI(act, null);
+					}
+					
+				});
+	}
+	
+	public interface ItemsFinished<ACTIVITY_TYPE extends CustomActivity>{
+		/**
+		 * Will be run after items have been finshed processing on the ui thread
+		 * @param act the calling activity can be null
+		 * @param e If an exception occured, or null
+		 */
+		public void onItemsFinishedUI(ACTIVITY_TYPE act, Exception e);
+		
+		/**
+		 * Will be run after items have been finished processing on the background thread
+		 * @param the calling activity, can be null
+		 * @param e If an exception occured, or null
+		 */
+		public void onItemsFinishedBackground(ACTIVITY_TYPE act, Exception e);
+	}
+	
+	/**
+	 * Delete the given picture locally
+	 */
+	public void deleteImageLocally(){
+		//TODO: if we add pictures in different areas in database, they need to be delted here
+		long rowId = getRowId();
+		String fullPath = getFullPicturePath();
+		String thumbPath = getThumbnailPath();
+		
+		// delete from this database
+		if(database.delete(TABLE_NAME, KEY_ROW_ID + " = ?", new String[] {String.valueOf(rowId)}) != 1)
+			Log.e(Utils.LOG_TAG, "picture with rowId " + rowId + " was deleted in != 1 places");
+		
+		// delete actualy files
+		if(!(new File(fullPath)).delete())
+			Log.e(Utils.LOG_TAG, "picture with rowId " + rowId + " was not deleted actual file");
+		if(!(new File(thumbPath)).delete())
+			Log.e(Utils.LOG_TAG, "picture with rowId " + rowId + " was not deleted actual thumbnail");
+		
+		// remove all pictureids of group
+		GroupsAdapter groups = new GroupsAdapter(ctx);
+		groups.removePictureAsId(rowId);
+		
+		// remove this picture from any group
+		PicturesInGroupsAdapter inGroups = new PicturesInGroupsAdapter(ctx);
+		inGroups.removePictureFromAllGroups(rowId);
 	}
 
 	/**
@@ -926,6 +1235,33 @@ extends TableAdapter<PicturesAdapter>{
 		// set cursor
 		setCursor(cursor);
 	}	
+	
+	/**
+	 * Return new pictures in this group when compared to the pictures returned from server. And also old pictures that should be deleted
+	 * @param groupRowId the group we are searching on
+	 * @param pictureServerIds the list of serverIds we are comparing to
+	 * @return The new values as mObject1, and the old values as mObject2 *** The ids returned are serverIds, NOT row ***
+	 */
+	protected TwoObjects<HashSet<String>, HashSet<String>> getNewAndOldPicturesInGroup(long groupRowId, HashSet<String> pictureServerIds){
+		
+		// fetch all pictures in group
+		PicturesAdapter pics = new PicturesAdapter(ctx);
+		pics.fetchPicturesInGroup(groupRowId);
+
+		// loop over cursor filling values
+		HashSet<String> databaseServerIds = new HashSet<String>(pics.size());
+		while(pics.moveToNext()){
+			databaseServerIds.add(String.valueOf(pics.getServerId()));
+		}
+		pics.close();
+
+		// new values
+		HashSet<String> newValues = new HashSet<String>(pictureServerIds);
+		newValues.removeAll(databaseServerIds);
+		databaseServerIds.removeAll(pictureServerIds);
+
+		return new TwoObjects<HashSet<String>, HashSet<String>>(newValues, databaseServerIds);
+	}
 
 	/**
 	 * Update all the links that contain any of these users, and change them to the main user

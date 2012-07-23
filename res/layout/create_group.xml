@@ -4,7 +4,8 @@
 	android:layout_height="fill_parent"
 	android:layout_width="fill_parent"
 	android:fillViewport="true"
-	xmlns:android="http://schemas.android.com/apk/res/android">
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:background="@drawable/gray_gradient">
 <LinearLayout
 	android:id="@+id/topLayout"
 	android:layout_width="fill_parent"
@@ -43,6 +44,7 @@
 	android:enabled="false"
 	android:textSize="18sp"
 	android:layout_gravity="center_horizontal"
+	android:visibility="gone"
 />
 <CheckBox
 	android:id="@+id/publicGroup"
@@ -51,6 +53,7 @@
 	android:text="Public Group" 
 	android:enabled="false"
 	android:layout_gravity="center_horizontal"
+	android:visibility="gone"
 />
 <CheckBox
 	android:id="@+id/allowOtherMembersToAddMembers"
@@ -60,6 +63,7 @@
 	android:checked="true"
 	android:enabled="false"
 	android:layout_gravity="center_horizontal"
+	android:visibility="gone"
 />
 <Button
 	android:id="@+id/goButton"

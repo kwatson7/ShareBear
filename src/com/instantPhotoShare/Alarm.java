@@ -1,7 +1,6 @@
 package com.instantPhotoShare;
 
 import com.instantPhotoShare.Activities.InitialLaunch;
-import com.instantPhotoShare.Activities.MainScreen;
 import com.instantPhotoShare.Activities.NotificationsScreen;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.NotificationsAdapter;
@@ -126,11 +125,12 @@ public class Alarm extends BroadcastReceiver
 
 					com.tools.Tools.postNotification(
 							ctx,
-							R.drawable.icon3,
+							R.drawable.notification,
 							"Share Bear Notifications!",
 							"New Share Bear Pictures",
 							"You have " + unreadNotifications + str,
 							Utils.notificationsIds.GENERIC_NEW_NOTIFICATIONS.ordinal(),
+							Prefs.isPlayNotificationSound(ctx),
 							intent);
 				}
 			}finally{

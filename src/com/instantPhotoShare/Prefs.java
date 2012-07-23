@@ -223,6 +223,15 @@ public class Prefs {
 	}
 	
 	/**
+	 * Return whether we should play notification sound on new notification in notification bar
+	 * @param ctx Context required
+	 * @return true if we should, false otherwise
+	 */
+	public static boolean isPlayNotificationSound(Context ctx){
+		return getBooleanPref(ctx, getBACKGROUND_NOTIFICATION_SOUND(ctx), true);
+	}
+	
+	/**
 	 * Set whether we should launch background polling in the background or not
 	 * @param ctx Context required
 	 * @param isLaunch true if we should, false otherwise
@@ -231,8 +240,22 @@ public class Prefs {
 		setBooleanPref(ctx, getBACKGROUND_POLLING_AUTO_START(ctx), isLaunch);
 	}
 	
+	/**
+	 * Get the string for querying if we want to do background notifications on phone start
+	 * @param ctx Context required to query preference
+	 * @return 
+	 */
 	private static String getBACKGROUND_POLLING_AUTO_START(Context ctx){
 		return ctx.getResources().getString(R.string.BACKGROUND_POLLING_AUTO_START);
+	}
+	
+	/**
+	 * Get the string for querying if we want to do background notifications sounds
+	 * @param ctx Context required to query preference
+	 * @return 
+	 */
+	private static String getBACKGROUND_NOTIFICATION_SOUND(Context ctx){
+		return ctx.getResources().getString(R.string.BACKGROUND_NOTIFICATION_SOUND);
 	}
 	
 	/**

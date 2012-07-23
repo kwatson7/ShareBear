@@ -68,7 +68,7 @@ extends CustomActivity{
 	
 	// enums for menu items
 	private enum MENU_ITEMS { 										
-		DELETE_GROUP;
+		DELETE_GROUP, MANAGE_GROUP;
 		private static MENU_ITEMS convert(int value)
 		{
 			return MENU_ITEMS.class.getEnumConstants()[value];
@@ -121,6 +121,7 @@ extends CustomActivity{
 
 		// Add the menu items
 		menu.add(0, MENU_ITEMS.DELETE_GROUP.ordinal(), 0, "Delete Group");
+		menu.add(0, MENU_ITEMS.MANAGE_GROUP.ordinal(), 0, "Manage Group");
 
 		return true;
 	}
@@ -134,6 +135,12 @@ extends CustomActivity{
 		switch(id) {
 		case DELETE_GROUP:
 			deleteGroupClicked();
+			return true;
+		case MANAGE_GROUP:
+			Intent intent = new Intent(this, ManageGroups.class);
+			intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+			intent.putExtra(ManageGroups.GROUP_ID, groupId);
+			startActivity(intent);
 			return true;
 		}
 

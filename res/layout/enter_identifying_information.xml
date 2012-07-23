@@ -3,7 +3,8 @@
 	android:id="@+id/ScrollView01"
 	android:layout_height="fill_parent"
 	android:layout_width="fill_parent"
-	xmlns:android="http://schemas.android.com/apk/res/android">
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:background="@color/grey800">
 <LinearLayout
 	android:id="@+id/widget32"
 	android:layout_width="fill_parent"
@@ -20,7 +21,8 @@
 	android:layout_height="wrap_content"
 	android:layout_width="fill_parent"
 	android:layout_gravity="center_horizontal"
-	android:gravity="left">
+	android:gravity="left"
+	android:textColor="@android:color/black">
 </TextView>
 <LinearLayout
 	android:id="@+id/widget32"

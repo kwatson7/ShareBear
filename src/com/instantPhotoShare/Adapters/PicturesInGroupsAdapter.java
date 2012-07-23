@@ -1,7 +1,10 @@
 package com.instantPhotoShare.Adapters;
 
+import java.util.ArrayList;
+
 import com.instantPhotoShare.Prefs;
 import com.instantPhotoShare.Utils;
+import com.tools.TwoObjects;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -87,13 +90,56 @@ extends TableAdapter <PicturesInGroupsAdapter>{
 	 * @param pictureRowId
 	 * @see PicturesAdapter.removePictureFromDatabase
 	 */
-	public void removePictureFromAllGroups(long pictureRowId){
+	protected void removePictureFromAllGroups(long pictureRowId){
+		
+		// find all the groups this picture is in
+		Cursor cursor = database.query(
+				TABLE_NAME,
+				new String[] {KEY_GROUP_ID},
+				KEY_PICTURE_ID + " = ?",
+				new String[] {String.valueOf(pictureRowId)},
+				null,
+				null,
+				null);	
+		if (cursor == null)
+			return;
+		
+		// loop decrementing groups
+		GroupsAdapter groups = new GroupsAdapter(ctx);
+		while(cursor.moveToNext()){
+			long groupId = cursor.getLong(0);
+			groups.decrementPictureNumber(groupId);
+		}
+		cursor.close();
+		
 		// delete all rows where it appears
 		int effected = database.delete(
 				TABLE_NAME,
 				KEY_PICTURE_ID + " =?",
 				new String[] {String.valueOf(pictureRowId)});
 		Log.v(Utils.LOG_TAG, effected + " pictures removed from pic-group link table");
+	}
+	
+	/**
+	 * Remove the given picture from the given group
+	 * @param pictureRowId
+	 * @param groupRowId
+	 * @see PicturesAdapter.removePictureFromDatabase
+	 */
+	public void removePictureFromGroup(long pictureRowId, long groupRowId){
+		
+		// delete all rows where it appears
+		int effected = database.delete(
+				TABLE_NAME,
+				KEY_PICTURE_ID + " =? AND " + KEY_GROUP_ID,
+				new String[] {String.valueOf(pictureRowId)});
+		Log.v(Utils.LOG_TAG, effected + " pictures removed from pic-group link table");
+		
+		// if we had a removal, then decrement group
+		if (effected > 0){
+			GroupsAdapter groups = new GroupsAdapter(ctx);
+			groups.decrementPictureNumber(groupRowId);
+		}
 	}
 	
 	/**

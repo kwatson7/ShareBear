@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -63,11 +64,13 @@ extends TableAdapter <GroupsAdapter>{
 	private static final String KEY_MARK_FOR_DELETION  = "KEY_MARK_FOR_DELETION";
 	private static final String KEY_AM_I_MEMBER = "KEY_AM_I_MEMBER";
 	private static final String KEY_NUMBER_OF_PICS = "KEY_NUMBER_OF_PICS";
+	private static final String KEY_TIME_LAST_PICTURE_ADDED = "KEY_TIME_LAST_PICTURE_ADDED";
 
 	// types
 	private static final String MARK_FOR_DELETION_TYPE = " BOOLEAN DEFAULT 'FALSE'";
 	private static final String AM_I_MEMBER_TYPE = " BOOLEAN DEFAULT 'TRUE'";
 	private static final String NUMBER_OF_PICS_TYPE = " INTEGER NOT NULL DEFAULT '0'";
+	private static final String TIME_LAST_PICTURE_ADDED_TYPE = " INTEGER NOT NULL DEFAULT '0'";
 
 	// private constants
 	private static final String DEFAULT_PRIVATE_NAME = "Private"; 			// default group name for the auto-generated private group
@@ -110,6 +113,7 @@ extends TableAdapter <GroupsAdapter>{
 		+KEY_AM_I_MEMBER + AM_I_MEMBER_TYPE +", "
 		+KEY_IS_UPDATING +" boolean DEFAULT 'FALSE', "
 		+KEY_NUMBER_OF_PICS + NUMBER_OF_PICS_TYPE + ", "
+		+KEY_TIME_LAST_PICTURE_ADDED + TIME_LAST_PICTURE_ADDED_TYPE + ", "
 		+KEY_LAST_UPDATE_ATTEMPT_TIME +" text not null DEFAULT '1900-01-01 01:00:00', "
 		+KEY_IS_SYNCED +" boolean DEFAULT 'FALSE', "
 		+"foreign key(" +KEY_PICTURE_ID +") references " +PicturesAdapter.TABLE_NAME +"(" +PicturesAdapter.KEY_ROW_ID + "), " 
@@ -152,6 +156,7 @@ extends TableAdapter <GroupsAdapter>{
 				NUMBER_OF_PICS_TYPE;
 			out.add(upgradeQuery);
 		}
+		addColumn(out, TABLE_NAME, oldVersion, newVersion, 12, KEY_TIME_LAST_PICTURE_ADDED, TIME_LAST_PICTURE_ADDED_TYPE);
 
 		return out;
 	}
@@ -451,12 +456,87 @@ extends TableAdapter <GroupsAdapter>{
 	 * Fetch all groups and load them into this cursor
 	 * @return
 	 */
-	public void fetchAllGroups(){
+	public void fetchAllGroupsOld(){
 
 		// grab the cursor over all groups
-		Cursor cursor = getAllGroupsCursor();
+		Cursor cursor = fetAllGroupsCursorSimple();
 
 		setCursor(cursor);
+	}
+	
+	/**
+	 * Fetch all groups and load them into this cursor
+	 * @return
+	 */
+	public void fetchAllGroups(){
+		setCursor(fetchAllGroupsCursor());
+	}
+	
+	/**
+	 * Grab the cursor that puts the newest group first, then the3 groups with most recent picture additions, and then
+	 * alphabetical
+	 * @return the cursor, can be null
+	 */
+	private Cursor fetchAllGroupsCursor(){
+		// first find the 3rd newest group
+		Cursor cursor = database.query(
+				TABLE_NAME,
+				new String[] {KEY_TIME_LAST_PICTURE_ADDED},
+				null,
+				null,
+				null,
+				null,
+				KEY_TIME_LAST_PICTURE_ADDED + " DESC",
+				String.valueOf(3));
+		
+		if (cursor == null){
+			return null;
+		}
+		if (cursor.getCount() < 2){
+			return fetAllGroupsCursorSimple();
+		}
+		cursor.moveToLast();
+		long thresholdTime = cursor.getLong(0);
+		while(thresholdTime == 0 && cursor.moveToPrevious()){
+			thresholdTime = cursor.getLong(0);
+		}
+		cursor.close();
+		
+		// now find the newest group you created 
+		// first find the 3rd newest group
+		cursor = database.query(
+				TABLE_NAME,
+				new String[] {KEY_ROW_ID, KEY_DATE_CREATED},
+				null,
+				null,
+				null,
+				null,
+				KEY_DATE_CREATED + " DESC",
+				String.valueOf(1));
+		
+		if (cursor == null){
+			return null;
+		}
+		if (cursor.getCount() < 1){
+			return fetAllGroupsCursorSimple();
+		}
+		cursor.moveToFirst();
+		long rowId = cursor.getLong(0);
+		cursor.close();
+			
+		// the query
+		String query = 
+			"SELECT *," + 
+			"CASE WHEN " + KEY_ROW_ID + " = ? THEN 0"
+			+ " ELSE 1 END As ORDER_COL1 "+
+			", CASE WHEN " + KEY_TIME_LAST_PICTURE_ADDED + " >= ? THEN KEY_TIME_LAST_PICTURE_ADDED"
+			+ " ELSE 0 END As ORDER_COL2 "+
+			"FROM " + TABLE_NAME + 
+			" WHERE " + ADDITIONAL_QUERY_NO_AND + 
+			" ORDER BY " + " ORDER_COL1 ASC, ORDER_COL2 DESC, " + KEY_NAME + " COLLATE NOCASE";
+		
+		// do the query
+		return database.rawQuery(query, new String[] {String.valueOf(rowId), String.valueOf(thresholdTime)});
 	}
 
 	/**
@@ -603,7 +683,8 @@ extends TableAdapter <GroupsAdapter>{
 			final ItemsFetchedCallback<ACTIVITY_TYPE> callback){
 		//TODO: this shouldn't be synced. Will cause hanging, also doesn't even gaurantee thread safe, as multiple objects cann access this
 		//TODO: make checking to see what new picture we have faster. Shouldn't check each picture individually, but do a batch callback and loop over pictures
-
+		//TODO: remove pictures that are no longer in group as well
+		
 		// bad serverId
 		if (groupServerId == -1 || groupServerId == 0)
 			return;
@@ -655,9 +736,15 @@ extends TableAdapter <GroupsAdapter>{
 						Group group = adapter.getGroupByServerId(groupServerId);
 						if(group == null || group.keepLocal)
 							return;
-						int counter = 0;						
+						int counter = 0;				
+						HashSet<String> serverIds = new HashSet<String>();
 						for (int i = 0; i < array.length(); i++){
-
+							try {
+								serverIds.add(String.valueOf(array.getLong(i)));
+							} catch (JSONException e1) {
+								Log.e(Utils.LOG_TAG, Log.getStackTraceString(e1));
+							}
+							
 							synchronized (GroupsAdapter.class) {
 								try {
 
@@ -681,24 +768,39 @@ extends TableAdapter <GroupsAdapter>{
 
 									// find the picture by serverId
 									pics.fetchPictureFromServerId(array.getLong(i));
-									if (pics.getRowId() == 0 || pics.getRowId() == -1)
+									if (pics.getRowId() == 0 || pics.getRowId() == -1){
+										pics.close();
 										continue;
+									}
 
 									// add the picture to this group if not already present
 									if(!pics.isPictureInGroup(pics.getRowId(), group.getRowId())){
 										comboAdapter.addPictureToGroup(ctx, pics.getRowId(), group.getRowId());
 										counter++;
 									}
+									pics.close();
 
 								} catch (NumberFormatException e) {
-									Log.e("TAG", Log.getStackTraceString(e));
+									Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 									continue;
 								} catch (JSONException e) {
-									Log.e("TAG", Log.getStackTraceString(e));
+									Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 									continue;
 								}
 							}
+							pics.close();
 						}	
+						
+						// pictures that have been removed from this group
+						TwoObjects<HashSet<String>, HashSet<String>> newAndOld = pics.getNewAndOldPicturesInGroup(group.getRowId(), serverIds);
+						HashSet<String> beenRemoved = newAndOld.mObject2;
+						Iterator<String> iterator = beenRemoved.iterator();
+						while(iterator.hasNext()){
+							long picServerId = Long.valueOf(iterator.next());
+							pics.fetchPictureFromServerId(picServerId);
+							comboAdapter.removePictureFromGroup(pics.getRowId(), group.getRowId());
+						}
+						pics.close();
 						
 						// update number of pictures
 						adapter.fetchGroupByServerId(groupServerId);
@@ -736,6 +838,8 @@ extends TableAdapter <GroupsAdapter>{
 					}
 				});
 	}
+	
+	
 
 	/**
 	 * Fetch all the groups from the server for a given user and then create for any new groups. Also fetch the ids of the new pictures in groups
@@ -1042,7 +1146,7 @@ extends TableAdapter <GroupsAdapter>{
 	public ArrayList<Group> getAllGroups(){
 
 		// grab the cursor over all groups
-		Cursor cursor = getAllGroupsCursor();
+		Cursor cursor = fetchAllGroupsCursor();
 
 		// initalize output
 		ArrayList<Group> output = new ArrayList<Group>();
@@ -1528,10 +1632,10 @@ extends TableAdapter <GroupsAdapter>{
 
 	// private helper classes
 	/**
-	 * Return a cursor over all groups and all columns of this database
+	 * Return a cursor over all groups and all columns of this database sorted by date created
 	 * @return
 	 */
-	private Cursor getAllGroupsCursor(){
+	private Cursor fetAllGroupsCursorSimple(){
 
 		return database.query(TABLE_NAME, null, ADDITIONAL_QUERY_NO_AND, null, null, null, SORT_ORDER);
 	}
@@ -1613,19 +1717,50 @@ extends TableAdapter <GroupsAdapter>{
 		synchronized (GroupsAdapter.class) {
 
 			// update the value
-			String command = "UPDATE " + TABLE_NAME + " SET " + 
+			/*
+			String command1 = "UPDATE " + TABLE_NAME + " SET " + 
 			KEY_LAST_PICTURE_NUMBER + " = " + KEY_LAST_PICTURE_NUMBER + " + 1 WHERE " + 
 			KEY_ROW_ID + " =?";
 			String command2 = "UPDATE " + TABLE_NAME + " SET " + 
 			KEY_NUMBER_OF_PICS + " = " + KEY_NUMBER_OF_PICS + " + 1 WHERE " + 
 			KEY_ROW_ID + " =?";
+			String command3 = "UPDATE " + TABLE_NAME + " SET " + 
+			KEY_TIME_LAST_PICTURE_ADDED + " = '" + (new Date()).getTime() + "' WHERE " + 
+			KEY_ROW_ID + " =?";
+			*/
+			String command = "UPDATE " + TABLE_NAME + " SET " + 
+			KEY_LAST_PICTURE_NUMBER + " = " + KEY_LAST_PICTURE_NUMBER + " + 1, "+
+			KEY_NUMBER_OF_PICS + " = " + KEY_NUMBER_OF_PICS + " + 1, "+
+			KEY_TIME_LAST_PICTURE_ADDED + " = '" + (new Date()).getTime() + "' WHERE " + 
+			KEY_ROW_ID + " =?";
 
 			try{
+				//database.execSQL(command1, new String[] {String.valueOf(rowId)});
+				//database.execSQL(command2, new String[] {String.valueOf(rowId)});
+				//database.execSQL(command3, new String[] {String.valueOf(rowId)});
 				database.execSQL(command, new String[] {String.valueOf(rowId)});
-				database.execSQL(command2, new String[] {String.valueOf(rowId)});
 			}catch(SQLException e){
 				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 			}
+		}
+	}
+	
+	/**
+	 * Decrement the number of pictures of the given group by 1
+	 * @param groupRowId The group id
+	 */
+	protected void decrementPictureNumber(long groupRowId){
+		String command = "UPDATE " + TABLE_NAME + " SET " + 
+		KEY_NUMBER_OF_PICS + " = " + KEY_NUMBER_OF_PICS + " - 1 "+
+		" WHERE " + KEY_ROW_ID + " =?";
+
+		try{
+			//database.execSQL(command1, new String[] {String.valueOf(rowId)});
+			//database.execSQL(command2, new String[] {String.valueOf(rowId)});
+			//database.execSQL(command3, new String[] {String.valueOf(rowId)});
+			database.execSQL(command, new String[] {String.valueOf(groupRowId)});
+		}catch(SQLException e){
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 		}
 	}
 
@@ -1770,7 +1905,7 @@ extends TableAdapter <GroupsAdapter>{
 				cursor.close();
 
 				// update the value
-				incrementLastPictureNumber(rowId);
+				//incrementLastPictureNumber(rowId);
 
 				// return the value
 				return value;
@@ -2105,6 +2240,20 @@ extends TableAdapter <GroupsAdapter>{
 		 * @param errorCode null if no error, otherwise the error message
 		 */
 		public void onItemsFetchedUiThread(ACTIVITY_TYPE act, String errorCode);
+	}
+	
+	/**
+	 * Any groups that have the given picture as their group picture will be set back to defaul
+	 * @param rowId The rowId of the picture to remove
+	 */
+	protected void removePictureAsId(long pictureRowId){
+		
+		// update with default
+		ContentValues values = new ContentValues(1);
+		values.put(KEY_PICTURE_ID, -1);
+		
+		// do teh update
+		database.update(TABLE_NAME, values, KEY_PICTURE_ID + " = ?", new String[] {String.valueOf(pictureRowId)});
 	}
 }
 

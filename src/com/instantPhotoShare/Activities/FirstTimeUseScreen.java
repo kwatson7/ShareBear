@@ -14,12 +14,16 @@ import com.tools.TwoStrings;
 
 import android.content.Intent;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 public class FirstTimeUseScreen
@@ -432,7 +436,19 @@ extends com.tools.CustomActivity {
 
 	@Override
 	protected void onDestroyOverride() {
-
+		// recyle the old bitmap if one exists
+		View view = findViewById(R.id.backgroundImage);
+		if (view == null)
+			return;
+		ImageView image = (ImageView) view;
+		Drawable drawable = image.getDrawable();
+		Bitmap bitmapOld = null;
+		if (drawable instanceof BitmapDrawable) {
+			BitmapDrawable bitmapDrawable = (BitmapDrawable) drawable;
+			bitmapOld = bitmapDrawable.getBitmap();
+			if (bitmapOld != null)
+				bitmapOld.recycle();
+		}
 	}
 
 	@Override

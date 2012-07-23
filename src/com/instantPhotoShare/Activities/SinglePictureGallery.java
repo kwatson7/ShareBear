@@ -1,22 +1,19 @@
 package com.instantPhotoShare.Activities;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Color;
-import android.graphics.Matrix;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.text.Html;
 import android.util.Log;
 import android.view.Display;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -24,33 +21,31 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
-import android.view.animation.Animation;
-import android.view.animation.AnimationSet;
-import android.view.animation.RotateAnimation;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.BaseAdapter;
 import android.widget.FrameLayout;
-import android.widget.Gallery;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.instantPhotoShare.GroupSpinnerAdapter;
 import com.instantPhotoShare.Prefs;
 import com.instantPhotoShare.R;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.PicturesAdapter;
 import com.instantPhotoShare.Adapters.UsersAdapter;
+import com.instantPhotoShare.Adapters.GroupsAdapter.Group;
 import com.tools.CustomActivity;
 import com.tools.CustomAsyncTask;
-import com.tools.CustomAsyncTask.FinishedCallback;
 import com.tools.TwoObjects;
 import com.tools.ViewLoader;
 import com.tools.ViewLoader.LoadData;
 import com.tools.images.CustomGallery;
-import com.tools.images.ImageLoader.LoadImage;
 import com.tools.images.ImageViewTouch;
 
 public class SinglePictureGallery 
@@ -66,7 +61,8 @@ extends CustomActivity{
 	private int pictureWindowWidth; 			// the width of the area the picture fits inside
 	private int pictureWindowHeight; 			// the height of the area the picture fits inside
 	private com.tools.images.MemoryCache<Long> oldCache = null; 		// the old imageloader cache. use this to handle screen rotations.
-
+	private boolean isChangeGroupShowing = false;		// boolean to keep track if group selector is showing
+	
 	// graphics
 	private CustomGallery gallery; 				// the gallery to show pictures
 	private ImageView takePictureButton; 		// the pointer to the take picture button
@@ -81,10 +77,11 @@ extends CustomActivity{
 	// variables to indicate what can be passed in through intents
 	public static final String GROUP_ID = "GROUP_ID";
 	public static final String PICTURE_POSITION = "PICTURE_POSITION";
+	private static final String FETCHING_DATA_TAG = "fetchingData";
 
 	//enums for async calls
 	private enum MENU_ITEMS {
-		ROTATE_CCW, ROTATE_CW, SET_AS_DEFAULT_PICTURE, SHARE_PICTURE;
+		SET_AS_DEFAULT_PICTURE, SHARE_PICTURE, ADD_TO_ANOTHER_GROUP, DELETE_PICTURE, ROTATE_CW, ROTATE_CCW, ;
 		private static MENU_ITEMS convert(int value)
 		{
 			return MENU_ITEMS.class.getEnumConstants()[value];
@@ -267,13 +264,18 @@ extends CustomActivity{
 		super.onCreateOptionsMenu(menu);
 
 		// Add the menu items
-		MenuItem rotateCCW = menu.add(0, MENU_ITEMS.ROTATE_CCW.ordinal(), 0, "Rotate CCW");
-		MenuItem setAsGroupPicture = menu.add(0, MENU_ITEMS.ROTATE_CW.ordinal(), 0, "Rotate CW");
 		menu.add(0, MENU_ITEMS.SET_AS_DEFAULT_PICTURE.ordinal(), 0, "Set as Group Picture");
 		menu.add(0, MENU_ITEMS.SHARE_PICTURE.ordinal(), 0, "Share Picture");
+		menu.add(0, MENU_ITEMS.ADD_TO_ANOTHER_GROUP.ordinal(), 0, "Add to another group");
+		MenuItem delete = menu.add(0, MENU_ITEMS.DELETE_PICTURE.ordinal(), 0, "Delete Picture");
+		MenuItem rotateCW = menu.add(0, MENU_ITEMS.ROTATE_CW.ordinal(), 0, "Rotate");
+		MenuItem rotateCCW = menu.add(0, MENU_ITEMS.ROTATE_CCW.ordinal(), 0, "Rotate");
+		
 
 		// add icons
-		//	selectAll.setIcon(drawable.emo_im_laughing);
+		delete.setIcon(R.drawable.delete);
+		rotateCW.setIcon(R.drawable.rotate_cw);
+		rotateCCW.setIcon(R.drawable.rotate_ccw);
 
 		return true;
 	}
@@ -290,17 +292,31 @@ extends CustomActivity{
 		String thumbPath = picturesAdapater.getThumbnailPath();
 		TwoObjects<Long, Long> loaderData = new TwoObjects<Long, Long>(picturesAdapater.getRowId(), groupId);
 		
+		boolean isFullRotated = false;
+		boolean isThumbRotated = false;
+		
 		// decide on what each button should do
 		switch(id) {
 		case ROTATE_CCW:
 			
 			// rotate teh picture in the background
-			// rotate teh picture in the background
 			try{
 				com.tools.ImageProcessing.rotateExif(path, -1);//, new OnRotateCallback());
+				isFullRotated = true;
 				com.tools.ImageProcessing.rotateExif(thumbPath, -1);//, new OnRotateCallback());
+				isThumbRotated = true;
 			}catch(IOException e){
 				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+				if (!isFullRotated && !isThumbRotated)
+					Toast.makeText(ctx, "Rotation error. Full picture probably not downloaded yet", Toast.LENGTH_LONG).show();
+				else if (isFullRotated && !isThumbRotated){
+					Toast.makeText(ctx, "Rotation error.", Toast.LENGTH_LONG).show();
+					try {
+						com.tools.ImageProcessing.rotateExif(path, 1);
+					} catch (IOException e1) {
+						Log.e("TAG", Log.getStackTraceString(e1));
+					}
+				}
 				return true;
 			}
 			adapter.imageLoader.clearCacheAtId(picturesAdapater.getRowId());
@@ -329,11 +345,25 @@ extends CustomActivity{
 			return true;
 		case ROTATE_CW:
 			// rotate teh picture in the background
+			isFullRotated = false;
+			isThumbRotated = false;
 			try{
 				com.tools.ImageProcessing.rotateExif(path, 1);//, new OnRotateCallback());
+				isFullRotated = true;
 				com.tools.ImageProcessing.rotateExif(thumbPath, 1);//, new OnRotateCallback());
+				isThumbRotated = true;
 			}catch(IOException e){
 				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+				if (!isFullRotated && !isThumbRotated)
+					Toast.makeText(ctx, "Rotation error. Full picture probably not downloaded yet", Toast.LENGTH_LONG).show();
+				else if (isFullRotated && !isThumbRotated){
+					Toast.makeText(ctx, "Rotation error.", Toast.LENGTH_LONG).show();
+					try {
+						com.tools.ImageProcessing.rotateExif(path, -1);
+					} catch (IOException e1) {
+						Log.e("TAG", Log.getStackTraceString(e1));
+					}
+				}
 				return true;
 			}
 			adapter.imageLoader.clearCacheAtId(picturesAdapater.getRowId());
@@ -358,9 +388,73 @@ extends CustomActivity{
 		case SHARE_PICTURE:
 			sharePicture();
 			return true;
+		case ADD_TO_ANOTHER_GROUP:
+			showChooseGroup();
+			return true;
+		case DELETE_PICTURE:
+			
+			DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+			    @Override
+			    public void onClick(DialogInterface dialog, int which) {
+			        switch (which){
+			        case DialogInterface.BUTTON_POSITIVE:
+			        	deletePicture();
+			            break;
+
+			        case DialogInterface.BUTTON_NEGATIVE:
+			            //No button clicked
+			            break;
+			        }
+			    }
+			};
+			
+			// show the dialog
+			AlertDialog.Builder builder = new AlertDialog.Builder(this);
+			AlertDialog dialog = builder.setMessage("Are you sure you want to delete this picture?").setPositiveButton("Yes", dialogClickListener)
+			    .setNegativeButton("No", dialogClickListener).create();
+			addDialog(dialog);
+			dialog.show();
+			return true;
 		}
 
 		return super.onMenuItemSelected(featureId, item);
+	}
+	
+	/**
+	 * Delete the picture at the given location
+	 */
+	private void deletePicture(){
+		ArrayList<String> bars = new ArrayList<String>(1);
+		bars.add(FETCHING_DATA_TAG);
+		try {
+			picturesAdapater.deletePicture(bars, this, new PicturesAdapter.ItemsFinished<SinglePictureGallery>(){
+
+				@Override
+				public void onItemsFinishedUI(SinglePictureGallery act,
+						Exception e) {
+					if (e != null){
+						String msg = e.getMessage();
+						if (msg == null || msg.length() == 0)
+							msg = "Could not delete picture.";
+						Toast.makeText(act, msg, Toast.LENGTH_LONG).show();
+					}else{
+						Toast.makeText(act, "Picture deleted", Toast.LENGTH_SHORT).show();
+					getPictures();
+					fillPictures();
+					}
+				}
+
+				@Override
+				public void onItemsFinishedBackground(SinglePictureGallery act,
+						Exception e) {					
+				}
+			});
+		} catch (Exception e) {
+			String msg = e.getMessage();
+			if (msg == null || msg.length() == 0)
+				msg = "Could not delete picture.";
+			Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show();
+		}
 	}
 	
 	private static class OnRotateCallback
@@ -400,6 +494,102 @@ extends CustomActivity{
 		if(!com.tools.Tools.sharePicture(this, shareSubject, shareBody, fileName, prompt))
 			Toast.makeText(this, "Picture could not be sent", Toast.LENGTH_SHORT).show();
 	}
+	
+	private void showChooseGroup(){
+		// grab the spinner
+		com.tools.NoDefaultSpinner spinner = (com.tools.NoDefaultSpinner) findViewById(R.id.spinner);
+		if (spinner.isShown())
+			return;
+
+		// grab all groups
+		GroupsAdapter groupsAdapter = new GroupsAdapter(this);
+		final ArrayList<Group> groups = groupsAdapter.getAllGroups();
+		
+		// make sure there are groups
+		if (groups == null || groups.size() == 0){
+			Toast.makeText(this, "No groups to add to. Create one First", Toast.LENGTH_LONG).show();
+			return;
+		}
+
+		// make array adapter to hold group names
+		GroupSpinnerAdapter spinnerArrayAdapter = new GroupSpinnerAdapter(
+				this, android.R.layout.simple_spinner_item, groups);
+
+		// grab standard android spinner
+		spinnerArrayAdapter.setDropDownViewResource( R.layout.spinner_layout );
+
+		// make listener when spinner is clicked
+		spinner.setOnItemSelectedListener(new Spinner.OnItemSelectedListener() {
+			@Override
+			public void onItemSelected(AdapterView<?> parentView, 
+					View selectedItemView, int position, long id) {
+
+				if (!isChangeGroupShowing){
+					isChangeGroupShowing = !isChangeGroupShowing;
+						return;
+				}else
+					isChangeGroupShowing = !isChangeGroupShowing;
+					
+				long sourceGroupId = groups.get(position).getRowId();
+				addToAnotherGroup(sourceGroupId);
+			}
+
+			@Override
+			public void onNothingSelected(AdapterView<?> parentView) {
+				
+			}
+		});
+
+		// set adapter and launch it
+		spinner.setAdapter(spinnerArrayAdapter);
+		
+		// find which group is currenlty selected
+		spinner.setSelection(0);
+		for (int i = 0; i < groups.size(); i++){
+			if (groups.get(i).getRowId() == groupId){
+				spinner.setSelection(i);
+				break;
+			}
+		}
+		isChangeGroupShowing = false;
+		spinner.performClick();
+	}
+	
+	/**
+	 * Add this picture to another group
+	 * @param sourceGroupId the groupRowId to move to
+	 */
+	private void addToAnotherGroup(long sourceGroupId){
+		ArrayList<String> bars = new ArrayList<String>(1);
+		bars.add(FETCHING_DATA_TAG);
+		try {
+			picturesAdapater.addPictureToGroup(bars, this, groupId, sourceGroupId, new PicturesAdapter.ItemsFinished<SinglePictureGallery>(){
+
+				@Override
+				public void onItemsFinishedUI(SinglePictureGallery act,
+						Exception e) {
+					if (e != null){
+						String msg = e.getMessage();
+						if (msg == null || msg.length() == 0)
+							msg = "Could not copy picture.";
+						Toast.makeText(act, msg, Toast.LENGTH_LONG).show();
+					}else{
+						Toast.makeText(act, "Picture copied", Toast.LENGTH_SHORT).show();
+					}
+				}
+
+				@Override
+				public void onItemsFinishedBackground(SinglePictureGallery act,
+						Exception e) {					
+				}
+			});
+		} catch (Exception e) {
+			String msg = e.getMessage();
+			if (msg == null || msg.length() == 0)
+				msg = "Could not copy picture.";
+			Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show();
+		}
+	}
 
 	/**
 	 * Additional configuration properties
@@ -411,7 +601,9 @@ extends CustomActivity{
 
 	@Override
 	protected void onDestroyOverride() {
-
+		com.tools.NoDefaultSpinner spinner = (com.tools.NoDefaultSpinner) findViewById(R.id.spinner);
+		ViewGroup enclosingFrame = (ViewGroup) findViewById(R.id.enclosingFrame);
+		enclosingFrame.removeView(spinner);
 		gallery.setAdapter(null);	
 	}
 

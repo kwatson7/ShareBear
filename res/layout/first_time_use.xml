@@ -1,17 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="vertical"
+	android:layout_width="fill_parent"
+	android:layout_height="fill_parent">
+<ImageView
+	android:src="@drawable/main_background6"
+	android:scaleType="centerCrop"
+	android:layout_width="fill_parent"
+	android:layout_height="fill_parent"
+	android:id="@+id/backgroundImage"
+/>
 <LinearLayout
 	android:id="@+id/widget33"
 	android:layout_width="fill_parent"
 	android:layout_height="fill_parent"
-	android:orientation="vertical"
-	xmlns:android="http://schemas.android.com/apk/res/android">
+	android:orientation="vertical">
 <TextView
 	android:id="@+id/firstUseStatementText"
 	android:layout_width="wrap_content"
 	android:layout_height="wrap_content"
 	android:padding="2dp"
 	android:text="@string/firstUseStatement"
-	android:gravity="left" />
+	android:gravity="left" 
+	android:typeface="serif"
+	android:textStyle="bold"
+	android:textSize="15dp"
+	style="@style/ShadowText"/>
 <Button
 	android:id="@+id/dontCreateAccountButton"
 	android:layout_width="fill_parent"
@@ -22,7 +36,9 @@
 	android:textStyle="bold"
 	android:gravity="center"
 	android:layout_gravity="center_horizontal" 
-	android:onClick="dontCreateAccountButtonClicked"/>
+	android:onClick="dontCreateAccountButtonClicked"
+	android:layout_marginTop="20dp"
+	android:layout_marginBottom="20dp"/>
 <Button
 	android:id="@+id/createNewAccountButton"
 	android:layout_width="fill_parent"
@@ -33,7 +49,9 @@
 	android:textStyle="bold"
 	android:gravity="center"
 	android:layout_gravity="center_horizontal" 
-	android:onClick="createNewAccountButtonClicked"/>
+	android:onClick="createNewAccountButtonClicked"
+	android:layout_marginTop="20dp"
+	android:layout_marginBottom="20dp"/>
 <Button
 	android:id="@+id/signInButton"
 	android:layout_width="fill_parent"
@@ -44,5 +62,8 @@
 	android:textStyle="bold" 
 	android:gravity="center"
 	android:layout_gravity="center_horizontal"
-	android:onClick="signInButtonClicked"/>
+	android:onClick="signInButtonClicked"
+	android:layout_marginTop="20dp"
+	android:layout_marginBottom="20dp"/>
 </LinearLayout>
+</FrameLayout>

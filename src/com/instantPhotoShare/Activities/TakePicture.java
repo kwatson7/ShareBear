@@ -766,6 +766,11 @@ extends CustomActivity{
 		public void onPictureTaken(byte[] data, android.hardware.Camera camera) {
 
 			// disable buttons
+			try{
+				cameraHelper.getCamera().stopPreview(); // some cameras dont' automatically stop preview, so do it here
+			}catch(Exception e){
+				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			}
 			prepareButtonsForPictureTake();
 
 			// only save data if data is not null
@@ -808,6 +813,7 @@ extends CustomActivity{
 				mgr.setStreamMute(AudioManager.STREAM_SYSTEM, true);
 				cameraHelper.getCamera().takePicture(shutterCallback, null, pictureCallback); 
 				cameraHelper.setIsPreviewRunning(false);
+				
 			}else{
 				// play auto-focus sound
 				AudioManager meng = (AudioManager) getBaseContext().getSystemService(Context.AUDIO_SERVICE);

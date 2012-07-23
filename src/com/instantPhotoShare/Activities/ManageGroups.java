@@ -27,6 +27,7 @@ import android.widget.SpinnerAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.instantPhotoShare.GroupSpinnerAdapter;
 import com.instantPhotoShare.R;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
@@ -54,6 +55,9 @@ extends CustomActivity{
 	private Button addUsersToGroupButton; 				// add users button
 	private CheckBox publicGroup; 						// make group public or not
 	private ImageView screen;
+	
+	// public constants for passing itnent data
+	public static final String GROUP_ID = "GROUP_ID";
 
 	//enums for async calls
 	private enum ASYNC_CALLS {
@@ -66,6 +70,11 @@ extends CustomActivity{
 
 	@Override
 	protected void onCreateOverride(Bundle savedInstanceState) {
+		
+		// load in passed info
+		Bundle extras = getIntent().getExtras(); 
+		if (extras != null)
+			groupId = extras.getLong(GROUP_ID, -1);
 		
 		// get configuration data and copy over any old data from old configuration.
 		ConfigurationProperties config = (ConfigurationProperties) getLastNonConfigurationInstance();
@@ -248,7 +257,7 @@ extends CustomActivity{
 		}
 
 		// make array adapter to hold group names
-		GroupSpinnerAdpater spinnerArrayAdapter = new GroupSpinnerAdpater(
+		GroupSpinnerAdapter spinnerArrayAdapter = new GroupSpinnerAdapter(
 				this, android.R.layout.simple_spinner_item, groups);
 
 		// grab standard android spinner
@@ -313,6 +322,10 @@ extends CustomActivity{
 		// now start filling values
 		GroupsAdapter adapter = new GroupsAdapter(this);
 		Group group = adapter.getGroup(groupId);
+		if (group == null){
+			groupId = -1;
+			return;
+		}
 		groupNameEdit.setText(Html.fromHtml(group.toString()));
 		keepPrivate.setChecked(group.isKeepLocal());
 		allowOthersToAddMembers.setChecked(group.isAllowOthersToAddMembers());		
@@ -322,125 +335,5 @@ extends CustomActivity{
 			backgroundDrawable = null;
 		}else
 			Utils.setBackground(this, group.getPictureThumbnailPath(ctx), screen, 1);	
-	}
-
-	/**
-	 * Adapter for showing html formatted strings. We expect toString() of objects to be html format
-	 * @author Kyle
-	 *
-	 */
-	public class GroupSpinnerAdpater
-	extends ArrayAdapter<Group>
-	implements SpinnerAdapter{
-
-		private List<Group> data;
-		private LayoutInflater inflater = null;
-		private int layoutId;
-		private int mDropDownResource;
-
-		public GroupSpinnerAdpater(Context context, int textViewResourceId,
-				List<Group> objects) {
-			super(context, textViewResourceId, objects);		 
-			this.data = objects;
-			inflater = (LayoutInflater)ctx.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-			layoutId = textViewResourceId;
-		}
-
-		/**
-		 * <p>Sets the layout resource to create the drop down views.</p>
-		 *
-		 * @param resource the layout resource defining the drop down views
-		 * @see #getDropDownView(int, android.view.View, android.view.ViewGroup)
-		 */
-		public void setDropDownViewResource(int resource) {
-			this.mDropDownResource = resource;
-		}
-
-		/**
-		 * Returns the Size of the ArrayList
-		 */
-		@Override
-		public int getCount() {
-			return data.size();
-		}
-
-		@Override
-		public long getItemId(int position) {
-			return position;
-		}
-
-		@Override
-		public int getItemViewType(int position) {
-			return android.R.layout.simple_spinner_dropdown_item;
-		}
-
-		/**
-		 * Returns the View that is shown when a element was
-		 * selected.
-		 */
-		@Override
-		public View getView(int position, View convertView, ViewGroup parent) {
-
-			// grab data
-			Group group = data.get(position);
-
-			// inflate new view if we have to
-			View vi = convertView;
-			if(convertView==null)
-				vi = inflater.inflate(layoutId, null);
-
-			// set text
-			TextView text = (TextView) vi;
-			text.setText(Html.fromHtml(group.toString()));
-
-			return vi; 
-		}
-
-		@Override
-		public int getViewTypeCount() {
-			return 1;
-		}
-
-		@Override
-		public boolean hasStableIds() {
-			return false;
-		}
-
-		@Override
-		public boolean isEmpty() {
-			return false;
-		}
-
-		@Override
-		public void registerDataSetObserver(DataSetObserver observer) {
-
-		}
-
-		@Override
-		public void unregisterDataSetObserver(DataSetObserver observer) {
-
-		}
-
-		/**
-		 * The Views which are shown in when the arrow is clicked
-		 * (In this case, I used the same as for the "getView"-method.
-		 */
-		@Override
-		public View getDropDownView(int position, View convertView,
-				ViewGroup parent) {
-			// grab data
-			Group group = data.get(position);
-
-			// inflate new view if we have to
-			View vi = convertView;
-			if(convertView==null)
-				vi = inflater.inflate(mDropDownResource, null);
-
-			// set text
-			TextView text = (TextView) vi;
-			text.setText(Html.fromHtml(group.toString()));
-
-			return vi; 
-		}
 	}
 }

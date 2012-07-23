@@ -12,7 +12,7 @@ extends SQLiteOpenHelper{
 
 	// database variables
 	private static final String DATABASE_NAME = "data.db";
-	public static final int DATABASE_VERSION = 11;
+	public static final int DATABASE_VERSION = 12;
 	private int oldVersion = -1;
 
 	// instance of database

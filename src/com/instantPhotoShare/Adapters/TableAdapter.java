@@ -120,7 +120,7 @@ extends CursorWrapper<TYPE>{
 	}
 
 	/**
-	 * Query the cursor and return only the values of valuesToCheck that are not present in the database. <br>
+	 * Query the table and return only the values of valuesToCheck that are not present in the database. <br>
 	 * For example, if valuesToCheck is {1, 2, 3, 4} and the database at the column keyToCompare only has {1, 2, 5}, then
 	 * we will return {3, 4}
 	 * @param TABLE_NAME The table to query
@@ -151,5 +151,112 @@ extends CursorWrapper<TYPE>{
 		workingCopy.removeAll(values);
 
 		return workingCopy;
+	}
+	
+	/**
+	 * Query the table and return only the values of from database that are not in valuesToCheck. <br>
+	 * For example, if valuesToCheck is {1, 2, 3} and the database at the column keyToCompare has {1, 2, 3, 4}, then
+	 * we will return {4}
+	 * @param TABLE_NAME The table to query
+	 * @param keyToCompare The key that valuesToCheck correspond to
+	 * @param valuesToCheck The values to check if they are in the table
+	 * @return The values that are in the table, but not valuesToCheck.
+	 */
+	protected HashSet<String> getRemovedValues(String TABLE_NAME, String keyToCompare, HashSet<String> valuesToCheck){
+		// query the cursor
+		Cursor cursor = database.query(
+				TABLE_NAME,
+				new String[] {keyToCompare},
+				null, null, null, null, null);
+
+		// null cursor
+		if (cursor == null)
+			return null;
+
+		// loop over cursor filling values
+		HashSet<String> values = new HashSet<String>(cursor.getCount());
+		while(cursor.moveToNext()){
+			values.add(cursor.getString(0));
+		}
+		cursor.close();
+
+		// now remove all values that are already present values
+		values.removeAll(valuesToCheck);
+
+		return values;
+	}
+	
+	/**
+	 * Query the table and return the new values in valuesToCheck and the old values. <br>
+	 * @param TABLE_NAME The table to query
+	 * @param keyToCompare The key that valuesToCheck correspond to
+	 * @param valuesToCheck The values to check if they are in the table
+	 * @return The new values as mObject1, and the old values as mObject2
+	 * @see getRemovedValues
+	 * @see getNewValues
+	 */
+	protected TwoObjects<HashSet<String>, HashSet<String>> getNewAndOldValues(String TABLE_NAME, String keyToCompare, HashSet<String> valuesToCheck){
+		// query the cursor
+		Cursor cursor = database.query(
+				TABLE_NAME,
+				new String[] {keyToCompare},
+				null, null, null, null, null);
+
+		// null cursor
+		if (cursor == null)
+			return null;
+
+		// loop over cursor filling values
+		HashSet<String> values = new HashSet<String>(cursor.getCount());
+		while(cursor.moveToNext()){
+			values.add(cursor.getString(0));
+		}
+		cursor.close();
+
+		// new values
+		HashSet<String> newValues = new HashSet<String>(valuesToCheck);
+		newValues.removeAll(values);
+		values.removeAll(valuesToCheck);
+
+		return new TwoObjects<HashSet<String>, HashSet<String>>(newValues, values);
+	}
+	
+	/**
+	 * Query the table and return the new values in valuesToCheck and the old values. <br>
+	 * @param TABLE_NAME The table to query
+	 * @param keyToCompare The key that valuesToCheck correspond to
+	 * @param valuesToCheck The values to check if they are in the table
+	 * @param constraint the where clause to check, null for no constraint
+	 * @return The new values as mObject1, and the old values as mObject2
+	 * @see getRemovedValues
+	 * @see getNewValues
+	 */
+	protected TwoObjects<HashSet<String>, HashSet<String>> getNewAndOldValuesWithConstaint(
+			String TABLE_NAME, String keyToCompare, HashSet<String> valuesToCheck, String constraint){
+		
+		// query the cursor
+		Cursor cursor = database.query(
+				TABLE_NAME,
+				new String[] {keyToCompare},
+				constraint,
+				null, null, null, null);
+
+		// null cursor
+		if (cursor == null)
+			new TwoObjects<HashSet<String>, HashSet<String>>(new HashSet<String>(0), new HashSet<String>(0));
+
+		// loop over cursor filling values
+		HashSet<String> values = new HashSet<String>(cursor.getCount());
+		while(cursor.moveToNext()){
+			values.add(cursor.getString(0));
+		}
+		cursor.close();
+
+		// new values
+		HashSet<String> newValues = new HashSet<String>(valuesToCheck);
+		newValues.removeAll(values);
+		values.removeAll(valuesToCheck);
+
+		return new TwoObjects<HashSet<String>, HashSet<String>>(newValues, values);
 	}
 }

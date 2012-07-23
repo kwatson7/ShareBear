@@ -123,11 +123,13 @@ extends com.tools.CustomAsyncTask <ACTIVITY_TYPE, Integer, CreateNewAccountTask<
 	protected void onPostExectueOverride(ReturnFromCreateNewAccountTask result) {
 
 		//make a toast saying if we were succesfful or not
-		if (result.isSuccess())
+		if (result.isSuccess()){
 			Toast.makeText(callingActivity,
 					"Successfully created account on server",
 					Toast.LENGTH_SHORT).show();
-		else{
+			com.tools.Tools.showAlert(callingActivity, applicationCtx, "Please validate email address by clicking link you will receive.");
+		
+		}else{
 			String reason = result.getDetailErrorMessage();
 			if (callingActivity != null)
 				Toast.makeText(callingActivity,

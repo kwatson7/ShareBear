@@ -81,7 +81,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, Void>{
 					}catch (FileNotFoundException e2){
 						Log.e(Utils.LOG_TAG, Log.getStackTraceString(e2));
 						if (com.tools.Tools.isStorageAvailable(false))
-							pics.removePictureFromDatabase(pics.getRowId());
+							pics.deleteImageLocally();
 						continue;
 					} catch (IOException e1) {
 						Log.e(Utils.LOG_TAG, Log.getStackTraceString(e1));

@@ -1,6 +1,7 @@
 package com.instantPhotoShare.Activities;
 
 import android.app.Activity;
+import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
@@ -17,6 +18,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.instantPhotoShare.R;
+import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.NotificationsAdapter;
 import com.tools.CustomActivity;
 
@@ -93,6 +95,10 @@ extends CustomActivity{
 		// load the notifications
 		NotificationsAdapter notes = new NotificationsAdapter(ctx);
 		notes.fetchAllNotificationsInBackground(this, new NotesFetched());
+		
+		// remove from notification bar
+		((NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE))
+			.cancel(Utils.notificationsIds.GENERIC_NEW_NOTIFICATIONS.ordinal());
 	}
 	
 	@Override

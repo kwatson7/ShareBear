@@ -1,16 +1,12 @@
-/**
- * 
- */
 package com.instantPhotoShare.Activities;
 
 import java.util.ArrayList;
 
-import com.instantPhotoShare.Alarm;
-import com.instantPhotoShare.Prefs;
 import com.instantPhotoShare.R;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.NotificationsAdapter;
+import com.instantPhotoShare.Adapters.NotificationsAdapter.NumberNotifications;
 import com.instantPhotoShare.Adapters.PicturesAdapter;
 import com.instantPhotoShare.Adapters.TableAdapter;
 import com.instantPhotoShare.Tasks.CreatePrivateGroup;
@@ -118,7 +114,7 @@ extends CustomActivity{
 		(new TableAdapter(ctx)).customUpgrade(this);
 		
 		// ask the user to rate the app
-		//com.tools.AppRater.app_launched(ctx, getResources().getString(R.string.app_name), getPackageName());
+		com.tools.AppRater.app_launched(ctx, getResources().getString(R.string.app_name), getPackageName());
 	}
 
 	@Override
@@ -424,7 +420,7 @@ extends CustomActivity{
 
 		String uriText;
 
-		uriText = "mailto:capnhaddoc@gmail.com" + 
+		uriText = "mailto:" + Utils.DEVELOPER_EMAIL + 
 		"?subject=A question about ShareBear" + 
 		"&body=";
 		uriText = uriText.replace(" ", "%20");
@@ -447,14 +443,14 @@ extends CustomActivity{
 	 * Helper class used to retrieve and set the number of new notifications
 	 */
 	private static class GetNumberNewNotificationsCallback
-	implements CustomAsyncTask.FinishedCallback<MainScreen, Integer> {
+	implements CustomAsyncTask.FinishedCallback<MainScreen, NumberNotifications> {
 
 		@Override
-		public void onFinish(MainScreen activity, Integer result) {
+		public void onFinish(MainScreen activity, NumberNotifications result) {
 			if (result == null || activity == null)
 				return;
 
-			int unreadNotifications = (java.lang.Integer) result;
+			int unreadNotifications = result.nNewNotifications;
 			// set the number, but clip at 99
 			if (unreadNotifications == 0){
 				activity.nNotificationsText.setVisibility(View.INVISIBLE);

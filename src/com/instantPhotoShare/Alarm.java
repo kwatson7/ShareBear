@@ -5,6 +5,7 @@ import com.instantPhotoShare.Activities.NotificationsScreen;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.NotificationsAdapter;
 import com.instantPhotoShare.Adapters.GroupsAdapter.ItemsFetchedCallback;
+import com.instantPhotoShare.Adapters.NotificationsAdapter.NumberNotifications;
 import com.tools.CustomActivity;
 import com.tools.CustomAsyncTask;
 import com.tools.CustomAsyncTask.FinishedCallback;
@@ -99,10 +100,11 @@ public class Alarm extends BroadcastReceiver
 		notes.getNumberNewNotifications(null, getNumberNewNotificationsCallback);
 	}
 
-	private CustomAsyncTask.FinishedCallback<CustomActivity, Integer> getNumberNewNotificationsCallback = new FinishedCallback<CustomActivity, Integer>() {
+	private CustomAsyncTask.FinishedCallback<CustomActivity, NumberNotifications> getNumberNewNotificationsCallback = 
+			new FinishedCallback<CustomActivity, NumberNotifications>() {
 
 		@Override
-		public void onFinish(CustomActivity activity, Integer result) {
+		public void onFinish(CustomActivity activity, NumberNotifications result) {
 			if (result == null){
 				wakeLock.release();
 				wakeLock = null;
@@ -111,18 +113,30 @@ public class Alarm extends BroadcastReceiver
 
 			// set the notification here
 			try{
-				int unreadNotifications = (java.lang.Integer) result;
+				int unreadNotifications = result.nNewNotifications;
+				long notificationNumber = result.rowNumberNewestNotification;
+				
 				if (unreadNotifications > 0){
+					
+					// check if this is new or already been shown
+					if (notificationNumber <= Prefs.getMostRecentNotificationRowId(ctx))
+						return;
+					else
+						Prefs.setMostRecentNotificationRowId(ctx, notificationNumber);
+					
+					// formating for singular or plural notifications
 					String str;
 					if (unreadNotifications == 1)
 						str = " notification.";
 					else
 						str = " notifications.";
 
+					// the intent to launch on click
 					Intent intent = new Intent(ctx, NotificationsScreen.class);
 					intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 					//intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
+					// post the notification
 					com.tools.Tools.postNotification(
 							ctx,
 							R.drawable.notification,

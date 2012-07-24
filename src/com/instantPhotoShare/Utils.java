@@ -54,6 +54,7 @@ public class Utils {
 	public static final String LOG_TAG = "ShareBear";
 	public static int IMAGE_QUALITY = 90;
 	public static final String APP_URL = "https://market.android.com/search?q=pname:com.instantPhotoShare";
+	public static final String DEVELOPER_EMAIL = "info@sharebearapp.com";
 
 	// keys for sending to server
 	/** The key for the data to post to server */

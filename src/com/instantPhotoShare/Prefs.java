@@ -30,6 +30,7 @@ public class Prefs {
 	private static final String GROUPS_ARRAY = "GROUPS_ARRAY";
 	private static final String MOST_RECENT_PICTURE_ROW_ID = "MOST_RECENT_PICTURE_ROW_ID";
 	private static final String MOST_RECENT_GROUP = "MOST_RECENT_GROUP";
+	private static final String MOST_RECENT_NOTIFICATION_NUMBER = "MOST_RECENT_NOTIFICATION_NUMBER";
 	
 	// default values
 	public static final String DEFAULT_STRING = null;
@@ -182,6 +183,22 @@ public class Prefs {
 	 */
 	public static long getLastGroupOfLastPicture(Context ctx){
 		return getLongPref(ctx, MOST_RECENT_GROUP);
+	}
+	
+	/**
+	 * Set the notification rowId of the most recent notification.
+	 * @param notificationRowId The rowId of the notificaation
+	 */
+	public static void setMostRecentNotificationRowId(Context ctx, long notificationRowId){
+		setLongPref(ctx, MOST_RECENT_GROUP, notificationRowId);
+	}
+	/**
+	 * get the rowId of the most recent notification number 
+	 * @param ctx Context required to query
+	 * @return the rowId
+	 */
+	public static long getMostRecentNotificationRowId(Context ctx){
+		return getLongPref(ctx, MOST_RECENT_NOTIFICATION_NUMBER);
 	}
 	
 	/**

@@ -110,17 +110,18 @@ public final class R {
         public static final int shutter_icon=0x7f02004b;
         public static final int shutter_icon_inverted=0x7f02004c;
         public static final int stub=0x7f02004d;
-        public static final int takeapicture=0x7f02004e;
-        public static final int takeapicture_inverted=0x7f02004f;
-        public static final int takeapicture_xml=0x7f020050;
-        public static final int text_selector=0x7f020051;
-        public static final int viewgroups=0x7f020052;
-        public static final int viewgroups_inverted=0x7f020053;
-        public static final int viewpictures=0x7f020054;
-        public static final int viewpictures_inverted=0x7f020055;
-        public static final int viewpictures_xml=0x7f020056;
-        public static final int wedding_blurred=0x7f020057;
-        public static final int white_border=0x7f020058;
+        public static final int stub_old=0x7f02004e;
+        public static final int takeapicture=0x7f02004f;
+        public static final int takeapicture_inverted=0x7f020050;
+        public static final int takeapicture_xml=0x7f020051;
+        public static final int text_selector=0x7f020052;
+        public static final int viewgroups=0x7f020053;
+        public static final int viewgroups_inverted=0x7f020054;
+        public static final int viewpictures=0x7f020055;
+        public static final int viewpictures_inverted=0x7f020056;
+        public static final int viewpictures_xml=0x7f020057;
+        public static final int wedding_blurred=0x7f020058;
+        public static final int white_border=0x7f020059;
     }
     public static final class id {
         public static final int LinearLayout01=0x7f0b002a;

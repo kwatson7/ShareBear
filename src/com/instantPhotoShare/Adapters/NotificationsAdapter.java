@@ -1,10 +1,9 @@
 package com.instantPhotoShare.Adapters;
 
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 
+import com.instantPhotoShare.Prefs;
 import com.instantPhotoShare.Utils;
 import com.tools.CustomActivity;
 import com.tools.CustomAsyncTask;
@@ -339,19 +338,31 @@ extends TableAdapter <NotificationsAdapter>{
 
 	/**
 	 * Return the number of new notifications. -1 if we failed to read
-	 * @return
+	 * @return the number of notifications and the rowId of the newest one
 	 */
-	private int getNumberNewNotificationsHelper(){
+	private NumberNotifications getNumberNewNotificationsHelper(){
 		String query = "select count(*) from " + TABLE_NAME + " where " + KEY_IS_NEW + " ='1'";
 		Cursor countCursor = database.rawQuery(query, null);
 		if (countCursor == null || !countCursor.moveToFirst()){
 			if (countCursor != null)
 				countCursor.close();
-			return -1;
+			return new NumberNotifications();
 		}
 		int count= countCursor.getInt(0);
 		countCursor.close();
-		return count;
+		
+		// now find the last rowId
+		Cursor cursor = database.query(TABLE_NAME, null, null, null, null, null, KEY_ROW_ID + " DESC", "1");
+		NumberNotifications out = new NumberNotifications();
+		out.nNewNotifications = count;
+		if (cursor == null)
+			return out;
+		if (cursor.moveToFirst())
+			out.rowNumberNewestNotification = cursor.getLong(cursor.getColumnIndexOrThrow(KEY_ROW_ID));
+		cursor.close();
+		
+		// return the output
+		return out;
 	}
 
 	/**
@@ -361,8 +372,22 @@ extends TableAdapter <NotificationsAdapter>{
 	 * @param callback The callback to run when we are finished
 	 */
 	public <ACTIVITY_TYPE extends CustomActivity> void
-	getNumberNewNotifications(ACTIVITY_TYPE act, CustomAsyncTask.FinishedCallback<ACTIVITY_TYPE, Integer> callback){
+	getNumberNewNotifications(ACTIVITY_TYPE act, CustomAsyncTask.FinishedCallback<ACTIVITY_TYPE, NumberNotifications> callback){
 		new CountNewNotifications<ACTIVITY_TYPE>(act, callback).execute();
+	}
+	
+	/**
+	 * Helper class to keep track of the number of new notifications
+	 */
+	public static class NumberNotifications{
+		/**
+		 * Number of new notifications
+		 */
+		public int nNewNotifications = 0;
+		/**
+		 * The row number of the newest notification
+		 */
+		public long rowNumberNewestNotification = 0;
 	}
 
 	/**
@@ -370,11 +395,11 @@ extends TableAdapter <NotificationsAdapter>{
 	 * @param <ACTIVITY_TYPE>
 	 */
 	private class CountNewNotifications <ACTIVITY_TYPE extends CustomActivity>
-	extends CustomAsyncTask<ACTIVITY_TYPE, Void, Integer>{
+	extends CustomAsyncTask<ACTIVITY_TYPE, Void, NumberNotifications>{
 
 		public CountNewNotifications(
 				ACTIVITY_TYPE act,
-				CustomAsyncTask.FinishedCallback<ACTIVITY_TYPE, Integer> callback) {
+				CustomAsyncTask.FinishedCallback<ACTIVITY_TYPE, NumberNotifications> callback) {
 			super(act, -1, false, true,null);
 			setFinishedCallback(callback);
 		}
@@ -385,7 +410,7 @@ extends TableAdapter <NotificationsAdapter>{
 		}
 
 		@Override
-		protected Integer doInBackground(Void... params) {
+		protected NumberNotifications doInBackground(Void... params) {
 			return getNumberNewNotificationsHelper();
 		}
 
@@ -394,7 +419,7 @@ extends TableAdapter <NotificationsAdapter>{
 		}
 
 		@Override
-		protected void onPostExectueOverride(Integer result) {
+		protected void onPostExectueOverride(NumberNotifications result) {
 
 		}
 

@@ -104,7 +104,8 @@ extends CustomActivity{
 	@Override
 	public void onPause(){
 		super.onPause();
-		notificationsAdapter.setAllIsNew(false);
+		if (notificationsAdapter != null)
+			notificationsAdapter.setAllIsNew(false);
 	}
 
 	@Override

@@ -248,7 +248,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 			json.put(KEY_PERSON_L_NAME, users.getLastName());
 			json.put(KEY_PHONE_NUMBER, users.getPhones());
 			json.put(KEY_PERSON_EMAIL, users.getEmails());
-			json.put(KEY_CONTACT_METHOD, users.getDefaultContactMethod());
+			//json.put(KEY_CONTACT_METHOD, users.getDefaultContactMethod());
 			json.put(KEY_GROUP_ID, groupServerId);
 
 			// add to array

@@ -666,6 +666,34 @@ extends TableAdapter <GroupsAdapter>{
 	}
 
 	/**
+	 * Fetch pictureIds for this given group on current thread. Will be slow as it fetches from server
+	 * @param groupServerId The groupserverid, NOT THE ROW ID
+	 * @return The result of the query
+	 */
+	public FetchPictureIdReturn fetchPictureIdsFromServer(long groupServerId){
+		// bad serverId
+		if (groupServerId == -1 || groupServerId == 0)
+			return new FetchPictureIdReturn(new Exception("bad group access"));
+
+		// make json data to post
+		JSONObject json = new JSONObject();
+		try{
+			json.put("user_id", Prefs.getUserServerId(ctx));
+			json.put("secret_code", Prefs.getSecretCode(ctx));
+			json.put("group_id", groupServerId);
+		}catch (JSONException e) {
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			return new FetchPictureIdReturn(new Exception("bad json access"));
+		}
+		
+		// post to server
+		ServerReturn serverReturn = Utils.postToServer("get_image_ids", json, null, null);
+		
+		// the helper method
+		return fetchPictureIdsFromServerHelper(groupServerId, serverReturn);
+	}
+			
+	/**
 	 * Fetch all the pictures from the server for a given groupID and then create holding pictures
 	 * for any pictures not present in database. Done a a background thread
 	 * @param <ACTIVITY_TYPE>
@@ -676,7 +704,7 @@ extends TableAdapter <GroupsAdapter>{
 	 * callback 3rd return will be how many new pictures there are
 	 */
 	public synchronized <ACTIVITY_TYPE extends CustomActivity>
-	void fetchPictureIdsFromServer(
+	void fetchPictureIdsFromServerInBackgroundOld(
 			ACTIVITY_TYPE act,
 			final long groupServerId,
 			ArrayList<String> indeterminateProgressBars,
@@ -844,7 +872,230 @@ extends TableAdapter <GroupsAdapter>{
 				});
 	}
 	
+	/**
+	 * Fetch all the pictures from the server for a given groupID and then create holding pictures
+	 * for any pictures not present in database. Done a a background thread
+	 * @param <ACTIVITY_TYPE>
+	 * @param act The activity that will be attached to callback on return.
+	 * @param groupServerId the server id of the group in question
+	 * @param indeterminateProgressBars indetermiante progress bars to show, null if none (the tags to find them)
+	 * @param callback The callback to be called when we are done. Can be null.
+	 * callback 3rd return will be how many new pictures there are
+	 */
+	public synchronized <ACTIVITY_TYPE extends CustomActivity>
+	void fetchPictureIdsFromServerInBackground(
+			ACTIVITY_TYPE act,
+			final long groupServerId,
+			ArrayList<String> indeterminateProgressBars,
+			final ItemsFetchedCallback<ACTIVITY_TYPE> callback){
+		//TODO: this shouldn't be synced. Will cause hanging, also doesn't even gaurantee thread safe, as multiple objects cann access this
+		//TODO: make checking to see what new picture we have faster. Shouldn't check each picture individually, but do a batch callback and loop over pictures
+		//TODO: remove pictures that are no longer in group as well
+		
+		// bad serverId
+		if (groupServerId == -1 || groupServerId == 0)
+			return;
+
+		// make json data to post
+		JSONObject json = new JSONObject();
+		try{
+			json.put("user_id", Prefs.getUserServerId(ctx));
+			json.put("secret_code", Prefs.getSecretCode(ctx));
+			json.put("group_id", groupServerId);
+		}catch (JSONException e) {
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			return;
+		}
+
+		Utils.postToServer(
+				"get_image_ids",
+				json.toString(),
+				null,
+				null,
+				null,
+				act,
+				indeterminateProgressBars,
+				new PostCallback<ACTIVITY_TYPE>() {
+
+					@Override
+					public void onPostFinished(
+							ACTIVITY_TYPE act,
+							ServerReturn result) {
+
+						FetchPictureIdReturn processed = fetchPictureIdsFromServerHelper(groupServerId, result);
+
+						// send callback back to activity
+						if (callback != null){
+							if (processed.exception != null)
+								callback.onItemsFetchedBackground(act, processed.nNewPictures, null);
+							else
+								callback.onItemsFetchedBackground(act, processed.nNewPictures, processed.exception.getMessage());
+						}
+					}
+
+					@Override
+					public void onPostFinishedUiThread(
+							ACTIVITY_TYPE act,
+							ServerReturn result) {
+						ShareBearServerReturn result2 = new ShareBearServerReturn(result);
+						if (callback != null)
+							if (result2.isSuccess())
+								callback.onItemsFetchedUiThread(act, null);
+							else
+								callback.onItemsFetchedUiThread(act, result2.getErrorCode());
+					}
+				});
+	}
 	
+	/**
+	 * Helper class to hold return from fetchPictureIds
+	 * @author kwatson
+	 *
+	 */
+	public static class FetchPictureIdReturn{
+		/**
+		 * If an exception occured... can be null. if not null getMessge will always have data
+		 */
+		public Exception exception; 	
+		/**
+		 * The number of new pictures in this group
+		 */
+		public int nNewPictures = 0;
+		/**
+		 * The number of old pictures that were deleted.
+		 */
+		public int nDeletedPictures = 0;
+		
+		private FetchPictureIdReturn(Exception e){
+			exception = e;
+		}
+		private FetchPictureIdReturn(int newPics, int deletedPics){
+			nNewPictures = newPics;
+			nDeletedPictures = deletedPics;
+		}
+	}
+	
+	/**
+	 * Helper method to fetch pictureIds from the server. Will hang if called on UI thread
+	 * @param groupServerId The group server id to query
+	 * @param result The result from a serverreturn
+	 * @return The result of the parsing.
+	 */
+	private FetchPictureIdReturn fetchPictureIdsFromServerHelper(long groupServerId, ServerReturn result){
+
+		// convert to thumbnail data
+		ShareBearServerReturn data = new ShareBearServerReturn(result);
+
+		// not a good return
+		if (!data.isSuccess()){
+			Log.e(Utils.LOG_TAG, data.getDetailErrorMessage());
+			return new FetchPictureIdReturn(new Exception(data.getDetailErrorMessage()));
+		}
+
+		// parse returned data and check if we have these pictures
+		JSONArray array = data.getMessageArray();
+		if (array == null)
+			return new FetchPictureIdReturn(new Exception("Server error"));
+
+		// loop checking the pictures and creating in database if we don't have
+		PicturesAdapter pics = new PicturesAdapter(ctx);
+		PicturesInGroupsAdapter comboAdapter = new PicturesInGroupsAdapter(ctx);
+		GroupsAdapter adapter = new GroupsAdapter(ctx);
+		Group group = adapter.getGroupByServerId(groupServerId);
+		if(group == null || group.keepLocal)
+			return new FetchPictureIdReturn(new Exception("no group or private"));
+		int counter = 0;				
+		HashSet<String> serverIds = new HashSet<String>();
+		for (int i = 0; i < array.length(); i++){
+			try {
+				serverIds.add(String.valueOf(array.getLong(i)));
+			} catch (JSONException e1) {
+				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e1));
+			}
+
+			synchronized (GroupsAdapter.class) {
+				try {
+
+					// create a new picture in database
+					if(!pics.isPicturePresent(array.getLong(i))){
+						// determine the path to store files
+						TwoStrings picNames = group.getNextPictureName();
+
+						long rowId = pics.createPicture(
+								ctx,
+								picNames.mObject1,
+								picNames.mObject2,
+								"",
+								-1l,
+								null,
+								null,
+								false);
+
+						pics.setIsSynced(rowId, true, array.getLong(i));
+					}
+
+					// find the picture by serverId
+					pics.fetchPictureFromServerId(array.getLong(i));
+					if (pics.getRowId() == 0 || pics.getRowId() == -1){
+						pics.close();
+						continue;
+					}
+
+					// add the picture to this group if not already present
+					if(!pics.isPictureInGroup(pics.getRowId(), group.getRowId())){
+						comboAdapter.addPictureToGroup(ctx, pics.getRowId(), group.getRowId());
+						counter++;
+					}
+					pics.close();
+
+				} catch (NumberFormatException e) {
+					Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+					continue;
+				} catch (JSONException e) {
+					Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+					continue;
+				}
+			}
+			pics.close();
+		}	
+
+		// pictures that have been removed from this group
+		TwoObjects<HashSet<String>, HashSet<String>> newAndOld = pics.getNewAndOldPicturesInGroup(group.getRowId(), serverIds);
+		HashSet<String> beenRemoved = newAndOld.mObject2;
+		Iterator<String> iterator = beenRemoved.iterator();
+		while(iterator.hasNext()){
+			long picServerId = Long.valueOf(iterator.next());
+			pics.fetchPictureFromServerId(picServerId);
+			comboAdapter.removePictureFromGroup(pics.getRowId(), group.getRowId());
+		}
+		pics.close();
+
+		// update number of pictures
+		adapter.fetchGroupByServerId(groupServerId);
+		adapter.setNPictures(array.length());
+		adapter.close();
+
+		// notification for new pictures
+		if (counter > 0){
+			NotificationsAdapter notes = new NotificationsAdapter(ctx);
+			String msg;
+			if (counter == 1)
+				msg = " new picture in ";
+			else
+				msg = " new pictures in ";
+			notes.createNotification(
+					"You have " + counter + msg + group.getName(),
+					NotificationsAdapter.NOTIFICATION_TYPES.NEW_PICTURE_IN_GROUP,
+					String.valueOf(group.getRowId()));
+		}
+
+		// return value
+		if (data.isSuccess())
+			return new FetchPictureIdReturn(counter, beenRemoved.size());
+		else
+			return new FetchPictureIdReturn(new Exception(data.getDetailErrorMessage()));
+
+	}
 
 	/**
 	 * Fetch all the groups from the server for a given user and then create for any new groups. Also fetch the ids of the new pictures in groups
@@ -950,7 +1201,7 @@ extends TableAdapter <GroupsAdapter>{
 									newPictures.put(rowId, new TwoObjects<Integer, String>(serverNPics-localNPics, name));
 
 									// fetch new pictures
-									adapter.fetchPictureIdsFromServer(act, serverId, null, null);
+									adapter.fetchPictureIdsFromServer(serverId);
 								}
 								
 								// save the new number
@@ -987,22 +1238,30 @@ extends TableAdapter <GroupsAdapter>{
 								}else
 									users.close();
 
-								// create a new group
-								//TODO: read allowOthersToAddMembers
-								//TODO: read allow within distance
-								//TODO: read lat and long
-								//TODO: read picture id for group
-								long groupRowId = adapter.makeNewGroup(ctx,
-										data.getName(i),
-										null,
-										data.getDateCreated(i),
-										userRowId,
-										true, 
-										null,
-										null,
-										-1,
-										false,
-										data.getNPictures(i));
+								// sync on this, so we don't duplicate groups
+								long groupRowId = -1;
+								synchronized(GroupsAdapter.class){
+									// we must have updated on another thread, so don't do group again
+									if (adapter.isGroupPresent(Long.valueOf(groupServerId)))
+										continue;
+
+									// create a new group
+									//TODO: read allowOthersToAddMembers
+									//TODO: read allow within distance
+									//TODO: read lat and long
+									//TODO: read picture id for group
+									groupRowId = adapter.makeNewGroup(ctx,
+											data.getName(i),
+											null,
+											data.getDateCreated(i),
+											userRowId,
+											true, 
+											null,
+											null,
+											-1,
+											false,
+											data.getNPictures(i));
+								}
 
 								if (groupRowId != -1){
 									adapter.setIsSynced(groupRowId, true, Long.valueOf(groupServerId));
@@ -1012,14 +1271,15 @@ extends TableAdapter <GroupsAdapter>{
 
 									// fetch new pictures
 									if(data.getNPictures(i) > 0)
-										adapter.fetchPictureIdsFromServer(act, Long.valueOf(groupServerId), null, null);
+										adapter.fetchPictureIdsFromServer(Long.valueOf(groupServerId));
 
 								}else
 									nNewGroups--;
 							}
 
 							// notification for new groups
-							if (nNewGroups > 0){
+							// only show if more than 1 group, as for a single group it's unecessary
+							if (nNewGroups > 1){
 								notes.createNotification(
 										"You've been added to " + nNewGroups + " new groups.",
 										NotificationsAdapter.NOTIFICATION_TYPES.ADD_TO_NEW_GROUP, null);
@@ -2238,11 +2498,11 @@ extends TableAdapter <GroupsAdapter>{
 		 * @param nNewItems The number of new items fetched
 		 * @param errorCode, null if no error, otherwise the error message
 		 */
-		public void onItemsFetchedBackground(ACTIVITY_TYPE act, int nNewItems, String errorCode);
+		public void onItemsFetchedBackground(ACTIVITY_TYPE act, int nNewItems, String errorMessage);
 		/**
 		 * This is called on the UI thread when we are done getting the items. and after onItemsFetchedBackground
 		 * @param act The current activity, not guaranteed to be the same activity as in onItemsFetchedBackground
-		 * @param errorCode null if no error, otherwise the error message
+		 * @param errorCode null if no error, otherwise the error code
 		 */
 		public void onItemsFetchedUiThread(ACTIVITY_TYPE act, String errorCode);
 	}

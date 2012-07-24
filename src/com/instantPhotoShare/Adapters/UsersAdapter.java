@@ -13,7 +13,6 @@ import org.json.JSONObject;
 import com.instantPhotoShare.Prefs;
 import com.instantPhotoShare.ShareBearServerReturn;
 import com.instantPhotoShare.Utils;
-import com.instantPhotoShare.Adapters.NotificationsAdapter.NOTIFICATION_TYPES;
 import com.tools.ThreeObjects;
 import com.tools.TwoObjects;
 import com.tools.TwoStrings;

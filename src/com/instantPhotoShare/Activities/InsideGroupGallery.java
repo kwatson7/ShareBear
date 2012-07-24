@@ -266,7 +266,7 @@ extends CustomActivity{
 		if (serverId != -1){
 			ArrayList<String> bars = new ArrayList<String>(1);
 			bars.add(FETCHING_DATA_TAG);
-			groups.fetchPictureIdsFromServer(this, serverId, bars, new FetchPictureIdsCallback());
+			groups.fetchPictureIdsFromServerInBackground(this, serverId, bars, new FetchPictureIdsCallback());
 		}
 	}
 

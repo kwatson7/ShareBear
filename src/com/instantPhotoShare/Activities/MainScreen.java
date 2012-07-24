@@ -116,6 +116,9 @@ extends CustomActivity{
 
 		// upgrade database 
 		(new TableAdapter(ctx)).customUpgrade(this);
+		
+		// ask the user to rate the app
+		//com.tools.AppRater.app_launched(ctx, getResources().getString(R.string.app_name), getPackageName());
 	}
 
 	@Override

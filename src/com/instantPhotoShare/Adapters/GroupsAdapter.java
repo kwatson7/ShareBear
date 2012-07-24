@@ -926,7 +926,7 @@ extends TableAdapter <GroupsAdapter>{
 
 						// send callback back to activity
 						if (callback != null){
-							if (processed.exception != null)
+							if (processed.exception == null)
 								callback.onItemsFetchedBackground(act, processed.nNewPictures, null);
 							else
 								callback.onItemsFetchedBackground(act, processed.nNewPictures, processed.exception.getMessage());

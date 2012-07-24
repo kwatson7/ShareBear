@@ -74,13 +74,6 @@ public class InitialLaunch extends Activity {
     		id = 2;
     		secretCode = "secret";
     	}
-    	id = 2;
-    	UsersAdapter users = new UsersAdapter(ctx);
-    	long row = users.makeNewUser(id);
-    	Prefs.setUserRowId(ctx, row);
-    	secretCode = "uaeyeVAozQzZaJW";
-    	Prefs.setSecretCode(ctx, secretCode);
-    	Prefs.setUserServerId(ctx,id);
     	
     	// check if we have good values
     	if (id == Prefs.DEFAULT_LONG || secretCode == Prefs.DEFAULT_STRING ||

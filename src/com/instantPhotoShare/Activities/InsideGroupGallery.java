@@ -120,7 +120,7 @@ extends CustomActivity{
 		super.onCreateOptionsMenu(menu);
 
 		// Add the menu items
-		menu.add(0, MENU_ITEMS.DELETE_GROUP.ordinal(), 0, "Delete Group");
+		menu.add(0, MENU_ITEMS.DELETE_GROUP.ordinal(), 0, "Remove from Group");
 		menu.add(0, MENU_ITEMS.MANAGE_GROUP.ordinal(), 0, "Manage Group");
 
 		return true;
@@ -174,7 +174,7 @@ extends CustomActivity{
 		
 		// show the dialog
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
-		AlertDialog dialog = builder.setMessage("Are you sure you want to delete this group? There are " +numPics + " pictures in this group.").setPositiveButton("Yes", dialogClickListener)
+		AlertDialog dialog = builder.setMessage("Are you sure you want be removed from this group? There are " +numPics + " pictures in this group.").setPositiveButton("Yes", dialogClickListener)
 		    .setNegativeButton("No", dialogClickListener).create();
 		addDialog(dialog);
 		dialog.show();

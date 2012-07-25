@@ -73,7 +73,7 @@
 	android:layout_width="fill_parent"
 	android:layout_height="wrap_content"
 	android:onClick="deleteGroupClicked"
-	android:text="Delete Group"
+	android:text="Remove from Group"
 	android:layout_gravity="center_horizontal"
 	android:background="@drawable/rounded_corners"
 	android:layout_margin="2dp"

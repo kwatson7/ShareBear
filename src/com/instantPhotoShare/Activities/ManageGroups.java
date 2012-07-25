@@ -197,7 +197,7 @@ extends CustomActivity{
 		
 		// show the dialog
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
-		AlertDialog dialog = builder.setMessage("Are you sure you want to delete this group? There are " +numPics + " pictures in this group.").setPositiveButton("Yes", dialogClickListener)
+		AlertDialog dialog = builder.setMessage("Are you sure you want be removed from this group? There are " +numPics + " pictures in this group.").setPositiveButton("Yes", dialogClickListener)
 		    .setNegativeButton("No", dialogClickListener).create();
 		addDialog(dialog);
 		dialog.show();

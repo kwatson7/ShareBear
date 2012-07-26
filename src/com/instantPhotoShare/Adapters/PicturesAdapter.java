@@ -611,12 +611,22 @@ extends TableAdapter<PicturesAdapter>{
 		}
 	}
 
+	public interface ThumbnailListener{
+		/**
+		 * When the thumbnail is done being downloaded
+		 * @param pictureId the pictureId that was downloaded
+		 */
+		public void onThumbNailDownloaded(long pictureId);
+	}
 	/**
 	 * Image loader for this picture class
 	 * @param activityContext The context required to load images
+	 * @param thumbailCallback call this when the thumbnail is done downloading. Can be null
 	 * @return The callback for use in ImageLoader
 	 */
-	public static LoadImage<TwoObjects<Long, Long>, TwoObjects<Long, Long>> imageLoaderCallback(Context activityContext){
+	public static LoadImage<TwoObjects<Long, Long>, TwoObjects<Long, Long>> imageLoaderCallback(
+			Context activityContext,
+			final ThumbnailListener thumbailCallback){
 		final Context ctx = activityContext.getApplicationContext();
 
 		return new LoadImage<TwoObjects<Long, Long>, TwoObjects<Long, Long>>() {
@@ -694,7 +704,10 @@ extends TableAdapter<PicturesAdapter>{
 
 			@Override
 			public Bitmap onThumbnailWeb(TwoObjects<Long, Long> thumbnailData) {
-				return PicturesAdapter.getThumbnailFromServer(ctx, thumbnailData.mObject1, thumbnailData.mObject2);
+				Bitmap bmp = PicturesAdapter.getThumbnailFromServer(ctx, thumbnailData.mObject1, thumbnailData.mObject2);
+				if (thumbailCallback != null)
+					thumbailCallback.onThumbNailDownloaded(thumbnailData.mObject1);
+				return bmp;
 			}
 		};
 	}

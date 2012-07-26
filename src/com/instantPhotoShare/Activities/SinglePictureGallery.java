@@ -2,13 +2,22 @@ package com.instantPhotoShare.Activities;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.ref.SoftReference;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.WeakHashMap;
+
+import org.w3c.dom.NameList;
 
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.text.Html;
@@ -40,6 +49,7 @@ import com.instantPhotoShare.R;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.PicturesAdapter;
+import com.instantPhotoShare.Adapters.PicturesAdapter.ThumbnailListener;
 import com.instantPhotoShare.Adapters.UsersAdapter;
 import com.instantPhotoShare.Adapters.GroupsAdapter.Group;
 import com.tools.CustomActivity;
@@ -637,7 +647,7 @@ extends CustomActivity{
 					pictureWindowWidth,
 					pictureWindowHeight,
 					true,
-					PicturesAdapter.imageLoaderCallback(ctx));		
+					PicturesAdapter.imageLoaderCallback(ctx, reloadName));		
 
 			nameLoader = new ViewLoader<Long, Long, String, TextView>(
 					"Photographer ...",
@@ -729,10 +739,43 @@ extends CustomActivity{
 				TwoObjects<Long, Long> loaderData = new TwoObjects<Long, Long>(data.getRowId(), groupId);
 				imageLoader.DisplayImage(data.getRowId(), loaderData, loaderData, image, progress);
 				nameLoader.DisplayView(data.getRowId(), data.getUserIdWhoTook(), name);
+				nameViews.put(data.getRowId(), new WeakReference<TextView>(name));
 			}
 
 			// return the view
 			return vi;
 		}
+		
+		private HashMap<Long, WeakReference<TextView>> nameViews = new HashMap<Long, WeakReference<TextView>>();
+		private ThumbnailListener reloadName = new ThumbnailListener() {
+			
+			@Override
+			public void onThumbNailDownloaded(final long pictureId) {
+				// null leave
+				if (pictureId <= 0)
+					return;
+
+				// get textView
+				WeakReference<TextView> weak = nameViews.get(pictureId);
+				if (weak == null)
+					return;
+				final TextView view = weak.get();
+				if (view == null)
+					return;
+
+				PicturesAdapter pics = new PicturesAdapter(ctx);
+				pics.fetchPicture(pictureId);
+				final long userId = pics.getUserIdWhoTook();
+				pics.close();
+				((Activity)view.getContext()).runOnUiThread(new Runnable() {
+
+					@Override
+					public void run() {
+						nameLoader.DisplayView(pictureId, userId, view);
+					}
+
+				});
+			}
+		};
 	}
 }

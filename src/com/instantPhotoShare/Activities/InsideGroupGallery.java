@@ -431,7 +431,7 @@ extends CustomActivity{
 					0,
 					0,
 					false,
-					PicturesAdapter.imageLoaderCallback(ctx));
+					PicturesAdapter.imageLoaderCallback(ctx, null));
 		}
 
 		public int getCount() {

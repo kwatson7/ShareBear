@@ -88,7 +88,7 @@ extends TableAdapter <GroupsAdapter>{
 	public static final String GROUP_ACCESS_ERROR = "GROUP_ACCESS_ERROR";
 
 	// static variables
-	private com.tools.ExpiringValue<Boolean> isFetchingGroups = new com.tools.ExpiringValue<Boolean>(50f, false, false);
+	private static com.tools.ExpiringValue<Boolean> isFetchingGroups = new com.tools.ExpiringValue<Boolean>(50f, false, false);
 
 	/** Table creation string */
 	public static final String TABLE_CREATE = 
@@ -1261,20 +1261,20 @@ extends TableAdapter <GroupsAdapter>{
 											-1,
 											false,
 											data.getNPictures(i));
+									
+									if (groupRowId != -1){
+										adapter.setIsSynced(groupRowId, true, Long.valueOf(groupServerId));
+										notes.createNotification(
+												"You've been added to " + data.getName(i),
+												NotificationsAdapter.NOTIFICATION_TYPES.ADD_TO_NEW_GROUP, String.valueOf(groupRowId));
+
+									}else
+										nNewGroups--;
 								}
 
-								if (groupRowId != -1){
-									adapter.setIsSynced(groupRowId, true, Long.valueOf(groupServerId));
-									notes.createNotification(
-											"You've been added to " + data.getName(i),
-											NotificationsAdapter.NOTIFICATION_TYPES.ADD_TO_NEW_GROUP, String.valueOf(groupRowId));
-
-									// fetch new pictures
-									if(data.getNPictures(i) > 0)
-										adapter.fetchPictureIdsFromServer(Long.valueOf(groupServerId));
-
-								}else
-									nNewGroups--;
+								// fetch new pictures
+								if (groupRowId != -1 && data.getNPictures(i) > 0)
+									adapter.fetchPictureIdsFromServer(Long.valueOf(groupServerId));
 							}
 
 							// notification for new groups

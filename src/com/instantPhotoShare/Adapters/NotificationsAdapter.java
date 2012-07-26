@@ -357,8 +357,10 @@ extends TableAdapter <NotificationsAdapter>{
 		out.nNewNotifications = count;
 		if (cursor == null)
 			return out;
-		if (cursor.moveToFirst())
+		if (cursor.moveToFirst()){
 			out.rowNumberNewestNotification = cursor.getLong(cursor.getColumnIndexOrThrow(KEY_ROW_ID));
+			Prefs.setMostRecentNotificationRowId(ctx, out.rowNumberNewestNotification);
+		}
 		cursor.close();
 		
 		// return the output

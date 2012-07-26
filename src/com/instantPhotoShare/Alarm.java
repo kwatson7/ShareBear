@@ -26,6 +26,7 @@ public class Alarm extends BroadcastReceiver
 	// members
 	private PowerManager.WakeLock wakeLock = null;
 	private Context ctx;
+	private long mostRecentNotificationNumber = 0;
 
 	@Override
 	public void onReceive(Context context, Intent intent) 
@@ -97,6 +98,7 @@ public class Alarm extends BroadcastReceiver
 	private void setNotificationsNumber(){
 		// get the number of unread notificiations
 		NotificationsAdapter notes = new NotificationsAdapter(ctx);
+		mostRecentNotificationNumber = Prefs.getMostRecentNotificationRowId(ctx);
 		notes.getNumberNewNotifications(null, getNumberNewNotificationsCallback);
 	}
 
@@ -119,11 +121,9 @@ public class Alarm extends BroadcastReceiver
 				if (unreadNotifications > 0){
 					
 					// check if this is new or already been shown
-					if (notificationNumber <= Prefs.getMostRecentNotificationRowId(ctx))
+					if (notificationNumber <= mostRecentNotificationNumber)
 						return;
-					else
-						Prefs.setMostRecentNotificationRowId(ctx, notificationNumber);
-					
+						
 					// formating for singular or plural notifications
 					String str;
 					if (unreadNotifications == 1)

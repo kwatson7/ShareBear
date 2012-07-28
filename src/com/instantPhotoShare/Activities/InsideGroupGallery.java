@@ -120,7 +120,7 @@ extends CustomActivity{
 		super.onCreateOptionsMenu(menu);
 
 		// Add the menu items
-		menu.add(0, MENU_ITEMS.DELETE_GROUP.ordinal(), 0, "Remove from Group");
+		menu.add(0, MENU_ITEMS.DELETE_GROUP.ordinal(), 0, "Leave Group");
 		menu.add(0, MENU_ITEMS.MANAGE_GROUP.ordinal(), 0, "Manage Group");
 
 		return true;

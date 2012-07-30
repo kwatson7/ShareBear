@@ -158,8 +158,10 @@ extends CustomActivity{
 
 	@Override
 	public void onResume(){
-		if (adapter != null)
+		if (adapter != null){
 			adapter.imageLoader.restartThreads();
+			adapter.nameLoader.restartThreads();
+		}
 		super.onResume();
 	}
 

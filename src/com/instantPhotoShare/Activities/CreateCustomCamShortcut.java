@@ -11,6 +11,7 @@ import com.tools.MultipleCheckPopUp;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.DialogInterface.OnCancelListener;
 import android.content.Intent;
 import android.content.DialogInterface.OnClickListener;
 import android.os.Bundle;
@@ -53,6 +54,15 @@ extends Activity{
 		// just addign buttons here
 		chooseGroups.setButton(AlertDialog.BUTTON_POSITIVE, "Choose", new OnClickListener() {
 			public void onClick(DialogInterface arg0, int arg1) {}});
+		
+		// make a cancel listener to finish the activity
+		chooseGroups.setOnCancelListener(new OnCancelListener() {
+			
+			@Override
+			public void onCancel(DialogInterface dialog) {
+				finish();
+			}
+		});
 
 		// show it
 		chooseGroups.show();

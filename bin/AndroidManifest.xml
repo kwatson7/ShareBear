@@ -59,7 +59,6 @@
             android:label="Share Bear Camera" >
             <intent-filter>
                 <action android:name="android.intent.action.CREATE_SHORTCUT" />
-
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
@@ -69,9 +68,23 @@
             android:label="Share Bear Group" >
             <intent-filter>
                 <action android:name="android.intent.action.CREATE_SHORTCUT" />
-
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
+        </activity>
+        <activity 
+            android:name = ".Activities.ShareFromeIntent"
+            android:icon="@drawable/icon3"
+            android:label="Share Bear">
+            <intent-filter>
+            	<action android:name="android.intent.action.SEND_MULTIPLE" />
+            	<category android:name="android.intent.category.DEFAULT" />
+            	<data android:mimeType="image/*" />
+        	</intent-filter>
+        	<intent-filter>
+            	<action android:name="android.intent.action.SEND" />
+            	<category android:name="android.intent.category.DEFAULT" />
+            	<data android:mimeType="image/*" />
+        	</intent-filter>
         </activity>
         <activity android:name=".Activities.InsideGroupGallery" />
         <activity android:name=".Activities.SinglePictureGallery" />

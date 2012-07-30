@@ -1,5 +1,6 @@
 package com.instantPhotoShare.Tasks;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
@@ -8,6 +9,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -38,6 +40,9 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 	private int camRotation; 			// The rotation value, so we save the picture correctly.
 	private String caption; 			// caption to save with image
 	private ArrayList<Group> groups;	// arraylist of groups to add this picture to.
+	private String fullFilePathPassedIn = null;
+	private boolean toShowPostExecutionAlerts = true;
+	private Context context;
 
 	// other inputs
 	private Double longitude = null;
@@ -90,12 +95,56 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 		this.camRotation = camRotation;
 		this.caption = caption;
 		this.groups = groups;
+		this.context = act.getApplicationContext();
+
+		// check empty group
+		if (groups == null || groups.size() == 0)
+			throw new IllegalArgumentException("groups cannot be null or empty, at least one group must be passed in");
+	}
+	
+	/**
+	 * Make an activity to save a picture to file and store it in the database
+	 * @param ctx required context
+	 * @param requestId The requestId, so if/when data is sent back to activity, we know by which task
+	 * @param fullFileName the name of the full picture file
+	 * @param groups a list of groups to save to
+	 * @param caption a caption to save with the file
+	 */ 
+	public SaveTakenPictureTask(
+			Context ctx,
+			int requestId,
+			String fullFileName,
+			ArrayList<Group> groups,
+			String caption) {
+
+		super(
+				null,
+				requestId,
+				true,
+				false,
+				null);
+		//TODO: actually input and save catpion
+
+		// save data
+		this.camData = null;
+		this.camRotation = 0;
+		this.fullFilePathPassedIn = fullFileName;
+		this.caption = caption;
+		this.groups = groups;
+		this.context = ctx;
 
 		// check empty group
 		if (groups == null || groups.size() == 0)
 			throw new IllegalArgumentException("groups cannot be null or empty, at least one group must be passed in");
 	}
 
+	/**
+	 * Should we show post execution alerts (default to true)
+	 * @param toShow
+	 */
+	public void showPostExecutionAlerts(boolean toShow){
+		toShowPostExecutionAlerts = toShow;
+	}
 	@Override
 	protected void onPreExecute() {
 
@@ -135,14 +184,28 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 		}	
 
 		// save the data
-		SuccessReason pictureSave = 
+		SuccessReason pictureSave = null;
+		if (fullFilePathPassedIn == null){
+			// we need to save the data to file
+			pictureSave = 
 				com.tools.ImageProcessing.saveByteDataToFile(
-						applicationCtx,
+						context,
 						camData,
 						false,
 						picName.mObject1,
 						rotation,
 						true);
+		}else{
+			// just copy the file
+			File fileIn = new File(fullFilePathPassedIn);
+			File fileOut = new File(picName.mObject1);
+			try {
+				com.tools.Tools.copyFile(fileIn, fileOut);
+				pictureSave = new SuccessReason(true, fileOut.getAbsolutePath());
+			} catch (IOException e) {
+				pictureSave = new SuccessReason(false, e.getMessage());
+			}
+		}
 
 		// break out if we didn't save successfully
 		if (!pictureSave.getSuccess()){
@@ -153,18 +216,24 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 		}
 
 		// create the thumbnail
-		Bitmap thumbnail = com.tools.ImageProcessing.makeThumbnail(
-				camData,
-				rotation,
-				Utils.MAX_THUMBNAIL_DIMENSION,
-				Utils.FORCE_BASE2_THUMBNAIL_RESIZE);
+		Bitmap thumbnail = null;
+		if (fullFilePathPassedIn == null){
+			// we had byte data passed in
+			thumbnail = com.tools.ImageProcessing.makeThumbnail(
+					camData,
+					rotation,
+					Utils.MAX_THUMBNAIL_DIMENSION,
+					Utils.FORCE_BASE2_THUMBNAIL_RESIZE);
+		}else{
+			thumbnail = com.tools.ImageProcessing.makeThumbnail(fullFilePathPassedIn, Utils.MAX_THUMBNAIL_DIMENSION, Utils.FORCE_BASE2_THUMBNAIL_RESIZE);
+		}
 		byte[] thumbByte = com.tools.ImageProcessing.getByteArray(thumbnail, Utils.IMAGE_QUALITY);
 		thumbnail.recycle();
 		
 		// save the thumbnail
 		SuccessReason thumbnailSave = 
 				com.tools.ImageProcessing.saveByteDataToFile(
-						applicationCtx,
+						context,
 						thumbByte,
 						false,
 						picName.mObject2,
@@ -181,9 +250,9 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 
 		// put the data into pictures database
 		long picId = -1;
-		PicturesAdapter pic = new PicturesAdapter(applicationCtx);
+		PicturesAdapter pic = new PicturesAdapter(context);
 		picId = pic.createPicture(
-				applicationCtx,
+				context,
 				pictureSave.getReason(),
 				thumbnailSave.getReason(),
 				null,
@@ -202,9 +271,9 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 		}
 
 		// link the picture to all the groups
-		PicturesInGroupsAdapter picturesInGroups = new PicturesInGroupsAdapter(applicationCtx);
+		PicturesInGroupsAdapter picturesInGroups = new PicturesInGroupsAdapter(context);
 		for (Group item : groups){
-			long linkRow = picturesInGroups.addPictureToGroup(applicationCtx, picId, item.getRowId());
+			long linkRow = picturesInGroups.addPictureToGroup(context, picId, item.getRowId());
 			if (linkRow == -1){
 				String msg = "link between picture and group could be made for unknown reason";
 				Log.e(Utils.LOG_TAG, msg);
@@ -213,8 +282,8 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 				return result;
 			}
 		}
-		Prefs.setLastPictureTaken(applicationCtx, picId);
-		Prefs.setLastGroupOfLastPicture(applicationCtx, groups.get(0).getRowId());
+		Prefs.setLastPictureTaken(context, picId);
+		Prefs.setLastGroupOfLastPicture(context, groups.get(0).getRowId());
 		publishProgress();
 
 		//TODO: verify that pictures have been added to groups. for example, if the group wasn't synced, the picture was not uploaded to the group.
@@ -231,26 +300,28 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 	@Override
 	protected void onPostExectueOverride(ReturnFromPostPicture result) {
 
-		if (applicationCtx == null)
+		if (context == null)
 			return;
 
 		// null result means we were successful local, and there was no need for server to receive anything
 		if (result == null){
-			Toast.makeText(applicationCtx, "Image Saved on Device only.", Toast.LENGTH_SHORT).show();
+			if (toShowPostExecutionAlerts)
+				Toast.makeText(context, "Image Saved on Device only.", Toast.LENGTH_SHORT).show();
 			return;
 		}
 
 		// show toast if successful
 		if (result.isSuccess())	{
-			Toast.makeText(applicationCtx, "Picture uploaed to the interwebs", Toast.LENGTH_SHORT).show();
+			if (toShowPostExecutionAlerts)
+				Toast.makeText(context, "Picture uploaed to the interwebs", Toast.LENGTH_SHORT).show();
 			return;
 		}
 
 		// if not successful, then see how
 		// local error
 		if (result.isLocalError()){
-			//Toast.makeText(applicationCtx, result.getMessage(), Toast.LENGTH_LONG).show();
-			showAlert(result.getDetailErrorMessage());
+			if (toShowPostExecutionAlerts)
+				showAlert(result.getDetailErrorMessage());
 			return;
 
 			// server error
@@ -268,10 +339,8 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 			notesType = NOTIFICATION_TYPES.SERVER_ERROR;
 
 			// show the toast
-			//Toast.makeText(applicationCtx,
-			//		toastMessage,
-			//		Toast.LENGTH_LONG).show();
-			showAlert(toastMessage);
+			if (toShowPostExecutionAlerts)
+				showAlert(toastMessage);
 
 			// store in log		
 			Log.e(Utils.LOG_TAG, notesMessage);
@@ -298,13 +367,13 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 				});
 				dlgAlert.create().show();
 			}else{
-				Intent intent = new Intent(applicationCtx, com.tools.MessageDialog.class);
+				Intent intent = new Intent(context, com.tools.MessageDialog.class);
 				intent.putExtra(com.tools.MessageDialog.TITLE_BUNDLE, "Message");
 				intent.putExtra(com.tools.MessageDialog.DEFAULT_TEXT, message);
 				intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-				applicationCtx.startActivity(intent);
+				context.startActivity(intent);
 
-				//Toast.makeText(applicationCtx, message, Toast.LENGTH_LONG);
+				//Toast.makeText(context, message, Toast.LENGTH_LONG);
 			}
 		}catch(Exception e){
 			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
@@ -336,7 +405,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 			return null;
 
 		// tell the database that we are updating
-		PicturesAdapter picturesAdapter = new PicturesAdapter(applicationCtx);
+		PicturesAdapter picturesAdapter = new PicturesAdapter(context);
 		//picturesAdapter.fetchPicture(pictureRowId);
 		picturesAdapter.setIsUpdating(pictureRowId, true);
 
@@ -382,8 +451,8 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 
 		// add values to json object
 		JSONObject json = new JSONObject();
-		json.put(KEY_USER_ID, Prefs.getUserServerId(applicationCtx));
-		json.put(KEY_SECRET_CODE, Prefs.getSecretCode(applicationCtx));
+		json.put(KEY_USER_ID, Prefs.getUserServerId(context));
+		json.put(KEY_SECRET_CODE, Prefs.getSecretCode(context));
 		json.put(KEY_GROUP_ID, idsArray);
 		return new TwoObjects<JSONObject, ArrayList<Long>>(json, longIds);
 	}

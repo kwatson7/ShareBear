@@ -1994,10 +1994,10 @@ extends TableAdapter <GroupsAdapter>{
 			KEY_ROW_ID + " =?";
 			*/
 			String command = "UPDATE " + TABLE_NAME + " SET " + 
-			KEY_LAST_PICTURE_NUMBER + " = " + KEY_LAST_PICTURE_NUMBER + " + 1, "+
-			KEY_NUMBER_OF_PICS + " = " + KEY_NUMBER_OF_PICS + " + 1, "+
-			KEY_TIME_LAST_PICTURE_ADDED + " = '" + (new Date()).getTime() + "' WHERE " + 
-			KEY_ROW_ID + " =?";
+					KEY_LAST_PICTURE_NUMBER + " = " + KEY_LAST_PICTURE_NUMBER + " + 1, "+
+					KEY_NUMBER_OF_PICS + " = " + KEY_NUMBER_OF_PICS + " + 1, "+
+					KEY_TIME_LAST_PICTURE_ADDED + " = '" + (new Date()).getTime() + "' WHERE " + 
+					KEY_ROW_ID + " =?";
 
 			try{
 				//database.execSQL(command1, new String[] {String.valueOf(rowId)});

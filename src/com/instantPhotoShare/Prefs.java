@@ -31,6 +31,7 @@ public class Prefs {
 	private static final String MOST_RECENT_PICTURE_ROW_ID = "MOST_RECENT_PICTURE_ROW_ID";
 	private static final String MOST_RECENT_GROUP = "MOST_RECENT_GROUP";
 	private static final String MOST_RECENT_NOTIFICATION_NUMBER = "MOST_RECENT_NOTIFICATION_NUMBER";
+	private static final String IS_EMAIL_VALIDATED = "IS_EMAIL_VALIDATED";
 	
 	// default values
 	public static final String DEFAULT_STRING = null;
@@ -168,6 +169,23 @@ public class Prefs {
 	 */
 	public static long getLastPictureTaken(Context ctx){
 		return getLongPref(ctx, MOST_RECENT_PICTURE_ROW_ID);
+	}
+	
+	/**
+	 * Set whether or not the email address is validated
+	 * @param ctx Required context
+	 * @param isEmailValidated is it validated?
+	 */
+	public static void setIsEmailValidated(Context ctx, boolean isEmailValidated){
+		setBooleanPref(ctx, IS_EMAIL_VALIDATED, isEmailValidated);
+	}
+	/**
+	 * Return if the email address is validated
+	 * @param ctx The required context
+	 * @return is validated or not
+	 */
+	public static boolean isEmailValidated(Context ctx){
+		return getBooleanPref(ctx, IS_EMAIL_VALIDATED, false);
 	}
 	
 	/**

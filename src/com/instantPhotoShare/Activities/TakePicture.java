@@ -16,6 +16,7 @@ import android.content.DialogInterface;
 import android.content.DialogInterface.OnDismissListener;
 import android.content.Intent;
 import android.content.DialogInterface.OnClickListener;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.hardware.Camera;
@@ -38,6 +39,7 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.View.OnLongClickListener;
 import android.view.View.OnTouchListener;
+import android.view.ViewGroup.LayoutParams;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.animation.Animation;
@@ -55,6 +57,7 @@ import android.widget.Toast;
 import com.tools.CameraHelper;
 import com.tools.CameraHelper.*;
 import com.tools.CustomActivity;
+import com.tools.CustomAsyncTask;
 import com.tools.MultipleCheckPopUp;
 
 public class TakePicture
@@ -77,8 +80,9 @@ extends CustomActivity{
 
 	// private constants
 	private static final String DEFAULT_PRIVATE_NAME = "Private"; 						// String to show when no group is selected
-	private static long ANIM_DURATION = 500; 											// how many ms to take for the rotation
-
+	private static final long ANIM_DURATION = 500; 											// how many ms to take for the rotation
+	private static final String loadingPreviewProgressBar = "loadingPreviewProgressBar";
+	
 	// camera private variables
 	private CameraHelper cameraHelper; 							// helper for taking care of camera rotations and other camera stuff
 	private int camRotation = 0; 									// the current rotation of the camera
@@ -431,7 +435,7 @@ extends CustomActivity{
 		super.onResume();
 
 		// open the correct camera
-		cameraHelper.openFrontCamera();
+		cameraHelper.openBackCamera();
 
 		cameraHelper.onResume(onRotate, null);
 		if (!cameraHelper.isWaitingForPictureSave())
@@ -734,9 +738,18 @@ extends CustomActivity{
 		// keep track if we are waiting for the picture to be saved
 		cameraHelper.setIsWaitingForPictureSave(false);
 		cameraHelper.setTryingToTakePicture(false);
+		cameraHelper.setFocused(false);
 
+		SurfaceView surfaceView = (SurfaceView) findViewById(R.id.surface_camera);
+		surfaceView.setVisibility(SurfaceView.VISIBLE);
+		
 		// start preview again
 		cameraHelper.startPreview();
+		
+		// hide preview imageview
+		ImageView image = (ImageView)findViewById(R.id.previewImageView);
+		com.tools.Tools.recycleImageViewBitmap(image);
+		image.setVisibility(View.INVISIBLE);
 	}
 
 	private android.hardware.Camera.ShutterCallback shutterCallback = new ShutterCallback() {
@@ -781,11 +794,54 @@ extends CustomActivity{
 
 				// store camera data
 				camBytes = data;
+				
+				// show actual picture data
+				final SurfaceView surfaceView = (SurfaceView) findViewById(R.id.surface_camera);
+				ArrayList<String> bars = new ArrayList<String>(1);
+				bars.add(loadingPreviewProgressBar);
+				(new CustomAsyncTask<TakePicture, Void, Bitmap>(TakePicture.this, -1, false, true, bars) {
 
-				// keep track that we are trying to take a picture
-				cameraHelper.setTryingToTakePicture(false);
-				cameraHelper.setFocused(false);
-				cameraHelper.setIsWaitingForPictureSave(true);
+					@Override
+					protected void onPreExecute() {
+					}
+
+					@Override
+					protected Bitmap doInBackground(Void... params) {
+						return com.tools.images.ImageLoader.getFullImage(camBytes, 90, surfaceView.getWidth(), surfaceView.getHeight());
+					}
+
+					@Override
+					protected void onProgressUpdate(Void... progress) {
+
+					}
+
+					@Override
+					protected void onPostExectueOverride(Bitmap result) {
+						if (callingActivity == null || callingActivity.isFinishing())
+							return;
+						
+						// keep track that we are trying to take a picture
+						callingActivity.cameraHelper.setTryingToTakePicture(false);
+						callingActivity.cameraHelper.setFocused(false);
+						callingActivity.cameraHelper.setIsWaitingForPictureSave(true);
+						
+						// assign picture to imageview
+						ImageView image = (ImageView)callingActivity.findViewById(R.id.previewImageView);
+						image.setImageBitmap(result);
+						image.setVisibility(View.VISIBLE);
+						LayoutParams params = image.getLayoutParams();
+						SurfaceView surfaceView = (SurfaceView) callingActivity.findViewById(R.id.surface_camera);
+						params.height = surfaceView.getHeight();
+						params.width = surfaceView.getWidth();
+						image.setLayoutParams(params);
+						surfaceView.setVisibility(SurfaceView.INVISIBLE);
+					}
+
+					@Override
+					protected void setupDialog() {
+
+					}
+				}).execute();
 
 				// camera not generating any data	
 			}else{

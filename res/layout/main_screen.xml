@@ -241,6 +241,20 @@
     android:spacing="1dp"
 />
 </LinearLayout>
+<TextView
+    android:id="@+id/validateReminder"
+    style="@style/ShadowText"
+    android:layout_width="fill_parent"
+    android:layout_height="48dp"
+    android:layout_gravity="center|bottom"
+    android:background="@drawable/purple_gradient"
+    android:gravity="center"
+    android:text="Remember to validate your email address(es)"
+    android:textSize="13dp"
+    android:textStyle="bold"
+    android:typeface="serif"
+    android:visibility="gone"
+/>
 <ProgressBar
 	android:id="@+id/fetchingData"
 	android:layout_width="18dp"

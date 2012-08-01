@@ -2,7 +2,12 @@ package com.instantPhotoShare.Activities;
 
 import java.util.ArrayList;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import com.instantPhotoShare.Prefs;
 import com.instantPhotoShare.R;
+import com.instantPhotoShare.ShareBearServerReturn;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.NotificationsAdapter;
@@ -14,6 +19,8 @@ import com.instantPhotoShare.Tasks.SyncGroupsThatNeedIt;
 import com.instantPhotoShare.Tasks.SyncUsersInGroupThatNeedIt;
 import com.tools.CustomActivity;
 import com.tools.CustomAsyncTask;
+import com.tools.ServerPost.PostCallback;
+import com.tools.ServerPost.ServerReturn;
 import com.tools.TwoObjects;
 import com.tools.images.MemoryCache;
 
@@ -58,6 +65,7 @@ extends CustomActivity{
 	private PicturesGridAdapter adapter; 		// the adapter to show pictures
 	private PicturesAdapter picturesAdapater;	// An array of all the pictures
 	private TextView nNotificationsText;
+	private TextView validateReminder;
 
 	// misc private variables
 	private CustomActivity act = this;
@@ -272,7 +280,68 @@ extends CustomActivity{
 			adapter.imageLoader.restartThreads();
 		adapter.notifyDataSetChanged();
 		fetchNewGroups();
+		fetchIsEmailValidated();
 		setNotificationsNumber();
+	}
+	
+	/**
+	 * Fetch if the email is validated
+	 */
+	private void fetchIsEmailValidated(){
+		
+		// it was already validated, no need to check with server
+		if (Prefs.isEmailValidated(act)){
+			validateReminder.setVisibility(View.GONE);
+			return;
+		}
+		
+		// make json data to post
+		JSONObject json = new JSONObject();
+		try{
+			json.put("user_id", Prefs.getUserServerId(ctx));
+			json.put("secret_code", Prefs.getSecretCode(ctx));
+		}catch (JSONException e) {
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			return;
+		}
+		
+		/*
+		// post to server and get return
+		Utils.postToServer("is_email_validated", json.toString(), null, null, null, MainScreen.this, null, new PostCallback<MainScreen>() {
+
+			@Override
+			public void onPostFinished(MainScreen act, ServerReturn result) {
+
+			}
+
+			@Override
+			public void onPostFinishedUiThread(
+					MainScreen act,
+					ServerReturn result) {
+				
+				// activity is gone
+				if (act == null)
+					return;
+				
+				// convert to sharebear
+				ShareBearServerReturn data = new ShareBearServerReturn(result);
+				
+				// if not successful, log error and quit
+				if (!data.isSuccess()){
+					Log.e(Utils.LOG_TAG, data.getDetailErrorMessage());
+					act.validateReminder.setVisibility(View.GONE);
+					return;
+				}
+				
+				// check if we've validated
+				if (Long.parseLong(data.getMessage()) >= 1){
+					Prefs.setIsEmailValidated(act, true);
+					act.validateReminder.setVisibility(View.GONE);
+				}else
+					act.validateReminder.setVisibility(View.VISIBLE);
+			}
+		});
+		*/
 	}
 
 	/**
@@ -287,6 +356,7 @@ extends CustomActivity{
 		createNewGroup = (ImageView) findViewById(R.id.createNewGroupButton);
 		gallery = (Gallery)findViewById(R.id.galleryView);
 		nNotificationsText = (TextView) findViewById(R.id.nNotificationsText);
+		validateReminder = (TextView) findViewById(R.id.validateReminder);
 
 		// add click listener
 		gallery.setOnItemClickListener(pictureClick);

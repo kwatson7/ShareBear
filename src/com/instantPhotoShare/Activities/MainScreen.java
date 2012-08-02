@@ -40,6 +40,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
+import android.widget.Button;
 import android.widget.Gallery;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -305,9 +306,8 @@ extends CustomActivity{
 			return;
 		}
 		
-		/*
 		// post to server and get return
-		Utils.postToServer("is_email_validated", json.toString(), null, null, null, MainScreen.this, null, new PostCallback<MainScreen>() {
+		Utils.postToServer("has_validated_email", json.toString(), null, null, null, MainScreen.this, null, new PostCallback<MainScreen>() {
 
 			@Override
 			public void onPostFinished(MainScreen act, ServerReturn result) {
@@ -326,22 +326,30 @@ extends CustomActivity{
 				// convert to sharebear
 				ShareBearServerReturn data = new ShareBearServerReturn(result);
 				
-				// if not successful, log error and quit
-				if (!data.isSuccess()){
-					Log.e(Utils.LOG_TAG, data.getDetailErrorMessage());
-					act.validateReminder.setVisibility(View.GONE);
-					return;
-				}
-				
-				// check if we've validated
-				if (Long.parseLong(data.getMessage()) >= 1){
+				// show banner based on success or not
+				if (data.isSuccess()){
 					Prefs.setIsEmailValidated(act, true);
 					act.validateReminder.setVisibility(View.GONE);
-				}else
+				}else if (!data.isSuccess() && "NO_VALID_EMAIL".compareToIgnoreCase(data.getErrorCode()) == 0){
 					act.validateReminder.setVisibility(View.VISIBLE);
+				}else{
+					Log.e(Utils.LOG_TAG, data.getDetailErrorMessage());
+					act.validateReminder.setVisibility(View.GONE);
+				}			
 			}
 		});
-		*/
+	}
+	
+	/**
+	 * When the validate reminder is clicked, attempt to launch gmail.
+	 * @param v
+	 */
+	public void onValidateReminderClickedDOESNTWORK(View v){
+		try {
+			com.tools.Tools.launchGmailSearchDOESNTWORK(this, Utils.GMAIL_SEARCH_TERM);
+		} catch (Exception e) {
+			Toast.makeText(this, "Gmail client could not be launched", Toast.LENGTH_SHORT).show();
+		}
 	}
 
 	/**
@@ -354,7 +362,7 @@ extends CustomActivity{
 
 		// grab pointers for graphics objects
 		createNewGroup = (ImageView) findViewById(R.id.createNewGroupButton);
-		gallery = (Gallery)findViewById(R.id.galleryView);
+		gallery = (Gallery) findViewById(R.id.galleryView);
 		nNotificationsText = (TextView) findViewById(R.id.nNotificationsText);
 		validateReminder = (TextView) findViewById(R.id.validateReminder);
 

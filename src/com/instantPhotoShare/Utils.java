@@ -55,6 +55,7 @@ public class Utils {
 	public static int IMAGE_QUALITY = 90;
 	public static final String APP_URL = "http://www.sharebearapp.com/download";
 	public static final String DEVELOPER_EMAIL = "info@sharebearapp.com";
+	public static final String GMAIL_SEARCH_TERM = "Share Bear";
 
 	// keys for sending to server
 	/** The key for the data to post to server */

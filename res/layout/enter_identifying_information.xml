@@ -34,7 +34,7 @@
 	android:layout_width="0px"
 	android:layout_height="wrap_content"
 	android:padding="2dp"
-	android:hint="@string/yourLastName"
+	android:hint="@string/yourFirstName"
 	android:textSize="18sp"
 	android:typeface="serif"
 	android:textStyle="bold"
@@ -48,7 +48,7 @@
 	android:layout_width="0px"
 	android:layout_height="wrap_content"
 	android:padding="2dp"
-	android:hint="@string/yourFirstName"
+	android:hint="@string/yourLastName"
 	android:textSize="18sp"
 	android:typeface="serif"
 	android:textStyle="bold"
@@ -69,7 +69,7 @@
 	android:gravity="left"
 	android:inputType="phone" 
 	android:imeOptions="actionNext"
-	android:enabled="true"/>
+	android:enabled="false"/>
 <EditText
 	android:id="@+id/yourEmailAddresses"
 	android:layout_width="fill_parent"

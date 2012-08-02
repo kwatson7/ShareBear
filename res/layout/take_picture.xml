@@ -4,7 +4,7 @@
 	android:layout_width="fill_parent"
 	android:layout_height="fill_parent"
 	android:id="@+id/take_picture"
-	android:background="@drawable/camera_background"
+	android:background="@drawable/gray_gradient"
 	android:padding="3dp">
 <FrameLayout
     android:layout_width="wrap_content"

@@ -692,185 +692,6 @@ extends TableAdapter <GroupsAdapter>{
 		// the helper method
 		return fetchPictureIdsFromServerHelper(groupServerId, serverReturn);
 	}
-			
-	/**
-	 * Fetch all the pictures from the server for a given groupID and then create holding pictures
-	 * for any pictures not present in database. Done a a background thread
-	 * @param <ACTIVITY_TYPE>
-	 * @param act The activity that will be attached to callback on return.
-	 * @param groupServerId the server id of the group in question
-	 * @param indeterminateProgressBars indetermiante progress bars to show, null if none (the tags to find them)
-	 * @param callback The callback to be called when we are done. Can be null.
-	 * callback 3rd return will be how many new pictures there are
-	 */
-	public synchronized <ACTIVITY_TYPE extends CustomActivity>
-	void fetchPictureIdsFromServerInBackgroundOld(
-			ACTIVITY_TYPE act,
-			final long groupServerId,
-			ArrayList<String> indeterminateProgressBars,
-			final ItemsFetchedCallback<ACTIVITY_TYPE> callback){
-		//TODO: this shouldn't be synced. Will cause hanging, also doesn't even gaurantee thread safe, as multiple objects cann access this
-		//TODO: make checking to see what new picture we have faster. Shouldn't check each picture individually, but do a batch callback and loop over pictures
-		//TODO: remove pictures that are no longer in group as well
-		
-		// bad serverId
-		if (groupServerId == -1 || groupServerId == 0)
-			return;
-
-		// make json data to post
-		JSONObject json = new JSONObject();
-		try{
-			json.put("user_id", Prefs.getUserServerId(ctx));
-			json.put("secret_code", Prefs.getSecretCode(ctx));
-			json.put("group_id", groupServerId);
-		}catch (JSONException e) {
-			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
-			return;
-		}
-
-		Utils.postToServer(
-				"get_image_ids",
-				json.toString(),
-				null,
-				null,
-				null,
-				act,
-				indeterminateProgressBars,
-				new PostCallback<ACTIVITY_TYPE>() {
-
-					@Override
-					public void onPostFinished(
-							ACTIVITY_TYPE act,
-							ServerReturn result) {
-
-						// convert to thumbnail data
-						ShareBearServerReturn data = new ShareBearServerReturn(result);
-
-						// not a good return
-						if (!data.isSuccess()){
-							Log.e(Utils.LOG_TAG, data.getDetailErrorMessage());
-							return;
-						}
-
-						// parse returned data and check if we have these pictures
-						JSONArray array = data.getMessageArray();
-						if (array == null)
-							return;
-
-						// loop checking the pictures and creating in database if we don't have
-						PicturesAdapter pics = new PicturesAdapter(ctx);
-						PicturesInGroupsAdapter comboAdapter = new PicturesInGroupsAdapter(ctx);
-						GroupsAdapter adapter = new GroupsAdapter(ctx);
-						Group group = adapter.getGroupByServerId(groupServerId);
-						if(group == null || group.keepLocal)
-							return;
-						int counter = 0;				
-						HashSet<String> serverIds = new HashSet<String>();
-						for (int i = 0; i < array.length(); i++){
-							try {
-								serverIds.add(String.valueOf(array.getLong(i)));
-							} catch (JSONException e1) {
-								Log.e(Utils.LOG_TAG, Log.getStackTraceString(e1));
-							}
-							
-							synchronized (GroupsAdapter.class) {
-								try {
-
-									// create a new picture in database
-									if(!pics.isPicturePresent(array.getLong(i))){
-										// determine the path to store files
-										TwoStrings picNames = group.getNextPictureName();
-										
-										long rowId = pics.createPicture(
-												ctx,
-												picNames.mObject1,
-												picNames.mObject2,
-												"",
-												-1l,
-												null,
-												null,
-												false);
-
-										pics.setIsSynced(rowId, true, array.getLong(i));
-									}
-
-									// find the picture by serverId
-									pics.fetchPictureFromServerId(array.getLong(i));
-									if (pics.getRowId() == 0 || pics.getRowId() == -1){
-										pics.close();
-										continue;
-									}
-
-									// add the picture to this group if not already present
-									if(!pics.isPictureInGroup(pics.getRowId(), group.getRowId())){
-										comboAdapter.addPictureToGroup(ctx, pics.getRowId(), group.getRowId());
-										counter++;
-									}
-									pics.close();
-
-								} catch (NumberFormatException e) {
-									Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
-									continue;
-								} catch (JSONException e) {
-									Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
-									continue;
-								}
-							}
-							pics.close();
-						}	
-						
-						// pictures that have been removed from this group
-						TwoObjects<HashSet<String>, HashSet<String>> newAndOld = pics.getNewAndOldPicturesInGroup(group.getRowId(), serverIds);
-						HashSet<String> beenRemoved = newAndOld.mObject2;
-						Iterator<String> iterator = beenRemoved.iterator();
-						while(iterator.hasNext()){
-							long picServerId = Long.valueOf(iterator.next());
-							pics.fetchPictureFromServerId(picServerId);
-							comboAdapter.removePictureFromGroup(pics.getRowId(), group.getRowId());
-						}
-						pics.close();
-						
-						// update number of pictures
-						adapter.fetchGroupByServerId(groupServerId);
-						adapter.setNPictures(array.length());
-						adapter.close();
-
-						// notification for new pictures
-						if (counter > 0){
-							NotificationsAdapter notes = new NotificationsAdapter(ctx);
-							String msg;
-							if (counter == 1)
-								msg = " new picture in ";
-							else
-								msg = " new pictures in ";
-							notes.createNotification(
-									"You have " + counter + msg + group.getName(),
-									NotificationsAdapter.NOTIFICATION_TYPES.NEW_PICTURE_IN_GROUP,
-									String.valueOf(group.getRowId()));
-						}
-
-						// send callback back to activity
-						if (callback != null){
-							if (data.isSuccess())
-								callback.onItemsFetchedBackground(act, counter, null);
-							else
-								callback.onItemsFetchedBackground(act, counter, data.getErrorCode());
-						}
-					}
-
-					@Override
-					public void onPostFinishedUiThread(
-							ACTIVITY_TYPE act,
-							ServerReturn result) {
-						ShareBearServerReturn result2 = new ShareBearServerReturn(result);
-						if (callback != null)
-							if (result2.isSuccess())
-								callback.onItemsFetchedUiThread(act, null);
-							else
-								callback.onItemsFetchedUiThread(act, result2.getErrorCode());
-					}
-				});
-	}
 	
 	/**
 	 * Fetch all the pictures from the server for a given groupID and then create holding pictures
@@ -1018,9 +839,11 @@ extends TableAdapter <GroupsAdapter>{
 
 					// create a new picture in database
 					if(!pics.isPicturePresent(array.getLong(i))){
+						
 						// determine the path to store files
 						TwoStrings picNames = group.getNextPictureName();
 
+						// create the picture in the database
 						long rowId = pics.createPicture(
 								ctx,
 								picNames.mObject1,
@@ -1043,7 +866,7 @@ extends TableAdapter <GroupsAdapter>{
 
 					// add the picture to this group if not already present
 					if(!pics.isPictureInGroup(pics.getRowId(), group.getRowId())){
-						comboAdapter.addPictureToGroup(ctx, pics.getRowId(), group.getRowId());
+						comboAdapter.addPictureToGroup(pics.getRowId(), group.getRowId());
 						counter++;
 					}
 					pics.close();
@@ -2011,6 +1834,25 @@ extends TableAdapter <GroupsAdapter>{
 	}
 	
 	/**
+	 * Increment the last picture number by 1
+	 * @param rowId The rowId to update
+	 */
+	protected void incrementLastPictureNumberForFilePath(long rowId){
+		synchronized (GroupsAdapter.class) {
+
+			// update the value
+			String command = "UPDATE " + TABLE_NAME + " SET " + 
+					KEY_LAST_PICTURE_NUMBER + " = " + KEY_LAST_PICTURE_NUMBER + " + 1 "+
+					" WHERE " + KEY_ROW_ID + " =?";
+			try{
+				database.execSQL(command, new String[] {String.valueOf(rowId)});
+			}catch(SQLException e){
+				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+			}
+		}
+	}
+	
+	/**
 	 * Decrement the number of pictures of the given group by 1
 	 * @param groupRowId The group id
 	 */
@@ -2170,7 +2012,7 @@ extends TableAdapter <GroupsAdapter>{
 				cursor.close();
 
 				// update the value
-				//incrementLastPictureNumber(rowId);
+				incrementLastPictureNumberForFilePath(rowId);
 
 				// return the value
 				return value;

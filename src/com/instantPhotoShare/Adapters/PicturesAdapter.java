@@ -150,6 +150,8 @@ extends TableAdapter<PicturesAdapter>{
 				}
 				bmp = pic.getFullImage(desiredWidth, desiredHeight);
 			}
+			if (bmp == null)
+				pic.fetchPicture(pictureRowId);
 		}
 
 		// check if we had an update while we were waiting
@@ -157,9 +159,7 @@ extends TableAdapter<PicturesAdapter>{
 			bmp = pic.getFullImage(desiredWidth, desiredHeight);
 		if (bmp != null){
 			pic.close();
-			synchronized (PicturesAdapter.class) {
-				pic.setFinishedDownloadingFullsize(pictureRowId);
-			}
+			pic.setFinishedDownloadingFullsize(pictureRowId);
 			return bmp;
 		}
 
@@ -186,9 +186,7 @@ extends TableAdapter<PicturesAdapter>{
 			json.put("group_id", groupServerId);
 		}catch (JSONException e) {
 			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
-			synchronized (PicturesAdapter.class) {
-				pic.setFinishedDownloadingFullsize(pictureRowId);
-			}
+			pic.setFinishedDownloadingFullsize(pictureRowId);
 			return null;
 		}
 
@@ -198,9 +196,7 @@ extends TableAdapter<PicturesAdapter>{
 			group.writeFoldersIfNeeded();
 		} catch (IOException e1) {
 			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e1));
-			synchronized (PicturesAdapter.class) {
-				pic.setFinishedDownloadingFullsize(pictureRowId);
-			}
+			pic.setFinishedDownloadingFullsize(pictureRowId);
 			return null;
 		}
 
@@ -208,15 +204,10 @@ extends TableAdapter<PicturesAdapter>{
 		ShareBearServerReturn result = Utils.postToServerToGetFile("get_fullsize", json.toString(), path, weakProgess.get());
 		if (!result.isSuccess()){
 			Log.e(Utils.LOG_TAG, result.getDetailErrorMessage());
-			synchronized (PicturesAdapter.class) {
-				pic.setFinishedDownloadingFullsize(pictureRowId);
-			}
+			pic.setFinishedDownloadingFullsize(pictureRowId);
 			return null;
 		}else{
-			synchronized (PicturesAdapter.class) {
-				pic.setIsDownloadingFullsize(pictureRowId);
-				PicturesAdapter.class.notifyAll();
-			}
+			pic.setFinishedDownloadingFullsize(pictureRowId);
 		}
 
 		// read the file
@@ -603,7 +594,7 @@ extends TableAdapter<PicturesAdapter>{
 		
 		// add the picture
 		PicturesInGroupsAdapter inGroups = new PicturesInGroupsAdapter(ctx);
-		long linkRow = inGroups.addPictureToGroup(ctx, picRowId, destinationGroupId);
+		long linkRow = inGroups.addPictureToGroup(picRowId, destinationGroupId);
 		if (linkRow == -1){
 			String msg = "link between picture and group could be made for unknown reason";
 			Log.e(Utils.LOG_TAG, msg);
@@ -1576,11 +1567,16 @@ extends TableAdapter<PicturesAdapter>{
 		values.put(KEY_IS_FULLSIZE_DOWNLOADING, false);	
 
 		// update the values to the table
-		if (database.update(
-				TABLE_NAME,
-				values,
-				KEY_ROW_ID + "='" + rowId + "'", null) <=0)
-			Log.e(Utils.LOG_TAG, "setFinishedDownloadingFullsize did not update properly");
+		synchronized (PicturesAdapter.class) {
+
+			if (database.update(
+					TABLE_NAME,
+					values,
+					KEY_ROW_ID + "='" + rowId + "'", null) <=0)
+				Log.e(Utils.LOG_TAG, "setFinishedDownloadingFullsize did not update properly");
+
+			PicturesAdapter.class.notifyAll();
+		}
 	}
 
 	/**

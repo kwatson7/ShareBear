@@ -273,7 +273,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 		// link the picture to all the groups
 		PicturesInGroupsAdapter picturesInGroups = new PicturesInGroupsAdapter(context);
 		for (Group item : groups){
-			long linkRow = picturesInGroups.addPictureToGroup(context, picId, item.getRowId());
+			long linkRow = picturesInGroups.addPictureToGroup(picId, item.getRowId());
 			if (linkRow == -1){
 				String msg = "link between picture and group could be made for unknown reason";
 				Log.e(Utils.LOG_TAG, msg);

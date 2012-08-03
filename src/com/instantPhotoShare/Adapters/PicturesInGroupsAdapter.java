@@ -49,7 +49,6 @@ extends TableAdapter <PicturesInGroupsAdapter>{
 	 * @return The rowId that was created/updated
 	 */
 	public long addPictureToGroup(
-			Context ctx,
 			long pictureId,
 			long groupId){
 

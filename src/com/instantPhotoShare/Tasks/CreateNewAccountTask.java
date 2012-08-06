@@ -7,6 +7,7 @@ import android.widget.Toast;
 
 import com.instantPhotoShare.Person;
 import com.instantPhotoShare.Prefs;
+import com.instantPhotoShare.ServerKeys;
 import com.instantPhotoShare.ShareBearServerReturn;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.UsersAdapter;
@@ -23,15 +24,15 @@ extends com.tools.CustomAsyncTask <ACTIVITY_TYPE, Integer, CreateNewAccountTask<
 	private static final String COULD_NOT_STORE_LOCALLY = "COULD_NOT_STORE_LOCALLY";
 
 	// codes to be sent to server
-	private static final String CREATE_USER = "create_user";
+	private static final String CREATE_USER = ServerKeys.CreateNewAccount.COMMAND;
 
 	// field that Person class needs to access to know what data we need to send to server
-	public static final String PERSON_FIRST_NAME = "person_fname";
-	public static final String PERSON_LAST_NAME = "person_lname";
-	public static final String PERSON_PHONE = "phone_number";
-	public static final String PERSON_EMAIL = "person_email";
-	public static final String USER_NAME = "user_name";
-	public static final String PASSWORD = "password";
+	public static final String PERSON_FIRST_NAME = ServerKeys.CreateNewAccount.POST_KEY_PERSON_FIRST_NAME;
+	public static final String PERSON_LAST_NAME = ServerKeys.CreateNewAccount.POST_KEY_PERSON_LAST_NAME;
+	public static final String PERSON_PHONE = ServerKeys.CreateNewAccount.POST_KEY_PERSON_PHONE;
+	public static final String PERSON_EMAIL = ServerKeys.CreateNewAccount.POST_KEY_PERSON_EMAIL;
+	public static final String USER_NAME = ServerKeys.CreateNewAccount.POST_KEY_USER_NAME;
+	public static final String PASSWORD = ServerKeys.CreateNewAccount.POST_KEY_PASSWORD;
 
 	// the person to pass in
 	Person person;
@@ -155,8 +156,8 @@ extends com.tools.CustomAsyncTask <ACTIVITY_TYPE, Integer, CreateNewAccountTask<
 	extends ShareBearServerReturn{
 
 		// KEYS in JSON
-		private static final String KEY_UNIQUE_KEY = "secret_code";
-		private static final String KEY_USER_ID = "user_id";
+		private static final String KEY_UNIQUE_KEY = ServerKeys.CreateNewAccount.RETURN_KEY_UNIQUE_KEY;
+		private static final String KEY_USER_ID = ServerKeys.CreateNewAccount.RETURN_KEY_USER_ID;
 
 		/**
 		 * Intiailize a ReturnFromLoginTask object from a ServerJSON object.

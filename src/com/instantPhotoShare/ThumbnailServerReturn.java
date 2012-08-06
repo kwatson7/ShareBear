@@ -1,8 +1,5 @@
 package com.instantPhotoShare;
 
-import java.util.HashMap;
-
-import org.json.JSONArray;
 import org.json.JSONObject;
 
 import android.util.Base64;
@@ -16,10 +13,10 @@ extends ShareBearServerReturnWithArray{
 	// constants
 	private static final int IGNORE_CHARACTERS_BEGINNING_BASE64 = 23; 		// these characters should be ingnored when reading base64
 	private static final int BASE64_FORMAT = Base64.DEFAULT; 				// type of encoding
-	private static final String KEY_THUMBNAIL_DATA = "thumbnail_data";
-	private static final String KEY_OWNER_ID = "owner_id";
-	private static final String KEY_DATE_UPLOADED = "date_uploaded";	
-	private static final String KEY_THUMBNAIL_ID = "thumbnail_id";
+	private static final String KEY_THUMBNAIL_DATA = ServerKeys.GetThumbnails.RETURN_KEY_THUMBNAIL_DATA;
+	private static final String KEY_OWNER_ID = ServerKeys.GetThumbnails.RETURN_KEY_OWNER_ID;
+	private static final String KEY_DATE_UPLOADED = ServerKeys.GetThumbnails.RETURN_KEY_DATE_UPLOADED;
+	private static final String KEY_THUMBNAIL_ID = ServerKeys.GetThumbnails.RETURN_KEY_THUMBNAIL_ID;
 	
 	public ThumbnailServerReturn(ServerReturn toCopy) {
 		super(toCopy);

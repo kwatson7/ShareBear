@@ -8,6 +8,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.instantPhotoShare.Prefs;
+import com.instantPhotoShare.ServerKeys;
 import com.instantPhotoShare.ShareBearServerReturn;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
@@ -29,10 +30,10 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, CreateGroupTask.ReturnFromCreate
 	private boolean isCreateGroupLocally = true;
 
 	// codes to be sent to server
-	private static final String CREATE_GROUP = "create_group";
-	private static final String KEY_USER_ID = "user_id";
-	private static final String KEY_SECRET_CODE = "secret_code";
-	private static final String KEY_GROUP_NAME = "group_name";
+	private static final String CREATE_GROUP = ServerKeys.CreateGroup.COMMAND;
+	private static final String KEY_USER_ID = ServerKeys.CreateGroup.POST_KEY_USER_ID;
+	private static final String KEY_SECRET_CODE = ServerKeys.CreateGroup.POST_KEY_SECRET_CODE;
+	private static final String KEY_GROUP_NAME = ServerKeys.CreateGroup.POST_KEY_GROUP_NAME;
 
 	// server errors
 	private static final String AUTHENTICATION_ERROR = "AUTHENTICATION_ERROR";
@@ -294,7 +295,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, CreateGroupTask.ReturnFromCreate
 		private long rowId = -1;
 
 		// KEYS in JSON
-		private static final String KEY_GROUP_ID = "group_id";
+		private static final String KEY_GROUP_ID = ServerKeys.CreateGroup.RETURN_KEY_GROUP_SERVER_ID;
 
 		/**
 		 * Intiailize a ReturnFromCreateGroupTask object from a ServerJSON object.

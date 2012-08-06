@@ -8,6 +8,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.instantPhotoShare.Prefs;
+import com.instantPhotoShare.ServerKeys;
 import com.instantPhotoShare.ShareBearServerReturn;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.UsersAdapter;
@@ -18,7 +19,7 @@ public class LoginTask <ACTIVITY_TYPE extends CustomActivity>
 extends com.tools.CustomAsyncTask<ACTIVITY_TYPE, Integer, LoginTask<ACTIVITY_TYPE>.ReturnFromLoginTask>{
 
 	// codes to be sent to server
-	private static final String USER_LOGIN = "user_login";
+	private static final String USER_LOGIN = ServerKeys.Login.COMMAND;
 
 	// login errors
 	private static final String INCORRECT_LOGIN_ERROR = "INCORRECT_LOGIN_ERROR";
@@ -161,8 +162,8 @@ extends com.tools.CustomAsyncTask<ACTIVITY_TYPE, Integer, LoginTask<ACTIVITY_TYP
 		private String password = pass;
 
 		// KEYS in JSON
-		private static final String KEY_UNIQUE_KEY = "secret_code";
-		private static final String KEY_USER_ID = "user_id";
+		private static final String KEY_UNIQUE_KEY = ServerKeys.Login.RETURN_KEY_UNIQUE_KEY;
+		private static final String KEY_USER_ID = ServerKeys.Login.RETURN_KEY_USER_ID;
 
 		/**
 		 * Intiailize a ReturnFromLoginTask object from a ServerJSON object.

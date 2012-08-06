@@ -7,6 +7,7 @@ import org.json.JSONObject;
 
 import com.instantPhotoShare.Prefs;
 import com.instantPhotoShare.R;
+import com.instantPhotoShare.ServerKeys;
 import com.instantPhotoShare.ShareBearServerReturn;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
@@ -299,15 +300,15 @@ extends CustomActivity{
 		// make json data to post
 		JSONObject json = new JSONObject();
 		try{
-			json.put("user_id", Prefs.getUserServerId(ctx));
-			json.put("secret_code", Prefs.getSecretCode(ctx));
+			json.put(ServerKeys.HasValidatedEmail.POST_KEY_USER_ID, Prefs.getUserServerId(ctx));
+			json.put(ServerKeys.HasValidatedEmail.POST_KEY_SECRET_CODE, Prefs.getSecretCode(ctx));
 		}catch (JSONException e) {
 			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 			return;
 		}
 		
 		// post to server and get return
-		Utils.postToServer("has_validated_email", json.toString(), null, null, null, MainScreen.this, null, new PostCallback<MainScreen>() {
+		Utils.postToServer(ServerKeys.HasValidatedEmail.COMMAND, json.toString(), null, null, null, MainScreen.this, null, new PostCallback<MainScreen>() {
 
 			@Override
 			public void onPostFinished(MainScreen act, ServerReturn result) {

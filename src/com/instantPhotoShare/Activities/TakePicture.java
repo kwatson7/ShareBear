@@ -18,15 +18,12 @@ import android.content.Intent;
 import android.content.DialogInterface.OnClickListener;
 import android.graphics.Bitmap;
 import android.graphics.Color;
-import android.graphics.PixelFormat;
 import android.hardware.Camera;
 import android.hardware.Camera.AutoFocusCallback;
 import android.hardware.Camera.ShutterCallback;
-import android.annotation.TargetApi;
 import android.app.AlertDialog;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.text.Html;
@@ -34,7 +31,6 @@ import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MenuItem;
 import android.view.MotionEvent;
-import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.View.OnLongClickListener;
@@ -699,7 +695,7 @@ extends CustomActivity{
 	/** 
 	 * Hide certain buttons for taking the picture
 	 */
-	private void prepareButtonsForPictureTake(){
+	private void prepareButtonsForPictureSave(){
 		goButton.setVisibility(View.INVISIBLE);
 		goHomeButton.setVisibility(View.INVISIBLE);
 		lastPictureButton.setVisibility(View.INVISIBLE);
@@ -713,6 +709,11 @@ extends CustomActivity{
 		goHomeButton.invalidate();
 		lastPictureButton.invalidate();
 		bottomLinearLayout.invalidate();
+
+		// keep track that we are trying to save a picture
+		cameraHelper.setTryingToTakePicture(false);
+		cameraHelper.setFocused(false);
+		cameraHelper.setIsWaitingForPictureSave(true);
 	}
 
 	/**
@@ -784,7 +785,7 @@ extends CustomActivity{
 			}catch(Exception e){
 				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 			}
-			prepareButtonsForPictureTake();
+			prepareButtonsForPictureSave();
 
 			// only save data if data is not null
 			if (data != null) {
@@ -817,13 +818,9 @@ extends CustomActivity{
 
 					@Override
 					protected void onPostExectueOverride(Bitmap result) {
-						if (callingActivity == null || callingActivity.isFinishing())
+						if (callingActivity == null || callingActivity.isFinishing() || 
+								!callingActivity.cameraHelper.isWaitingForPictureSave())
 							return;
-						
-						// keep track that we are trying to take a picture
-						callingActivity.cameraHelper.setTryingToTakePicture(false);
-						callingActivity.cameraHelper.setFocused(false);
-						callingActivity.cameraHelper.setIsWaitingForPictureSave(true);
 						
 						// assign picture to imageview
 						ImageView image = (ImageView)callingActivity.findViewById(R.id.previewImageView);

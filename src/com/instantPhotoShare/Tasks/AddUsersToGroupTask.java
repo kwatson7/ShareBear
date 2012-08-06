@@ -16,6 +16,8 @@ import android.widget.Toast;
 
 import com.instantPhotoShare.ContactCheckedArray;
 import com.instantPhotoShare.Prefs;
+import com.instantPhotoShare.ServerKeys;
+import com.instantPhotoShare.ServerKeys.AddUsersToGroup;
 import com.instantPhotoShare.ShareBearServerReturn;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
@@ -44,16 +46,15 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 	private String dialogTitle = LOCAL_TITLE;
 
 	// codes to be sent to server
-	private static final String ACTION = "add_user_to_group";
-	private static final String KEY_USER_ID = "user_id";
-	private static final String KEY_SECRET_CODE = "secret_code";
-	private static final String KEY_PERSON_F_NAME = "person_fname";
-	private static final String KEY_PERSON_L_NAME = "person_lname";
-	private static final String KEY_PERSON_EMAIL = "person_email";
-	private static final String KEY_PHONE_NUMBER = "phone_number";
-	private static final String KEY_GROUP_ID = "group_id";
+	private static final String ACTION = ServerKeys.AddUsersToGroup.COMMAND;
+	private static final String KEY_USER_ID = ServerKeys.AddUsersToGroup.POST_KEY_USER_ID;
+	private static final String KEY_SECRET_CODE = ServerKeys.AddUsersToGroup.POST_KEY_SECRET_CODE;
+	private static final String KEY_PERSON_F_NAME = ServerKeys.AddUsersToGroup.POST_KEY_PERSON_F_NAME;
+	private static final String KEY_PERSON_L_NAME = ServerKeys.AddUsersToGroup.POST_KEY_PERSON_L_NAME;
+	private static final String KEY_PERSON_EMAIL = ServerKeys.AddUsersToGroup.POST_KEY_PERSON_EMAIL;
+	private static final String KEY_PHONE_NUMBER = ServerKeys.AddUsersToGroup.POST_KEY_PHONE_NUMBER;
+	private static final String KEY_GROUP_ID = ServerKeys.AddUsersToGroup.POST_KEY_GROUP_ID;
 	private static final String KEY_CONTACT_METHOD = "contact_method";
-
 
 	// server errors
 
@@ -432,8 +433,8 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 		}
 
 		// response keys
-		private static final String KEY_CODE = "user_message_code";
-		private static final String USER_ID = "user_id";
+		private static final String KEY_CODE = ServerKeys.AddUsersToGroup.RETURN_KEY_CODE;
+		private static final String USER_ID = ServerKeys.AddUsersToGroup.RETURN_USER_ID;
 
 		// member fields
 		SparseArray<JSONObject> userObjects = new SparseArray<JSONObject>();

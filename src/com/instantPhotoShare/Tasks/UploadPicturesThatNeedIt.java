@@ -10,6 +10,7 @@ import org.json.JSONObject;
 import android.util.Log;
 
 import com.instantPhotoShare.Prefs;
+import com.instantPhotoShare.ServerKeys;
 import com.instantPhotoShare.ShareBearServerReturn;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
@@ -23,11 +24,13 @@ import com.tools.TwoObjects;
 public class UploadPicturesThatNeedIt <ACTIVITY_TYPE extends CustomActivity>
 extends CustomAsyncTask<ACTIVITY_TYPE, Void, Void>{
 
+	//TODO: overlap of code with SaveTakenPictureTask. Consolidate
+	
 	// codes to be sent to server
-	private static final String ACTION = "upload_image";
-	private static final String KEY_USER_ID = "user_id";
-	private static final String KEY_SECRET_CODE = "secret_code";
-	private static final String KEY_GROUP_ID = "group_id";
+	private static final String ACTION = ServerKeys.SavePicture.COMMAND;
+	private static final String KEY_USER_ID = ServerKeys.SavePicture.POST_KEY_USER_ID;
+	private static final String KEY_SECRET_CODE = ServerKeys.SavePicture.POST_KEY_SECRET_CODE;
+	private static final String KEY_GROUP_ID = ServerKeys.SavePicture.POST_KEY_GROUP_IDS_ARRAY;
 
 	public UploadPicturesThatNeedIt(
 			ACTIVITY_TYPE act) {

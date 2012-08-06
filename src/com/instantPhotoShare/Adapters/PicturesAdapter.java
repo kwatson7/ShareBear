@@ -5,20 +5,17 @@ import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.instantPhotoShare.Prefs;
+import com.instantPhotoShare.ServerKeys;
 import com.instantPhotoShare.ShareBearServerReturn;
 import com.instantPhotoShare.ThumbnailServerReturn;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter.Group;
-import com.instantPhotoShare.Tasks.SaveTakenPictureTask;
 import com.tools.CustomActivity;
 import com.tools.ServerPost.ServerReturn;
 import com.tools.SuccessReason;
@@ -29,7 +26,6 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.media.ExifInterface;
 import android.util.Log;
 import android.widget.ImageView;
@@ -180,10 +176,10 @@ extends TableAdapter<PicturesAdapter>{
 		// create the data required to post to server
 		JSONObject json = new JSONObject();
 		try{
-			json.put("user_id", Prefs.getUserServerId(appCtx));
-			json.put("secret_code", Prefs.getSecretCode(appCtx));
-			json.put("image_id", serverId);
-			json.put("group_id", groupServerId);
+			json.put(ServerKeys.GetFullSize.POST_KEY_USER_ID, Prefs.getUserServerId(appCtx));
+			json.put(ServerKeys.GetFullSize.POST_KEY_SECRET_CODE, Prefs.getSecretCode(appCtx));
+			json.put(ServerKeys.GetFullSize.POST_KEY_IMAGE_ID, serverId);
+			json.put(ServerKeys.GetFullSize.POST_KEY_GROUP_ID, groupServerId);
 		}catch (JSONException e) {
 			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 			pic.setFinishedDownloadingFullsize(pictureRowId);
@@ -201,7 +197,7 @@ extends TableAdapter<PicturesAdapter>{
 		}
 
 		// post to the server
-		ShareBearServerReturn result = Utils.postToServerToGetFile("get_fullsize", json.toString(), path, weakProgess.get());
+		ShareBearServerReturn result = Utils.postToServerToGetFile(ServerKeys.GetFullSize.COMMAND, json.toString(), path, weakProgess.get());
 		if (!result.isSuccess()){
 			Log.e(Utils.LOG_TAG, result.getDetailErrorMessage());
 			pic.setFinishedDownloadingFullsize(pictureRowId);
@@ -277,7 +273,7 @@ extends TableAdapter<PicturesAdapter>{
 		}
 
 		// grab the serverId
-		long serverId = pics.getServerId();
+		long serverIdToFetch = pics.getServerId();
 		pics.close();
 
 		// we haven't found it locally, so grab from server
@@ -285,8 +281,8 @@ extends TableAdapter<PicturesAdapter>{
 		// the array to grab the thumbnails
 		JSONArray array = new JSONArray();
 		ArrayList <Long> rowIds = new ArrayList<Long>(10);
-		if (!(serverId == -1 || serverId == 0)){
-			array.put(serverId);
+		if (!(serverIdToFetch == -1 || serverIdToFetch == 0)){
+			array.put(serverIdToFetch);
 			rowIds.add(pictureRowId);
 			pics.setIsDownloadingThumbnail(pictureRowId);
 		}
@@ -334,10 +330,10 @@ extends TableAdapter<PicturesAdapter>{
 		// create the data required to post to server
 		JSONObject json = new JSONObject();
 		try{
-			json.put("user_id", Prefs.getUserServerId(appCtx));
-			json.put("secret_code", Prefs.getSecretCode(appCtx));
-			json.put("thumbnail_ids", array);
-			json.put("group_id", groupServerId);
+			json.put(ServerKeys.GetThumbnails.POST_KEY_USER_ID, Prefs.getUserServerId(appCtx));
+			json.put(ServerKeys.GetThumbnails.POST_KEY_SECRET_CODE, Prefs.getSecretCode(appCtx));
+			json.put(ServerKeys.GetThumbnails.POST_KEY_THUMBNAIL_IDS, array);
+			json.put(ServerKeys.GetThumbnails.POST_KEY_GROUP_ID, groupServerId);
 		}catch (JSONException e) {
 			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 			pics.setFinishedDownloadingThumbnail(pictureRowId, false);
@@ -345,7 +341,8 @@ extends TableAdapter<PicturesAdapter>{
 		}
 
 		// post to the server
-		ThumbnailServerReturn result = new ThumbnailServerReturn(Utils.postToServer("get_thumbnails", json, null, null));
+		ThumbnailServerReturn result = new ThumbnailServerReturn(Utils.postToServer(
+				ServerKeys.GetThumbnails.COMMAND, json, null, null));
 
 		// check success
 		if (!result.isSuccess()){
@@ -359,19 +356,22 @@ extends TableAdapter<PicturesAdapter>{
 
 			// grab the thumbnail data
 			byte[] data = result.getThumbnailBytes(iii);
+			
+			// grab the serverid of the picture
+			long pictureServerId = result.getPictureServerId(iii);
 
 			// store the important one
 			//TODO: if the picture data contains exif info, this process will not work correctly.
-			if (data != null && data.length != 0 && result.getPictureServerId(iii) == serverId)
+			if (data != null && data.length != 0 && pictureServerId == serverIdToFetch)
 				bmp = com.tools.ImageProcessing.getThumbnail(data, 0);
 
 			// move the adapter to the correct row
-			pics.fetchPictureFromServerId(result.getPictureServerId(iii));
+			pics.fetchPictureFromServerId(pictureServerId);
 			
 			// determine where to save it
 			long currentPictureRowId = pics.getRowId();
 			if(currentPictureRowId <= 0){
-				Log.e(Utils.LOG_TAG, "picture with serverId: "+result.getPictureServerId(iii) + " is not available");
+				Log.e(Utils.LOG_TAG, "picture with serverId: "+pictureServerId + " is not available");
 				for (int ii = 0; ii < rowIds.size(); ii++)
 					pics.setFinishedDownloadingThumbnail(rowIds.get(ii), false);
 				pics.close();
@@ -391,9 +391,6 @@ extends TableAdapter<PicturesAdapter>{
 							thumbPath,
 							ExifInterface.ORIENTATION_NORMAL,
 							false);
-
-				// grab the id of the picture
-				long pictureServerId = result.getPictureServerId(iii);
 
 				// find the user who took this picture
 				UsersAdapter users = new UsersAdapter(appCtx);
@@ -497,11 +494,11 @@ extends TableAdapter<PicturesAdapter>{
 		// create the data required to post to server
 		JSONObject json = new JSONObject();
 		try{
-			json.put("user_id", Prefs.getUserServerId(ctx));
-			json.put("secret_code", Prefs.getSecretCode(ctx));
-			json.put("image_id", serverId);
-			json.put("source_group_id", sourceGroupServerId);
-			json.put("new_group_id", destinationGroupServerId);
+			json.put(ServerKeys.CopyImage.POST_KEY_USER_ID, Prefs.getUserServerId(ctx));
+			json.put(ServerKeys.CopyImage.POST_KEY_SECRET_CODE, Prefs.getSecretCode(ctx));
+			json.put(ServerKeys.CopyImage.POST_KEY_IMAGE_ID, serverId);
+			json.put(ServerKeys.CopyImage.POST_KEY_SOURCE_GROUP_ID, sourceGroupServerId);
+			json.put(ServerKeys.CopyImage.POST_KEY_NEW_GROUP_ID, destinationGroupServerId);
 		}catch (JSONException e) {
 			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 			throw new Exception("bad json data");
@@ -509,7 +506,7 @@ extends TableAdapter<PicturesAdapter>{
 		
 		// post to server
 		Utils.postToServer(
-				"copy_image",
+				ServerKeys.CopyImage.COMMAND,
 				json.toString(),
 				null,
 				null,
@@ -1014,6 +1011,7 @@ extends TableAdapter<PicturesAdapter>{
 			return;
 		}
 			
+		/*
 		String query = 
 			"SELECT DISTINCT pics.* FROM "
 			+PicturesAdapter.TABLE_NAME + " pics "
@@ -1024,6 +1022,20 @@ extends TableAdapter<PicturesAdapter>{
 			+"groups." + PicturesInGroupsAdapter.KEY_PICTURE_ID
 			+" WHERE " +selection.mObject1
 			+" ORDER BY " + SORT_ORDER + " LIMIT '" + nPictures + "'";
+			*/
+		String query = 
+			"SELECT DISTINCT pics.* "
+			+", CASE WHEN (pics." + KEY_SERVER_ID + " <= '0' AND "
+			+" pics." + KEY_IS_UPDATING + " = '1') THEN 0 ELSE 1 END As ORDER_COL1 "
+			+" FROM "
+			+PicturesAdapter.TABLE_NAME + " pics "
+			+" INNER JOIN "
+			+PicturesInGroupsAdapter.TABLE_NAME + " groups "
+			+" ON "
+			+"pics." + PicturesAdapter.KEY_ROW_ID + " = "
+			+"groups." + PicturesInGroupsAdapter.KEY_PICTURE_ID
+			+" WHERE " +selection.mObject1
+			+" ORDER BY " + " ORDER_COL1 ASC, " + SORT_ORDER + " LIMIT '" + nPictures + "'";
 		
 		// do the query
 		Cursor cursor = database.rawQuery(
@@ -1079,9 +1091,9 @@ extends TableAdapter<PicturesAdapter>{
 		// create the data required to post to server
 		JSONObject json = new JSONObject();
 		try{
-			json.put("user_id", Prefs.getUserServerId(ctx));
-			json.put("secret_code", Prefs.getSecretCode(ctx));
-			json.put("image_id", serverId);
+			json.put(ServerKeys.DeleteImage.POST_KEY_USER_ID, Prefs.getUserServerId(ctx));
+			json.put(ServerKeys.DeleteImage.POST_KEY_SECRET_CODE, Prefs.getSecretCode(ctx));
+			json.put(ServerKeys.DeleteImage.POST_KEY_IMAGE_ID, serverId);
 		}catch (JSONException e) {
 			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 			throw new Exception("bad json data");
@@ -1089,7 +1101,7 @@ extends TableAdapter<PicturesAdapter>{
 		
 		// post to server
 		Utils.postToServer(
-				"delete_image",
+				ServerKeys.DeleteImage.COMMAND,
 				json.toString(),
 				null,
 				null,
@@ -1767,7 +1779,8 @@ extends TableAdapter<PicturesAdapter>{
 	private Cursor fetchPicturesInGroupPrivate(long groupId){
 
 		// create the query where we match up all the pictures that are in the group
-		String query = 
+		/*
+		String query0 = 
 			"SELECT pics.* FROM "
 			+PicturesAdapter.TABLE_NAME + " pics "
 			+" INNER JOIN "
@@ -1779,7 +1792,25 @@ extends TableAdapter<PicturesAdapter>{
 			+"groups." + PicturesInGroupsAdapter.KEY_GROUP_ID
 			+"=?"
 			+" ORDER BY " + SORT_ORDER;
-
+			*/
+		
+		// create the query where we match up all the pictures that are in the group
+		String query = 
+			"SELECT pics.* "
+			+", CASE WHEN (pics." + KEY_SERVER_ID + " <= '0' AND "
+			+" pics." + KEY_IS_UPDATING + " = '1') THEN 0 ELSE 1 END As ORDER_COL1 "
+			+" FROM "
+			+PicturesAdapter.TABLE_NAME + " pics "
+			+" INNER JOIN "
+			+PicturesInGroupsAdapter.TABLE_NAME + " groups "
+			+" ON "
+			+"pics." + PicturesAdapter.KEY_ROW_ID + " = "
+			+"groups." + PicturesInGroupsAdapter.KEY_PICTURE_ID
+			+" WHERE "
+			+"groups." + PicturesInGroupsAdapter.KEY_GROUP_ID
+			+"=?"
+			+" ORDER BY " + " ORDER_COL1 ASC, " + SORT_ORDER;
+		
 		// do the query
 		Cursor cursor = database.rawQuery(
 				query,

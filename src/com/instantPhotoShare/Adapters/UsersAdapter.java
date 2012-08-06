@@ -11,6 +11,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.instantPhotoShare.Prefs;
+import com.instantPhotoShare.ServerKeys;
 import com.instantPhotoShare.ShareBearServerReturn;
 import com.instantPhotoShare.Utils;
 import com.tools.ThreeObjects;
@@ -975,22 +976,22 @@ extends TableAdapter <UsersAdapter>{
 			// create json to post
 			JSONObject json = new JSONObject();
 			try {
-				json.put("user_id", Prefs.getUserServerId(ctx));
-				json.put("secret_code", Prefs.getSecretCode(ctx));
-				json.put("user_ids", array);
+				json.put(ServerKeys.GetUsers.POST_KEY_USER_ID, Prefs.getUserServerId(ctx));
+				json.put(ServerKeys.GetUsers.POST_KEY_SECRET_CODE, Prefs.getSecretCode(ctx));
+				json.put(ServerKeys.GetUsers.POST_KEY_USER_IDS_ARRAY, array);
 			} catch (JSONException e) {
 				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 				return name;
 			}
 			
 			// post the data
-			ShareBearServerReturn result = Utils.postToServer("get_users", json, null, null);
+			ShareBearServerReturn result = Utils.postToServer(ServerKeys.GetUsers.COMMAND, json, null, null);
 			
 			// grab the name and save to database
 			JSONObject message = result.getMessageObject();
 			try {
-				String firstName = message.optJSONObject(String.valueOf(getServerId())).optString("first_name");
-				String lastName = message.getJSONObject(String.valueOf(getServerId())).optString("last_name");
+				String firstName = message.optJSONObject(String.valueOf(getServerId())).optString(ServerKeys.GetUsers.RETURN_KEY_FIRST_NAME);
+				String lastName = message.getJSONObject(String.valueOf(getServerId())).optString(ServerKeys.GetUsers.RETURN_KEY_LAST_NAME);
 				name = firstName + " " + lastName;	
 				this.setName(firstName, lastName);
 			} catch (Exception e) {

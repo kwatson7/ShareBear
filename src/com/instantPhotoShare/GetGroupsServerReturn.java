@@ -11,13 +11,13 @@ public class GetGroupsServerReturn
 extends ShareBearServerReturn{
 
 	// constants
-	private static final String KEY_DATE_CREATED = "date_created";
-	private static final String KEY_OWNER_ID = "owner_id";
-	private static final String KEY_NAME = "name";
-	private static final String KEY_GROUP_ID = "group_id";
-	private static final String KEY_USER_COUNT = "user_count";
+	private static final String KEY_DATE_CREATED = ServerKeys.GetGroups.RETURN_KEY_DATE_CREATED;
+	private static final String KEY_OWNER_ID = ServerKeys.GetGroups.RETURN_KEY_OWNER_ID;
+	private static final String KEY_NAME = ServerKeys.GetGroups.RETURN_KEY_NAME;
+	private static final String KEY_GROUP_ID = ServerKeys.GetGroups.RETURN_KEY_GROUP_ID;
+	private static final String KEY_USER_COUNT = ServerKeys.GetGroups.RETURN_KEY_USER_COUNT;
 	//TODO: read user_count from this return
-	private static final String KEY_PHOTO_COUNT = "photo_count";
+	private static final String KEY_PHOTO_COUNT = ServerKeys.GetGroups.RETURN_KEY_PHOTO_COUNT;
 	
 	// member fields
 	SparseArray<JSONObject> userObjects = new SparseArray<JSONObject>();

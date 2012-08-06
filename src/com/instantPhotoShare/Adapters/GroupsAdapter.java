@@ -17,6 +17,7 @@ import org.json.JSONObject;
 
 import com.instantPhotoShare.GetGroupsServerReturn;
 import com.instantPhotoShare.Prefs;
+import com.instantPhotoShare.ServerKeys;
 import com.instantPhotoShare.ShareBearServerReturn;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Tasks.CreateGroupTask;
@@ -678,16 +679,16 @@ extends TableAdapter <GroupsAdapter>{
 		// make json data to post
 		JSONObject json = new JSONObject();
 		try{
-			json.put("user_id", Prefs.getUserServerId(ctx));
-			json.put("secret_code", Prefs.getSecretCode(ctx));
-			json.put("group_id", groupServerId);
+			json.put(ServerKeys.GetGroupImageIds.POST_KEY_USER_ID, Prefs.getUserServerId(ctx));
+			json.put(ServerKeys.GetGroupImageIds.POST_KEY_SECRET_CODE, Prefs.getSecretCode(ctx));
+			json.put(ServerKeys.GetGroupImageIds.POST_KEY_GROUP_ID, groupServerId);
 		}catch (JSONException e) {
 			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 			return new FetchPictureIdReturn(new Exception("bad json access"));
 		}
 		
 		// post to server
-		ServerReturn serverReturn = Utils.postToServer("get_image_ids", json, null, null);
+		ServerReturn serverReturn = Utils.postToServer(ServerKeys.GetGroupImageIds.COMMAND, json, null, null);
 		
 		// the helper method
 		return fetchPictureIdsFromServerHelper(groupServerId, serverReturn);
@@ -720,16 +721,16 @@ extends TableAdapter <GroupsAdapter>{
 		// make json data to post
 		JSONObject json = new JSONObject();
 		try{
-			json.put("user_id", Prefs.getUserServerId(ctx));
-			json.put("secret_code", Prefs.getSecretCode(ctx));
-			json.put("group_id", groupServerId);
+			json.put(ServerKeys.GetGroupImageIds.POST_KEY_USER_ID, Prefs.getUserServerId(ctx));
+			json.put(ServerKeys.GetGroupImageIds.POST_KEY_SECRET_CODE, Prefs.getSecretCode(ctx));
+			json.put(ServerKeys.GetGroupImageIds.POST_KEY_GROUP_ID, groupServerId);
 		}catch (JSONException e) {
 			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 			return;
 		}
 
 		Utils.postToServer(
-				"get_image_ids",
+				ServerKeys.GetGroupImageIds.COMMAND,
 				json.toString(),
 				null,
 				null,
@@ -886,8 +887,14 @@ extends TableAdapter <GroupsAdapter>{
 		TwoObjects<HashSet<String>, HashSet<String>> newAndOld = pics.getNewAndOldPicturesInGroup(group.getRowId(), serverIds);
 		HashSet<String> beenRemoved = newAndOld.mObject2;
 		Iterator<String> iterator = beenRemoved.iterator();
+		// not yet updated are serverid <= 0
+		int nNotYetUpdated = 0;
 		while(iterator.hasNext()){
 			long picServerId = Long.valueOf(iterator.next());
+			if (picServerId <= 0){
+				nNotYetUpdated ++;
+				continue;
+			}
 			pics.fetchPictureFromServerId(picServerId);
 			comboAdapter.removePictureFromGroup(pics.getRowId(), group.getRowId());
 		}
@@ -895,7 +902,7 @@ extends TableAdapter <GroupsAdapter>{
 
 		// update number of pictures
 		adapter.fetchGroupByServerId(groupServerId);
-		adapter.setNPictures(array.length());
+		adapter.setNPictures(array.length() + nNotYetUpdated);
 		adapter.close();
 
 		// notification for new pictures
@@ -947,8 +954,8 @@ extends TableAdapter <GroupsAdapter>{
 		// make json data to post
 		JSONObject json = new JSONObject();
 		try{
-			json.put("user_id", Prefs.getUserServerId(ctx));
-			json.put("secret_code", Prefs.getSecretCode(ctx));
+			json.put(ServerKeys.GetGroups.POST_KEY_USER_ID, Prefs.getUserServerId(ctx));
+			json.put(ServerKeys.GetGroups.POST_KEY_SECRET_CODE, Prefs.getSecretCode(ctx));
 		}catch (JSONException e) {
 			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 			return false;
@@ -956,7 +963,7 @@ extends TableAdapter <GroupsAdapter>{
 
 		// post the command to the server
 		Utils.postToServer(
-				"get_groups",
+				ServerKeys.GetGroups.COMMAND,
 				json.toString(),
 				null,
 				null,

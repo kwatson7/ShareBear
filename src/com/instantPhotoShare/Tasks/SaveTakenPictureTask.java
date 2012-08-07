@@ -314,7 +314,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 		// show toast if successful
 		if (result.isSuccess())	{
 			if (toShowPostExecutionAlerts)
-				Toast.makeText(context, "Picture uploaed to the interwebs", Toast.LENGTH_SHORT).show();
+				Toast.makeText(context, "Picture uploaded to the interwebs", Toast.LENGTH_SHORT).show();
 			return;
 		}
 

@@ -873,8 +873,10 @@ extends TableAdapter<PicturesAdapter>{
 		// first find the group and make sure it isn't keep local
 		GroupsAdapter groups = new GroupsAdapter(ctx);
 		groups.fetchGroup(groupRowId);
-		if (groups.getRowId() == -1 || groups.getRowId() == 0 || groups.isKeepLocal())
+		if (groups.getRowId() == -1 || groups.getRowId() == 0 || groups.isKeepLocal()){
+			groups.close();
 			return;
+		}
 
 		// now we query the pictures in this group that match our criteria
 

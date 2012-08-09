@@ -22,6 +22,7 @@ import android.hardware.Camera;
 import android.hardware.Camera.AutoFocusCallback;
 import android.hardware.Camera.ShutterCallback;
 import android.app.AlertDialog;
+import android.app.Dialog;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.os.Bundle;
@@ -443,6 +444,37 @@ extends CustomActivity{
 			flashButton.setVisibility(View.INVISIBLE);
 		else
 			flashButton.setVisibility(View.VISIBLE);
+		
+		// show toast if only 1 group
+		new CustomAsyncTask<TakePicture, Void, Integer>(TakePicture.this, -1, true, true, null){
+
+			@Override
+			protected void onPreExecute() {
+			}
+
+			@Override
+			protected Integer doInBackground(Void... params) {
+				GroupsAdapter groups = new GroupsAdapter(applicationCtx);
+				return groups.getNGroups();
+			}
+
+			@Override
+			protected void onProgressUpdate(Void... progress) {
+			}
+
+			@Override
+			protected void onPostExectueOverride(Integer result) {
+				if (result <= 1 && callingActivity != null)
+					Toast.makeText(callingActivity, "You should make a shared group first.", Toast.LENGTH_LONG).show();
+			}
+
+			@Override
+			protected void setupDialog() {
+				// TODO Auto-generated method stub
+				
+			}
+			
+		}.execute();	
 	}
 
 	@Override
@@ -607,7 +639,7 @@ extends CustomActivity{
 
 				// if we are empty, don't allow
 				if (selectedGroups.size() == 0){
-					Toast.makeText(act, "must select at lesat one group", Toast.LENGTH_SHORT).show();
+					Toast.makeText(act, "must select at least one group", Toast.LENGTH_SHORT).show();
 					return;
 				}
 

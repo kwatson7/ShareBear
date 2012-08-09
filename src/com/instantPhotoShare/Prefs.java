@@ -32,6 +32,7 @@ public class Prefs {
 	private static final String MOST_RECENT_GROUP = "MOST_RECENT_GROUP";
 	private static final String MOST_RECENT_NOTIFICATION_NUMBER = "MOST_RECENT_NOTIFICATION_NUMBER";
 	private static final String IS_EMAIL_VALIDATED = "IS_EMAIL_VALIDATED";
+	private static final String NUMBER_TIMES_USED = "NUMBER_TIMES_USED";
 	
 	// default values
 	public static final String DEFAULT_STRING = null;
@@ -169,6 +170,25 @@ public class Prefs {
 	 */
 	public static long getLastPictureTaken(Context ctx){
 		return getLongPref(ctx, MOST_RECENT_PICTURE_ROW_ID);
+	}
+	
+	/**
+	 * INcremeent by one the number of times main screen has been creatd
+	 * @param ctx
+	 */
+	public static void incrementNumberTimesUsed(Context ctx){
+		setLongPref(ctx, NUMBER_TIMES_USED, getNumberTimesUsed(ctx)+1);
+	}
+	/**
+	 * Return teh number of times main screen has been created
+	 * @param ctx
+	 * @return
+	 */
+	public static long getNumberTimesUsed(Context ctx){
+		Long num = getLongPref(ctx, NUMBER_TIMES_USED);
+		if (num < 0)
+			num = 0l;
+		return num;
 	}
 	
 	/**

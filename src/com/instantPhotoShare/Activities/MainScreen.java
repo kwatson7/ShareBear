@@ -27,7 +27,9 @@ import com.tools.images.MemoryCache;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.StaleDataException;
 import android.net.Uri;
@@ -76,7 +78,7 @@ extends CustomActivity{
 
 	// enums for menu items
 	private enum MENU_ITEMS { 										
-		CLEAR_APP_DATA, EDIT_PREFERENCES;
+		EDIT_PREFERENCES, SHOW_HELP;
 		private static MENU_ITEMS convert(int value)
 		{
 			return MENU_ITEMS.class.getEnumConstants()[value];
@@ -92,12 +94,22 @@ extends CustomActivity{
 			return MENU_ITEMS.class.getEnumConstants()[value];
 		}
 	}
+	
+	// enums for dialogs
+	private enum DialogId {
+		SHOW_HELP;
+		private static DialogId convert (int value){
+			return DialogId.class.getEnumConstants()[value];
+		}
+	}
 
 	@Override
 	protected void onCreateOverride(Bundle savedInstanceState) {
 		initializeLayout();	
-
 		getPictures();
+		
+		// increment that we've used this app
+		Prefs.incrementNumberTimesUsed(ctx);
 
 		//	DebugUtils.deleteAllNonServerUsersAndGroupLinks(this);
 
@@ -133,6 +145,7 @@ extends CustomActivity{
 
 		// Add the menu items
 		menu.add(0, MENU_ITEMS.EDIT_PREFERENCES.ordinal(), 0, "Edit Prefernces");
+		menu.add(0, MENU_ITEMS.SHOW_HELP.ordinal(), 0, "Help");
 
 		return true;
 	}
@@ -148,9 +161,56 @@ extends CustomActivity{
 			Intent intent = new Intent(ctx, Preferences.class);
 			startActivity(intent);
 			return true;
+		case SHOW_HELP:
+			showDialog(DialogId.SHOW_HELP.ordinal());
+			return true;
 		}
 
 		return super.onMenuItemSelected(featureId, item);
+	}
+	
+	/**
+	 * Show the help for the app
+	 */
+	private Dialog getHelpDialog(){
+		// the string to show
+		String message = "Take pictures inside a given group and all members of the group instantly get the pictures. And if they take pictures, you get them too."
+				+ System.getProperty ("line.separator")
+				+ System.getProperty ("line.separator")
+				+ "1. Make a group"
+				+ System.getProperty ("line.separator")
+				+ "2. Add your friends to the group"
+				+ System.getProperty ("line.separator")
+				+ "3. Take a picture"
+				+ System.getProperty ("line.separator")
+				+ "4. Friends automatically get pictures"
+				+ System.getProperty ("line.separator")
+				+ "5. View your pictures and pictures of others";
+		
+		// build the dialog
+		AlertDialog.Builder dlgAlert  = new AlertDialog.Builder(act);
+		dlgAlert.setMessage(message);
+		dlgAlert.setCancelable(true);
+		dlgAlert.setPositiveButton("OK",
+				new DialogInterface.OnClickListener() {
+			public void onClick(DialogInterface dialog, int which) {
+				//dismiss the dialog  
+			}
+		});
+		return dlgAlert.create();
+	}
+	
+	@Override
+	public Dialog onCreateDialog(int id, Bundle args){
+		// convert to enum
+		DialogId dialogId = DialogId.convert(id);
+		
+		switch(dialogId){
+		case SHOW_HELP:
+			return getHelpDialog();
+		}
+		Log.e(Utils.LOG_TAG, "no dialog with id: " + id);
+		return null;
 	}
 
 	/**
@@ -284,6 +344,41 @@ extends CustomActivity{
 		fetchNewGroups();
 		fetchIsEmailValidated();
 		setNotificationsNumber();
+		
+		// show help to the user if they haven't seen it yet
+		if (picturesAdapater.size() == 0 && Prefs.getNumberTimesUsed(ctx) <= 3){
+			showDialog(DialogId.SHOW_HELP.ordinal());
+		}
+		
+		// show toast if only 1 group
+		new CustomAsyncTask<MainScreen, Void, Integer>(MainScreen.this, -1, true, true, null){
+
+			@Override
+			protected void onPreExecute() {
+			}
+
+			@Override
+			protected Integer doInBackground(Void... params) {
+				GroupsAdapter groups = new GroupsAdapter(applicationCtx);
+				return groups.getNGroups();
+			}
+
+			@Override
+			protected void onProgressUpdate(Void... progress) {
+			}
+
+			@Override
+			protected void onPostExectueOverride(Integer result) {
+				if (result <= 1 && callingActivity != null)
+					Toast.makeText(callingActivity, "You should make a group.", Toast.LENGTH_LONG).show();
+			}
+
+			@Override
+			protected void setupDialog() {
+
+			}
+
+		}.execute();	
 	}
 	
 	/**

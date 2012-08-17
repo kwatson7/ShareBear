@@ -24,12 +24,14 @@ import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.instantPhotoShare.R;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.PicturesAdapter;
 import com.tools.CustomActivity;
+import com.tools.CustomAsyncTask;
 import com.tools.images.ImageLoader.LoadImage;
 
 public class GroupGallery 
@@ -134,6 +136,36 @@ extends CustomActivity{
 		}
 		pics.close();
 		Utils.setBackground(this, picPath, screen, 0.5f);
+		
+		// show toast if only 1 group
+		new CustomAsyncTask<GroupGallery, Void, Integer>(GroupGallery.this, -1, true, true, null){
+
+			@Override
+			protected void onPreExecute() {
+			}
+
+			@Override
+			protected Integer doInBackground(Void... params) {
+				GroupsAdapter groups = new GroupsAdapter(applicationCtx);
+				return groups.getNGroups();
+			}
+
+			@Override
+			protected void onProgressUpdate(Void... progress) {
+			}
+
+			@Override
+			protected void onPostExectueOverride(Integer result) {
+				if (result <= 1 && callingActivity != null)
+					Toast.makeText(callingActivity, "You should make a shared group.", Toast.LENGTH_LONG).show();
+			}
+
+			@Override
+			protected void setupDialog() {
+
+			}
+
+		}.execute();
 	}
 
 	private OnItemClickListener gridViewClick =  new OnItemClickListener() {
@@ -253,6 +285,7 @@ extends CustomActivity{
 									Utils.MAX_THUMBNAIL_DIMENSION,
 									Utils.FORCE_BASE2_THUMBNAIL_RESIZE,
 									Utils.IMAGE_QUALITY);
+							pics.close();
 						}
 					});
 		}

@@ -67,6 +67,8 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, Void>{
 					Log.e(Utils.LOG_TAG, serverResponse.getDetailErrorMessage());
 				adapter.setIsUpdating(adapter.getRowId(), false);
 			}
+			
+			adapter.close();
 
 			return null;
 		}

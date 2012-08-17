@@ -864,7 +864,7 @@ extends CustomActivity{
 				// take the picture
 				AudioManager mgr = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
 				mgr.setStreamMute(AudioManager.STREAM_SYSTEM, true);
-				cameraHelper.getCamera().takePicture(shutterCallback, null, pictureCallback); 
+				cameraHelper.takePicture(shutterCallback, null, pictureCallback); 
 				cameraHelper.setIsPreviewRunning(false);
 				
 			}else{
@@ -907,7 +907,7 @@ extends CustomActivity{
 		}else{
 			AudioManager mgr = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
 			mgr.setStreamMute(AudioManager.STREAM_SYSTEM, true);
-			cameraHelper.getCamera().takePicture(shutterCallback, null, pictureCallback); 
+			cameraHelper.takePicture(shutterCallback, null, pictureCallback); 
 			cameraHelper.setIsPreviewRunning(false);
 		}
 	}

@@ -1,5 +1,7 @@
 package com.instantPhotoShare.Activities;
 
+import java.io.File;
+import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
 
@@ -42,7 +44,7 @@ extends CustomActivity{
 			Toast.makeText(this, "Login first", Toast.LENGTH_SHORT).show();
 			return;
 		}
-		
+
 		getPassedPictures(); 		
 
 		if (picturePathsToShare == null || picturePathsToShare.size() == 0){
@@ -92,6 +94,12 @@ extends CustomActivity{
 				intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM); 
 			for (Parcelable p : list) { 
 				Uri uri = (Uri) p; 
+				try{
+					uri = Uri.parse((URLDecoder.decode(uri.toString())));
+				}catch(Exception e){
+					Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+					continue;
+				}
 				// now try to read from URI
 				if (uri != null){
 					String[] filePathColumn = {MediaStore.Images.Media.DATA};
@@ -110,7 +118,14 @@ extends CustomActivity{
 		}else if (Intent.ACTION_SEND.equals(action)
 				&& intent.hasExtra(Intent.EXTRA_STREAM)){
 
-			Uri uri = (Uri)intent.getParcelableExtra(Intent.EXTRA_STREAM);
+			Uri uri;
+			try{
+				uri = (Uri)intent.getParcelableExtra(Intent.EXTRA_STREAM);
+				uri = Uri.parse((URLDecoder.decode(uri.toString())));
+			}catch(Exception e){
+				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+				return;
+			}
 			String[] filePathColumn = {MediaStore.Images.Media.DATA};
 
 			Cursor cursor = this.getContentResolver().query(uri, filePathColumn, null, null, null);

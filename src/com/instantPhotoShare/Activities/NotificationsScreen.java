@@ -19,7 +19,9 @@ import android.widget.Toast;
 
 import com.instantPhotoShare.R;
 import com.instantPhotoShare.Utils;
+import com.instantPhotoShare.Adapters.GroupsAdapter;
 import com.instantPhotoShare.Adapters.NotificationsAdapter;
+import com.instantPhotoShare.Adapters.PicturesAdapter;
 import com.tools.CustomActivity;
 
 public class NotificationsScreen
@@ -290,6 +292,56 @@ extends CustomActivity{
 					act.startActivity(intent);
 				}
 				break;
+			case SERVER_ERROR:
+				
+				// the picture this error references will be shown in whatever group it's in
+				long picId = notes.getHelperLong();
+				if (picId > -1){
+					// find a group this pic is in
+					GroupsAdapter groups = new GroupsAdapter(act);
+					groups.fetchGroupsContainPicture(picId);
+					long groupId = -1;
+					while (groupId == -1 && groups.moveToNext()){
+						if(groups.isAccessibleGroup())
+							groupId = groups.getRowId();
+					}			
+					groups.close();
+
+					// no group, do nothing
+					if (groupId == -1){
+						break;
+					}
+
+					// find position in cursor
+					PicturesAdapter helper = new PicturesAdapter(act);
+					helper.fetchPicturesInGroup(groupId);
+					int positionForNewAdapter = -1;
+					while (helper.moveToNext()){
+						if (helper.getRowId() == picId){
+							positionForNewAdapter = helper.getPosition();
+							break;
+						}
+					}
+					helper.close();
+
+					// couldn't find picture, do nothing
+					if (positionForNewAdapter == -1){
+						break;
+					}
+
+					// load the intent for this groups gallery
+					intent = new Intent(act, SinglePictureGallery.class);
+					intent.putExtra(
+							SinglePictureGallery.GROUP_ID,
+							groupId);
+					intent.putExtra(
+							SinglePictureGallery.PICTURE_POSITION,
+							positionForNewAdapter);
+
+					// load the activity
+					intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+					act.startActivity(intent);	
+				}
 			}
 		}
 	}

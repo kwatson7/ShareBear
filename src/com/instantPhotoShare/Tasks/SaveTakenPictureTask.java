@@ -30,6 +30,7 @@ import com.tools.CustomActivity;
 import com.tools.CustomAsyncTask;
 import com.tools.ServerPost.ServerReturn;
 import com.tools.SuccessReason;
+import com.tools.Tools;
 import com.tools.TwoObjects;
 import com.tools.TwoStrings;
 
@@ -102,7 +103,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 		if (groups == null || groups.size() == 0)
 			throw new IllegalArgumentException("groups cannot be null or empty, at least one group must be passed in");
 	}
-	
+
 	/**
 	 * Make an activity to save a picture to file and store it in the database
 	 * @param ctx required context
@@ -151,9 +152,43 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 
 	}
 
+	/**
+	 * Save full size data
+	 * @param toSavefile the location to save picture 
+	 * @param rotation The amount of rotation
+	 * @return The success or not
+	 */
+	private SuccessReason saveFullSize(String toSavefile, Integer rotation){
+		// save the data
+		SuccessReason pictureSave = null;
+		if (fullFilePathPassedIn == null){
+			// we need to save the data to file
+			pictureSave = 
+				com.tools.ImageProcessing.saveByteDataToFile(
+						context,
+						camData,
+						false,
+						toSavefile,
+						rotation,
+						true);
+		}else{
+			// just copy the file
+			File fileIn = new File(fullFilePathPassedIn);
+			File fileOut = new File(toSavefile);
+			try {
+				com.tools.Tools.copyFile(fileIn, fileOut);
+				pictureSave = new SuccessReason(true, fileOut.getAbsolutePath());
+			} catch (IOException e) {
+				pictureSave = new SuccessReason(false, e.getMessage());
+			}
+		}
+
+		return pictureSave;
+	}
+
 	@Override
 	protected ReturnFromPostPicture doInBackground(Void... params) {
-
+		
 		// determine rotation
 		Integer rotation = null;
 		switch (camRotation){
@@ -171,41 +206,34 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 		}
 
 		// get the folder in which we are going to save
-		TwoStrings picName = groups.get(0).getNextPictureName();	
-
-		// write the folders if we can
-		try {
-			groups.get(0).writeFoldersIfNeeded();
-		} catch (IOException e) {
+		TwoStrings picName = null;
+		try{
+			picName = groups.get(0).getNextPictureName(true);	
+		}catch(IOException e){
 			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 			Log.e(Utils.LOG_TAG, "could not create proper folders for group " + groups.get(0).getName());
 			ReturnFromPostPicture result = new ReturnFromPostPicture(LOCAL_CREATION_ERROR, "could not crate proper folders for group " + groups.get(0).getName());
 			result.setPictureRowId(-1);
 			return result;
-		}	
+		}
 
-		// save the data
-		SuccessReason pictureSave = null;
-		if (fullFilePathPassedIn == null){
-			// we need to save the data to file
-			pictureSave = 
-				com.tools.ImageProcessing.saveByteDataToFile(
-						context,
-						camData,
-						false,
-						picName.mObject1,
-						rotation,
-						true);
-		}else{
-			// just copy the file
-			File fileIn = new File(fullFilePathPassedIn);
-			File fileOut = new File(picName.mObject1);
-			try {
-				com.tools.Tools.copyFile(fileIn, fileOut);
-				pictureSave = new SuccessReason(true, fileOut.getAbsolutePath());
-			} catch (IOException e) {
-				pictureSave = new SuccessReason(false, e.getMessage());
+		// save the full size picture
+		SuccessReason pictureSave = saveFullSize(picName.mObject1, rotation);
+
+		// if we had a no space left error, change the location of file and try again
+		if ((!pictureSave.getSuccess() && pictureSave.getReason().equalsIgnoreCase(" No space left on device"))){
+			try{
+				picName = groups.get(0).getNextPictureName(false);	
+			}catch(IOException e){
+				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+				Log.e(Utils.LOG_TAG, "could not create proper folders for group " + groups.get(0).getName());
+				ReturnFromPostPicture result = new ReturnFromPostPicture(LOCAL_CREATION_ERROR, "could not crate proper folders for group " + groups.get(0).getName());
+				result.setPictureRowId(-1);
+				return result;
 			}
+
+			// save to the new location
+			pictureSave = saveFullSize(picName.mObject1, rotation);
 		}
 
 		// break out if we didn't save successfully
@@ -230,9 +258,31 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 		}
 		byte[] thumbByte = com.tools.ImageProcessing.getByteArray(thumbnail, Utils.IMAGE_QUALITY);
 		thumbnail.recycle();
-		
+
 		// save the thumbnail
 		SuccessReason thumbnailSave = 
+			com.tools.ImageProcessing.saveByteDataToFile(
+					context,
+					thumbByte,
+					false,
+					picName.mObject2,
+					ExifInterface.ORIENTATION_NORMAL,
+					false);
+
+		// if we had a no space left error, change the location of the thumbnail and try again
+		if (!thumbnailSave.getSuccess() && thumbnailSave.getReason().equalsIgnoreCase(" No space left on device")){
+			try{
+				picName = groups.get(0).getNextPictureName(false);	
+			}catch(IOException e){
+				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+				Log.e(Utils.LOG_TAG, "could not create proper folders for group " + groups.get(0).getName());
+				ReturnFromPostPicture result = new ReturnFromPostPicture(LOCAL_CREATION_ERROR, "could not crate proper folders for group " + groups.get(0).getName());
+				result.setPictureRowId(-1);
+				return result;
+			}
+
+			// save to the new location
+			thumbnailSave = 
 				com.tools.ImageProcessing.saveByteDataToFile(
 						context,
 						thumbByte,
@@ -240,7 +290,8 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 						picName.mObject2,
 						ExifInterface.ORIENTATION_NORMAL,
 						false);
-
+		}
+		
 		// break out if we didn't save successfully
 		if (!thumbnailSave.getSuccess()){
 			Log.e(Utils.LOG_TAG, thumbnailSave.getReason());
@@ -331,16 +382,25 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 			String toastMessage = "";
 			String notesMessage = "";
 			NOTIFICATION_TYPES notesType;
-
+			
 			// default values
 			toastMessage = "Picture not saved on server because:\n" + result.getDetailErrorMessage() +
-					".\nPictre is still saved on device, but is not shared!";
+			".\nPictre is still saved on device, but is not shared!";
 			notesMessage = "Picture with rowId " + result.getPictureRowId() + " not created on server because:\n"
-					+ result.getDetailErrorMessage() + ".\nPicture is still saved on device, but is not shared!";
+			+ result.getDetailErrorMessage() + ".\nPicture is still saved on device, but is not shared!";
 			notesType = NOTIFICATION_TYPES.SERVER_ERROR;
 
-			// show the toast
-			if (toShowPostExecutionAlerts)
+			// no internet, just log error and don't show error
+			if (result.getErrorCode().equalsIgnoreCase(result.UNKNOWN_HOST_EXCEPTION)){
+				if (applicationCtx != null){
+					NotificationsAdapter notes = new NotificationsAdapter(applicationCtx);
+					notes.createNotification("Picture will be uploaded later when internet access is available",
+							NOTIFICATION_TYPES.SERVER_ERROR,
+							String.valueOf(result.getPictureRowId()));
+				}
+				
+				// normal message, just show dialog
+			}else if (toShowPostExecutionAlerts)
 				showAlert(toastMessage);
 
 			// store in log		
@@ -387,7 +447,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 		//TODO: is brennan making sure to check if we can actually post to a group
 		//TODO: before doign any updates, we should be checking if there is already an update goign for all update possibilities
 		//TODO: deal with updating and syncing of picture / group pairs
-		
+
 		//TODO: this and uploadPicturesThatNeedIt have overlapping code. consolidate
 
 		ReturnFromPostPicture serverResponse = null;
@@ -436,7 +496,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 	 * @throws JSONException 
 	 */
 	private TwoObjects<JSONObject, ArrayList<Long>> getDataToPost()
-			throws JSONException{	
+	throws JSONException{	
 
 		// build a list of group ids
 		ArrayList<Long> longIds = new ArrayList<Long>(groups.size());
@@ -483,7 +543,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 		private ReturnFromPostPicture(){
 			super();
 		}
-		
+
 		private ReturnFromPostPicture(String errorCode, String detailErrorMessage){
 			super();
 			setError(errorCode, detailErrorMessage);

@@ -5,10 +5,13 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.WeakHashMap;
 import java.util.Map.Entry;
 
 import org.json.JSONArray;
@@ -20,7 +23,7 @@ import com.instantPhotoShare.Prefs;
 import com.instantPhotoShare.ServerKeys;
 import com.instantPhotoShare.ShareBearServerReturn;
 import com.instantPhotoShare.Utils;
-import com.instantPhotoShare.Adapters.NotificationsAdapter.NumberNotifications;
+import com.instantPhotoShare.Adapters.NotificationsAdapter.NOTIFICATION_TYPES;
 import com.instantPhotoShare.Tasks.CreateGroupTask;
 import com.tools.CustomActivity;
 import com.tools.CustomAsyncTask;
@@ -28,15 +31,19 @@ import com.tools.ExpiringValue;
 import com.tools.ServerPost.PostCallback;
 import com.tools.ServerPost.ServerReturn;
 import com.tools.ThreeObjects;
+import com.tools.Tools;
 import com.tools.TwoObjects;
 import com.tools.TwoStrings;
 
+import android.annotation.SuppressLint;
 import android.app.ProgressDialog;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.SQLException;
+import android.graphics.Bitmap;
 import android.util.Log;
+import android.widget.ImageView;
 
 public class GroupsAdapter
 extends TableAdapter <GroupsAdapter>{
@@ -67,23 +74,28 @@ extends TableAdapter <GroupsAdapter>{
 	private static final String KEY_AM_I_MEMBER = "KEY_AM_I_MEMBER";
 	private static final String KEY_NUMBER_OF_PICS = "KEY_NUMBER_OF_PICS";
 	private static final String KEY_TIME_LAST_PICTURE_ADDED = "KEY_TIME_LAST_PICTURE_ADDED";
+	private static final String KEY_GROUP_TOP_LEVEL_PATH_ALTERNATE = "groupTopLevelPathAlternate";
+	private static final String KEY_PICTURE_PATH_ALTERNATE = "picturePathAlternate";
+	private static final String KEY_THUMBNAIL_PATH_ALTERNATE = "thumbnailPathAlternate";
 
 	// types
 	private static final String MARK_FOR_DELETION_TYPE = " BOOLEAN DEFAULT 'FALSE'";
 	private static final String AM_I_MEMBER_TYPE = " BOOLEAN DEFAULT 'TRUE'";
 	private static final String NUMBER_OF_PICS_TYPE = " INTEGER NOT NULL DEFAULT '0'";
 	private static final String TIME_LAST_PICTURE_ADDED_TYPE = " INTEGER NOT NULL DEFAULT '0'";
+	private static final String ALTERNATE_PATH_TYPES = " TEXT NOT NULL DEFAULT ''";
 
 	// private constants
 	private static final String DEFAULT_PRIVATE_NAME = "Private"; 			// default group name for the auto-generated private group
 	private static final String PRIVATE_GROUP_COLOR = "#ADD8E6"; 			// color for private groups when toString is called
 	private static final String NON_SYNCED_PUBLIC_GROUPS_COLOR = "red"; 	// color for non-synced groups when toString is called
 	private static final String SOMEONE_ELSE_MADE_GROUPS_COLOR = "#E066FF"; // color for groups other people made
+	private static final float MAKE_NEW_FOLDER_TIMOUT = 5; 					// seconds until making a new folder has considered timed out and try again
 
 	private static final String SORT_ORDER = KEY_DATE_CREATED + " DESC"; 	// sort the picture by most recent
 	private static final String ADDITIONAL_QUERY_NO_AND = 
-			"(" + KEY_AM_I_MEMBER + " ='TRUE' OR " + KEY_AM_I_MEMBER + " = '1') AND (" 
-					+ KEY_MARK_FOR_DELETION + " = 'FALSE' OR " + KEY_MARK_FOR_DELETION + " = '0')";
+		"(" + KEY_AM_I_MEMBER + " ='TRUE' OR " + KEY_AM_I_MEMBER + " = '1') AND (" 
+		+ KEY_MARK_FOR_DELETION + " = 'FALSE' OR " + KEY_MARK_FOR_DELETION + " = '0')";
 	private static final String ADDITIONAL_QUERY = " AND " + ADDITIONAL_QUERY_NO_AND;
 
 	// error codes
@@ -91,36 +103,41 @@ extends TableAdapter <GroupsAdapter>{
 
 	// static variables
 	private static com.tools.ExpiringValue<Boolean> isFetchingGroups = new com.tools.ExpiringValue<Boolean>(50f, false, false);
+	private static Map<Long, ExpiringValue<Boolean>> isCreatingNewFolderLock =
+		Collections.synchronizedMap(new HashMap<Long, ExpiringValue<Boolean>>(10));
 
 	/** Table creation string */
 	public static final String TABLE_CREATE = 
-			"create table "
-					+TABLE_NAME +" ("
-					+KEY_ROW_ID +" integer primary key autoincrement, "
-					+KEY_NAME +" text not null, "
-					+KEY_SERVER_ID +" integer DEFAULT '-1', "
-					+KEY_PICTURE_ID +" integer DEFAULT '-1', "
-					+KEY_DATE_CREATED +" text not null, "
-					+KEY_USER_ID_CREATED +" integer not null, "
-					+KEY_ALLOW_OTHERS_ADD_MEMBERS +" boolean DEFAULT 'TRUE', "
-					+KEY_LATITUDE +" double, "
-					+KEY_LONGITUDE +" double, "
-					+KEY_ALLOW_PUBLIC_WITHIN_DISTANCE +" double, "
-					+KEY_KEEP_LOCAL +" BOOLEAN DEFAULT 'FALSE', "
-					+KEY_LAST_PICTURE_NUMBER +" int NOT NULL DEFAULT '-1', "
-					+KEY_GROUP_TOP_LEVEL_PATH +" TEXT NOT NULL, "
-					+KEY_PICTURE_PATH +" TEXT NOT NULL, "
-					+KEY_THUMBNAIL_PATH +" TEXT NOT NULL, "
-					+KEY_MARK_FOR_DELETION + MARK_FOR_DELETION_TYPE + ", "
-					+KEY_AM_I_MEMBER + AM_I_MEMBER_TYPE +", "
-					+KEY_IS_UPDATING +" boolean DEFAULT 'FALSE', "
-					+KEY_NUMBER_OF_PICS + NUMBER_OF_PICS_TYPE + ", "
-					+KEY_TIME_LAST_PICTURE_ADDED + TIME_LAST_PICTURE_ADDED_TYPE + ", "
-					+KEY_LAST_UPDATE_ATTEMPT_TIME +" text not null DEFAULT '1900-01-01 01:00:00', "
-					+KEY_IS_SYNCED +" boolean DEFAULT 'FALSE', "
-					+"foreign key(" +KEY_PICTURE_ID +") references " +PicturesAdapter.TABLE_NAME +"(" +PicturesAdapter.KEY_ROW_ID + "), " 
-					+"foreign key(" +KEY_USER_ID_CREATED +") references " +UsersAdapter.TABLE_NAME +"(" +UsersAdapter.KEY_ROW_ID + ")" 
-					+");";	
+		"create table "
+		+TABLE_NAME +" ("
+		+KEY_ROW_ID +" integer primary key autoincrement, "
+		+KEY_NAME +" text not null, "
+		+KEY_SERVER_ID +" integer DEFAULT '-1', "
+		+KEY_PICTURE_ID +" integer DEFAULT '-1', "
+		+KEY_DATE_CREATED +" text not null, "
+		+KEY_USER_ID_CREATED +" integer not null, "
+		+KEY_ALLOW_OTHERS_ADD_MEMBERS +" boolean DEFAULT 'TRUE', "
+		+KEY_LATITUDE +" double, "
+		+KEY_LONGITUDE +" double, "
+		+KEY_ALLOW_PUBLIC_WITHIN_DISTANCE +" double, "
+		+KEY_KEEP_LOCAL +" BOOLEAN DEFAULT 'FALSE', "
+		+KEY_LAST_PICTURE_NUMBER +" int NOT NULL DEFAULT '-1', "
+		+KEY_GROUP_TOP_LEVEL_PATH +" TEXT NOT NULL, "
+		+KEY_PICTURE_PATH +" TEXT NOT NULL, "
+		+KEY_THUMBNAIL_PATH +" TEXT NOT NULL, "
+		+KEY_GROUP_TOP_LEVEL_PATH_ALTERNATE + ALTERNATE_PATH_TYPES + ", "
+		+KEY_PICTURE_PATH_ALTERNATE + ALTERNATE_PATH_TYPES + ", "
+		+KEY_THUMBNAIL_PATH_ALTERNATE + ALTERNATE_PATH_TYPES + ", "
+		+KEY_MARK_FOR_DELETION + MARK_FOR_DELETION_TYPE + ", "
+		+KEY_AM_I_MEMBER + AM_I_MEMBER_TYPE +", "
+		+KEY_IS_UPDATING +" boolean DEFAULT 'FALSE', "
+		+KEY_NUMBER_OF_PICS + NUMBER_OF_PICS_TYPE + ", "
+		+KEY_TIME_LAST_PICTURE_ADDED + TIME_LAST_PICTURE_ADDED_TYPE + ", "
+		+KEY_LAST_UPDATE_ATTEMPT_TIME +" text not null DEFAULT '1900-01-01 01:00:00', "
+		+KEY_IS_SYNCED +" boolean DEFAULT 'FALSE', "
+		+"foreign key(" +KEY_PICTURE_ID +") references " +PicturesAdapter.TABLE_NAME +"(" +PicturesAdapter.KEY_ROW_ID + "), " 
+		+"foreign key(" +KEY_USER_ID_CREATED +") references " +UsersAdapter.TABLE_NAME +"(" +UsersAdapter.KEY_ROW_ID + ")" 
+		+");";	
 
 	public GroupsAdapter(Context context) {
 		super(context);
@@ -136,29 +153,33 @@ extends TableAdapter <GroupsAdapter>{
 		ArrayList<String> out = new ArrayList<String>(1);
 		if (oldVersion  < 3 && newVersion >= 3){
 			String upgradeQuery = 
-					"ALTER TABLE " +
-							TABLE_NAME + " ADD COLUMN " + 
-							KEY_MARK_FOR_DELETION + " "+
-							MARK_FOR_DELETION_TYPE;
+				"ALTER TABLE " +
+				TABLE_NAME + " ADD COLUMN " + 
+				KEY_MARK_FOR_DELETION + " "+
+				MARK_FOR_DELETION_TYPE;
 			out.add(upgradeQuery);
 
 			upgradeQuery = 
-					"ALTER TABLE " +
-							TABLE_NAME + " ADD COLUMN " + 
-							KEY_AM_I_MEMBER + " "+
-							AM_I_MEMBER_TYPE;
+				"ALTER TABLE " +
+				TABLE_NAME + " ADD COLUMN " + 
+				KEY_AM_I_MEMBER + " "+
+				AM_I_MEMBER_TYPE;
 			out.add(upgradeQuery);
 		}
 
 		if (oldVersion  < 10 && newVersion >= 10){
 			String upgradeQuery = 
-					"ALTER TABLE " +
-							TABLE_NAME + " ADD COLUMN " + 
-							KEY_NUMBER_OF_PICS + " "+
-							NUMBER_OF_PICS_TYPE;
+				"ALTER TABLE " +
+				TABLE_NAME + " ADD COLUMN " + 
+				KEY_NUMBER_OF_PICS + " "+
+				NUMBER_OF_PICS_TYPE;
 			out.add(upgradeQuery);
-		}
+		}		
+
 		addColumn(out, TABLE_NAME, oldVersion, newVersion, 12, KEY_TIME_LAST_PICTURE_ADDED, TIME_LAST_PICTURE_ADDED_TYPE);
+		addColumn(out, TABLE_NAME, oldVersion, newVersion, 13, KEY_GROUP_TOP_LEVEL_PATH_ALTERNATE, ALTERNATE_PATH_TYPES);
+		addColumn(out, TABLE_NAME, oldVersion, newVersion, 13, KEY_PICTURE_PATH_ALTERNATE, ALTERNATE_PATH_TYPES);
+		addColumn(out, TABLE_NAME, oldVersion, newVersion, 13, KEY_THUMBNAIL_PATH_ALTERNATE, ALTERNATE_PATH_TYPES);
 
 		return out;
 	}
@@ -298,12 +319,16 @@ extends TableAdapter <GroupsAdapter>{
 	 * Check acceptable folder names that work. ie no *&/ etc.
 	 * @param groupName
 	 * @param dateCreated
+	 * @param useAlternate should we use alternate location. If returns null, then will not use alternate
 	 * @return
+	 * @throws IOException  if there is no where to store the data
 	 */
 	private static String getAllowableFolderName(
 			Context ctx,
 			String groupName,
-			String dateCreated){
+			String dateCreated,
+			boolean useAlternate)
+	throws IOException{
 
 		// read in some properites to make it faster
 		final char pathsep = Utils.pathsep;
@@ -314,6 +339,13 @@ extends TableAdapter <GroupsAdapter>{
 
 		// the top storage place
 		String top = Utils.getExternalStorageTopPath();
+		if (useAlternate){
+			String top2 = Tools.getMirroredExternalPath(top);
+			if (top2 == null)
+				throw new IOException("No alternate path to create Folder at");
+			else
+				top = top2;
+		}
 
 		// the folder name
 		String path = top + groupName + pathsep;
@@ -339,6 +371,52 @@ extends TableAdapter <GroupsAdapter>{
 	}	
 
 	/**
+	 * Grab the lock object for creating new folders for the given group
+	 * @param groupId the group row id
+	 * @return the lock for a given group Id - will never be null
+	 */
+	private ExpiringValue<Boolean> getCreatingNewFolderLock(long groupId){
+		// create lock first if not existent
+		if (isCreatingNewFolderLock == null){
+			isCreatingNewFolderLock = new HashMap<Long, ExpiringValue<Boolean>>(10);
+		}
+
+		// grab value
+		ExpiringValue<Boolean> isCreating = isCreatingNewFolderLock.get(groupId);
+
+		// if null, then initialize
+		if (isCreating == null){
+			isCreating = new ExpiringValue<Boolean>(MAKE_NEW_FOLDER_TIMOUT, false, false);
+		}
+
+		return isCreating;
+	}
+
+	/**
+	 * Check across a static array if we are currently attempting to create new folders for this group id
+	 * @param groupId the group id to check.
+	 * @return If we are creating or not
+	 */
+	private boolean isCreatingNewFolder(long groupId){
+
+		ExpiringValue<Boolean> isCreating = getCreatingNewFolderLock(groupId);
+
+		// return teh value
+		return isCreating.getValue();
+	}
+
+	/**
+	 * Set that we are creating new folders for this group
+	 * @param groupId the group row id
+	 * @param isCreatingOrNot if we are creating the new folders, or we finished creating the folders
+	 */
+	private void setCreatingNewFolder(long groupId, boolean isCreatingOrNot){
+		ExpiringValue<Boolean> isCreating = getCreatingNewFolderLock(groupId);
+		isCreating.setValue(isCreatingOrNot);
+		isCreatingNewFolderLock.put(groupId, isCreating);
+	}
+
+	/**
 	 * Is the given group based on the serverId present in the database
 	 * @param serverId teh serverId to search
 	 * @return is the group present
@@ -346,21 +424,35 @@ extends TableAdapter <GroupsAdapter>{
 	public boolean isGroupPresent(long serverId){
 		Cursor cursor =
 
-				database.query(
-						true,
-						TABLE_NAME,
-						new String[] {KEY_ROW_ID},
-						KEY_SERVER_ID + "=?",
-						new String[] {String.valueOf(serverId)},
-						null,
-						null,
-						SORT_ORDER,
-						null);
+			database.query(
+					true,
+					TABLE_NAME,
+					new String[] {KEY_ROW_ID},
+					KEY_SERVER_ID + "=?",
+					new String[] {String.valueOf(serverId)},
+					null,
+					null,
+					SORT_ORDER,
+					null);
 		if (cursor == null)
 			return false;
 		boolean value = cursor.moveToFirst();
 		cursor.close();
 		return value;
+	}
+	
+	/**
+	 * Clear all alternate paths in database. Used for debugging purposes
+	 * @return the number of rows updated
+	 */
+	public int clearAlternatePathsForDebugging(){
+		
+		ContentValues values = new ContentValues(3);
+		values.put(KEY_GROUP_TOP_LEVEL_PATH_ALTERNATE, "");
+		values.put(KEY_PICTURE_PATH_ALTERNATE, "");
+		values.put(KEY_THUMBNAIL_PATH_ALTERNATE, "");
+		
+		return database.update(TABLE_NAME, values, null, null);
 	}
 
 	public boolean canIRemoveMembers(Context ctx){
@@ -395,21 +487,26 @@ extends TableAdapter <GroupsAdapter>{
 
 		// The where clause
 		String where = 
-				KEY_ROW_ID + " = ?";
+			KEY_ROW_ID + " = ?";
 
 		// The selection args
 		String[] selectionArgs = {String.valueOf(rowId)};
 
 		// find the path name if we need it later to delete folders
 		Group group = getGroup(rowId);
-		String topPath = group.getGroupFolderName();
+		Group3Folders topPath = group.getDesiredFoldersFromDatabase();
+		Group3Folders alternate = group.getBackupFoldersFromDatabase();
 
 		// add marke for deletion to row
 		boolean updateVal =  database.update(TABLE_NAME, values, where, selectionArgs) > 0;
 
 		// delete folders if they are empty
-		if (com.tools.Tools.isFolderEmpty(topPath, ".nomedia"))
-			com.tools.Tools.deleteEmptyFolder(new File(topPath), ".nomedia");
+		if (topPath.topFolder != null && topPath.topFolder.length() != 0 &&
+				com.tools.Tools.isFolderEmpty(topPath.topFolder, ".nomedia"))
+			com.tools.Tools.deleteEmptyFolder(new File(topPath.topFolder), ".nomedia");
+		if (alternate.topFolder != null && alternate.topFolder.length() != 0 &&
+				com.tools.Tools.isFolderEmpty(alternate.topFolder, ".nomedia"))
+			com.tools.Tools.deleteEmptyFolder(new File(alternate.topFolder), ".nomedia");
 
 		return updateVal;					
 	}
@@ -423,14 +520,15 @@ extends TableAdapter <GroupsAdapter>{
 
 		// The where clause
 		String where = 
-				KEY_ROW_ID + " = ?";
+			KEY_ROW_ID + " = ?";
 
 		// The selection args
 		String[] selectionArgs = {String.valueOf(rowId)};
 
 		// find the path name if we need it later to delete folders
 		Group group = getGroup(rowId);
-		String topPath = group.getGroupFolderName();
+		Group3Folders topPath = group.getDesiredFoldersFromDatabase();
+		Group3Folders alternate = group.getBackupFoldersFromDatabase();
 
 		// delete the row
 		int effected = database.delete(
@@ -443,8 +541,12 @@ extends TableAdapter <GroupsAdapter>{
 			throw new IllegalArgumentException("attempting to delete more than one row in groups. This should never happen");
 
 		// delete folders if they are empty
-		if (com.tools.Tools.isFolderEmpty(topPath, ".nomedia"))
-			com.tools.Tools.deleteEmptyFolder(new File(topPath), ".nomedia");
+		if (topPath.topFolder != null && topPath.topFolder.length() != 0 &&
+				com.tools.Tools.isFolderEmpty(topPath.topFolder, ".nomedia"))
+			com.tools.Tools.deleteEmptyFolder(new File(topPath.topFolder), ".nomedia");
+		if (alternate.topFolder != null && alternate.topFolder.length() != 0 &&
+				com.tools.Tools.isFolderEmpty(alternate.topFolder, ".nomedia"))
+			com.tools.Tools.deleteEmptyFolder(new File(alternate.topFolder), ".nomedia");
 
 		return effected;
 	}
@@ -475,7 +577,7 @@ extends TableAdapter <GroupsAdapter>{
 	public void fetchAllGroups(){
 		setCursor(fetchAllGroupsCursor());
 	}
-	
+
 	/**
 	 * Get the total number of groups.
 	 * @return
@@ -549,14 +651,14 @@ extends TableAdapter <GroupsAdapter>{
 
 		// the query
 		String query = 
-				"SELECT *," + 
-						"CASE WHEN " + KEY_ROW_ID + " = ? THEN 0"
-						+ " ELSE 1 END As ORDER_COL1 "+
-						", CASE WHEN " + KEY_TIME_LAST_PICTURE_ADDED + " >= ? THEN KEY_TIME_LAST_PICTURE_ADDED"
-						+ " ELSE 0 END As ORDER_COL2 "+
-						"FROM " + TABLE_NAME + 
-						" WHERE " + ADDITIONAL_QUERY_NO_AND + 
-						" ORDER BY " + " ORDER_COL1 ASC, ORDER_COL2 DESC, " + KEY_NAME + " COLLATE NOCASE";
+			"SELECT *," + 
+			"CASE WHEN " + KEY_ROW_ID + " = ? THEN 0"
+			+ " ELSE 1 END As ORDER_COL1 "+
+			", CASE WHEN " + KEY_TIME_LAST_PICTURE_ADDED + " >= ? THEN KEY_TIME_LAST_PICTURE_ADDED"
+			+ " ELSE 0 END As ORDER_COL2 "+
+			"FROM " + TABLE_NAME + 
+			" WHERE " + ADDITIONAL_QUERY_NO_AND + 
+			" ORDER BY " + " ORDER_COL1 ASC, ORDER_COL2 DESC, " + KEY_NAME + " COLLATE NOCASE";
 
 		// do the query
 		return database.rawQuery(query, new String[] {String.valueOf(rowId), String.valueOf(thresholdTime)});
@@ -571,16 +673,16 @@ extends TableAdapter <GroupsAdapter>{
 		// grab the cursor
 		Cursor cursor =
 
-				database.query(
-						true,
-						TABLE_NAME,
-						null,
-						KEY_ROW_ID + "='" + rowId +"'" + ADDITIONAL_QUERY,
-						null,
-						null,
-						null,
-						SORT_ORDER,
-						null);
+			database.query(
+					true,
+					TABLE_NAME,
+					null,
+					KEY_ROW_ID + "='" + rowId +"'" + ADDITIONAL_QUERY,
+					null,
+					null,
+					null,
+					SORT_ORDER,
+					null);
 
 		setCursor(cursor);
 		moveToFirst();
@@ -595,16 +697,16 @@ extends TableAdapter <GroupsAdapter>{
 		// grab the cursor
 		Cursor cursor =
 
-				database.query(
-						true,
-						TABLE_NAME,
-						null,
-						KEY_SERVER_ID + " =? " + ADDITIONAL_QUERY,
-						new String[]{String.valueOf(serverId)},
-						null,
-						null,
-						SORT_ORDER,
-						null);
+			database.query(
+					true,
+					TABLE_NAME,
+					null,
+					KEY_SERVER_ID + " =? " + ADDITIONAL_QUERY,
+					new String[]{String.valueOf(serverId)},
+					null,
+					null,
+					SORT_ORDER,
+					null);
 
 		setCursor(cursor);
 		moveToFirst();
@@ -618,17 +720,17 @@ extends TableAdapter <GroupsAdapter>{
 
 		// create the query where we match up all groups that have this picture
 		String query = 
-				"SELECT groups.* FROM "
-						+GroupsAdapter.TABLE_NAME + " groups "
-						+" INNER JOIN "
-						+PicturesInGroupsAdapter.TABLE_NAME + " joinner "
-						+" ON "
-						+"groups." + GroupsAdapter.KEY_ROW_ID + " = "
-						+"joinner." + PicturesInGroupsAdapter.KEY_GROUP_ID
-						+" WHERE "
-						+"joinner." + PicturesInGroupsAdapter.KEY_PICTURE_ID
-						+"=?" + " AND " + "groups." + KEY_AM_I_MEMBER + " ='TRUE' AND " + "groups." + KEY_MARK_FOR_DELETION + " = 'FALSE'"
-						+" ORDER BY " + SORT_ORDER;
+			"SELECT groups.* FROM "
+			+GroupsAdapter.TABLE_NAME + " groups "
+			+" INNER JOIN "
+			+PicturesInGroupsAdapter.TABLE_NAME + " joinner "
+			+" ON "
+			+"groups." + GroupsAdapter.KEY_ROW_ID + " = "
+			+"joinner." + PicturesInGroupsAdapter.KEY_GROUP_ID
+			+" WHERE "
+			+"joinner." + PicturesInGroupsAdapter.KEY_PICTURE_ID
+			+"=?" + " AND " + "groups." + KEY_AM_I_MEMBER + " ='TRUE' AND " + "groups." + KEY_MARK_FOR_DELETION + " = 'FALSE'"
+			+" ORDER BY " + SORT_ORDER;
 
 		// do the query
 		Cursor cursor = database.rawQuery(
@@ -656,11 +758,11 @@ extends TableAdapter <GroupsAdapter>{
 
 		// build the where clause
 		String where = "(" + KEY_SERVER_ID + " =? OR " + KEY_SERVER_ID + " =? OR " + KEY_SERVER_ID + " IS NULL ) AND " +
-				"(" + KEY_KEEP_LOCAL + " =? OR UPPER(" + KEY_KEEP_LOCAL + ") =?) AND " +
-				"((" + KEY_IS_UPDATING + " =? OR UPPER(" + KEY_IS_UPDATING + ") =?) OR " + 
-				"(Datetime(" + KEY_LAST_UPDATE_ATTEMPT_TIME + ") < Datetime('" + timeAgo + "'))) AND " +
-				"(" + KEY_IS_SYNCED + " =? OR UPPER(" + KEY_IS_SYNCED + ") =?) AND " +
-				"(" + KEY_MARK_FOR_DELETION + " =? OR UPPER(" + KEY_MARK_FOR_DELETION + ") =?)";
+		"(" + KEY_KEEP_LOCAL + " =? OR UPPER(" + KEY_KEEP_LOCAL + ") =?) AND " +
+		"((" + KEY_IS_UPDATING + " =? OR UPPER(" + KEY_IS_UPDATING + ") =?) OR " + 
+		"(Datetime(" + KEY_LAST_UPDATE_ATTEMPT_TIME + ") < Datetime('" + timeAgo + "'))) AND " +
+		"(" + KEY_IS_SYNCED + " =? OR UPPER(" + KEY_IS_SYNCED + ") =?) AND " +
+		"(" + KEY_MARK_FOR_DELETION + " =? OR UPPER(" + KEY_MARK_FOR_DELETION + ") =?)";
 
 		// where args
 		String[] whereArgs = {
@@ -673,16 +775,16 @@ extends TableAdapter <GroupsAdapter>{
 		// grab the cursor
 		Cursor cursor =
 
-				database.query(
-						true,
-						TABLE_NAME,
-						null,
-						where,
-						whereArgs,
-						null,
-						null,
-						SORT_ORDER,
-						null);
+			database.query(
+					true,
+					TABLE_NAME,
+					null,
+					where,
+					whereArgs,
+					null,
+					null,
+					SORT_ORDER,
+					null);
 
 		// set the cursor
 		setCursor(cursor);
@@ -769,6 +871,7 @@ extends TableAdapter <GroupsAdapter>{
 						FetchPictureIdReturn processed = fetchPictureIdsFromServerHelper(groupServerId, result);
 
 						// send callback back to activity
+						//TODO: we should be passing how many deletions we had too, so we can delete the pics
 						if (callback != null){
 							if (processed.exception == null)
 								callback.onItemsFetchedBackground(act, processed.nNewPictures, null);
@@ -864,7 +967,7 @@ extends TableAdapter <GroupsAdapter>{
 					if(!pics.isPicturePresent(array.getLong(i))){
 
 						// determine the path to store files
-						TwoStrings picNames = group.getNextPictureName();
+						TwoStrings picNames = group.getNextPictureName(true);
 
 						// create the picture in the database
 						long rowId = pics.createPicture(
@@ -899,6 +1002,13 @@ extends TableAdapter <GroupsAdapter>{
 					continue;
 				} catch (JSONException e) {
 					Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+					continue;
+				} catch (IOException e) {
+					Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+					if (ctx != null){
+						NotificationsAdapter notes = new NotificationsAdapter(ctx);
+						notes.createNotification("Cannot download pictures.", NOTIFICATION_TYPES.DEVICE_ERROR, "");
+					}
 					continue;
 				}
 			}
@@ -1227,16 +1337,16 @@ extends TableAdapter <GroupsAdapter>{
 
 		// get the cursor
 		Cursor cursor = 
-				database.query(
-						true,
-						TABLE_NAME,
-						null,
-						KEY_KEEP_LOCAL + " >'0'" + ADDITIONAL_QUERY,
-						null,
-						null,
-						null,
-						SORT_ORDER,
-						null);
+			database.query(
+					true,
+					TABLE_NAME,
+					null,
+					KEY_KEEP_LOCAL + " >'0'" + ADDITIONAL_QUERY,
+					null,
+					null,
+					null,
+					SORT_ORDER,
+					null);
 
 		// initalize output
 		ArrayList<Group> output = new ArrayList<Group>();
@@ -1295,16 +1405,16 @@ extends TableAdapter <GroupsAdapter>{
 		// grab the cursor
 		Cursor cursor =
 
-				database.query(
-						true,
-						TABLE_NAME,
-						null,
-						KEY_ROW_ID + "='" + rowId +"'" + ADDITIONAL_QUERY,
-						null,
-						null,
-						null,
-						SORT_ORDER,
-						null);
+			database.query(
+					true,
+					TABLE_NAME,
+					null,
+					KEY_ROW_ID + "='" + rowId +"'" + ADDITIONAL_QUERY,
+					null,
+					null,
+					null,
+					SORT_ORDER,
+					null);
 
 		// check null
 		if (cursor == null)
@@ -1340,16 +1450,16 @@ extends TableAdapter <GroupsAdapter>{
 		// grab the cursor
 		Cursor cursor =
 
-				database.query(
-						true,
-						TABLE_NAME,
-						null,
-						KEY_SERVER_ID + "=?" + ADDITIONAL_QUERY,
-						new String[] {String.valueOf(serverId)},
-						null,
-						null,
-						SORT_ORDER,
-						null);
+			database.query(
+					true,
+					TABLE_NAME,
+					null,
+					KEY_SERVER_ID + "=?" + ADDITIONAL_QUERY,
+					new String[] {String.valueOf(serverId)},
+					null,
+					null,
+					SORT_ORDER,
+					null);
 
 		// check null
 		if (cursor == null)
@@ -1419,14 +1529,14 @@ extends TableAdapter <GroupsAdapter>{
 
 		// get the cursor
 		Cursor cursor = 
-				database.query(
-						TABLE_NAME,
-						null,
-						selection.mObject1 + ADDITIONAL_QUERY,
-						selection.mObject2,
-						null,
-						null,
-						SORT_ORDER);
+			database.query(
+					TABLE_NAME,
+					null,
+					selection.mObject1 + ADDITIONAL_QUERY,
+					selection.mObject2,
+					null,
+					null,
+					SORT_ORDER);
 
 		// check null
 		if (cursor == null)
@@ -1566,7 +1676,7 @@ extends TableAdapter <GroupsAdapter>{
 		groupName = groupName.trim();
 
 		// find the allowable folder name and create it
-		ThreeObjects<String, String, String> folderNames;
+		FoldersWritten folderNames;
 		try {
 			folderNames = makeRequiredFolders(ctx, groupName, dateCreated);
 		} catch (IOException e) {
@@ -1585,9 +1695,24 @@ extends TableAdapter <GroupsAdapter>{
 		values.put(KEY_LATITUDE, longitude);
 		values.put(KEY_ALLOW_PUBLIC_WITHIN_DISTANCE, allowPublicWithinDistance);
 		values.put(KEY_KEEP_LOCAL, keepLocal);
-		values.put(KEY_GROUP_TOP_LEVEL_PATH, folderNames.mObject1);
-		values.put(KEY_PICTURE_PATH, folderNames.mObject2);
-		values.put(KEY_THUMBNAIL_PATH, folderNames.mObject3);
+
+		// where to store names
+		if (folderNames.isStoreAlternate){
+			values.put(KEY_GROUP_TOP_LEVEL_PATH_ALTERNATE, folderNames.topFolder);
+			values.put(KEY_PICTURE_PATH_ALTERNATE, folderNames.picFolder);
+			values.put(KEY_THUMBNAIL_PATH_ALTERNATE, folderNames.thumbFolder);
+			values.put(KEY_GROUP_TOP_LEVEL_PATH, "");
+			values.put(KEY_PICTURE_PATH, "");
+			values.put(KEY_THUMBNAIL_PATH, "");
+		}else{
+			values.put(KEY_GROUP_TOP_LEVEL_PATH, folderNames.topFolder);
+			values.put(KEY_PICTURE_PATH, folderNames.picFolder);
+			values.put(KEY_THUMBNAIL_PATH, folderNames.thumbFolder);
+			values.put(KEY_GROUP_TOP_LEVEL_PATH_ALTERNATE, "");
+			values.put(KEY_PICTURE_PATH_ALTERNATE, "");
+			values.put(KEY_THUMBNAIL_PATH_ALTERNATE, "");
+		}
+
 		values.put(KEY_NUMBER_OF_PICS, nPictures);
 
 		// create new row
@@ -1771,16 +1896,78 @@ extends TableAdapter <GroupsAdapter>{
 	 * @return threeObjects<String, String, STring> with top level folder, pictures folder, and thumbnails folder
 	 * @throws IOException 
 	 */
-	private ThreeObjects<String, String, String>
-	makeRequiredFolders(Context ctx, String groupName, String dateCreated)
-			throws IOException{
-
+	private FoldersWritten makeRequiredFolders(Context ctx, String groupName, String dateCreated)
+	throws IOException{
 		// check sd card mounted
 		if (!com.tools.Tools.isStorageAvailable(true))
 			throw new IOException("SD card not mounted and writable");
 
+		// should we use the alternate storage location?
+		boolean useAlternate = false;
+		if (Prefs.isStoreExternal(ctx))
+			useAlternate = true;
+
+		// actually write the folders
+		TwoObjects<String, TwoStrings> helper = null;
+		String folderName = null;
+		TwoStrings subFolders = null;
+		try{
+			helper = makeRequiredFoldersHelper(groupName, dateCreated, useAlternate);
+			folderName = helper.mObject1;
+			subFolders = helper.mObject2;
+		}catch(IOException e){
+			// try again with other
+			useAlternate = !useAlternate;
+			helper = makeRequiredFoldersHelper(groupName, dateCreated, useAlternate);
+			folderName = helper.mObject1;
+			subFolders = helper.mObject2;
+		}
+
+		// the output
+		FoldersWritten output = new FoldersWritten(folderName, subFolders.mObject1, subFolders.mObject2, useAlternate);
+
+		// return the three folders.
+		return output;
+	}
+
+	/**
+	 * Class used as output for when we write folders for this group
+	 * @author Kyle
+	 *
+	 */
+	private static class FoldersWritten{
+		private String topFolder;
+		private String picFolder;
+		private String thumbFolder;
+		private boolean isStoreAlternate = true;
+
+		public FoldersWritten(String topFolder,
+				String picFolder,
+				String thumbFolder,
+				boolean isStoreAlternate) {
+			this.topFolder = topFolder;
+			this.picFolder = picFolder;
+			this.thumbFolder = thumbFolder;
+			this.isStoreAlternate = isStoreAlternate;
+		}
+
+	}
+
+	/**
+	 * Make folders at the main or alternate location depending on input. Will make sure we are writting to a new folder
+	 * (appending the date and 1,2,3... if necessary to avoid collisions)
+	 * @param groupName The name of the group
+	 * @param dateCreated The date group was created (for folder naming if required)
+	 * @param useAlternate Should we write to main or alternate location
+	 * @return The top folder, picture folder, and thumb folder
+	 * @throws IOException if creation failed
+	 */
+	private TwoObjects<String, TwoStrings> makeRequiredFoldersHelper(
+			String groupName, String dateCreated, boolean useAlternate)
+			throws IOException{
+
 		// the name
-		String folderName = getAllowableFolderName(ctx, groupName, dateCreated);
+		String folderName = getAllowableFolderName(ctx, groupName, dateCreated, useAlternate);
 
 		// now make the folder
 		File dir = new File(folderName);
@@ -1795,6 +1982,7 @@ extends TableAdapter <GroupsAdapter>{
 		File dir3 = new File(subFolders.mObject2);
 		if(!dir3.mkdirs())
 			throw new IOException("Cannot create folder " + subFolders.mObject2);
+
 		// the no media file
 		File nomedia = new File(dir3, ".nomedia");
 		if (!nomedia.exists()){
@@ -1805,11 +1993,7 @@ extends TableAdapter <GroupsAdapter>{
 			}
 		}
 
-		ThreeObjects<String, String, String> output =
-				new ThreeObjects<String, String, String>(folderName, subFolders.mObject1, subFolders.mObject2);
-
-		// return the three folders.
-		return output;
+		return new TwoObjects<String, TwoStrings>(folderName, subFolders);
 	}
 
 	@Override
@@ -1821,7 +2005,7 @@ extends TableAdapter <GroupsAdapter>{
 	 * @param rowId the rowId of the group to update
 	 * @param number
 	 */
-	protected boolean setLastPictureNumberD(long rowId, long number){
+	protected boolean setLastPictureNumberDD(long rowId, long number){
 
 		ContentValues values = new ContentValues();
 		values.put(KEY_LAST_PICTURE_NUMBER, number);	
@@ -1852,10 +2036,10 @@ extends TableAdapter <GroupsAdapter>{
 			KEY_ROW_ID + " =?";
 			 */
 			String command = "UPDATE " + TABLE_NAME + " SET " + 
-					KEY_LAST_PICTURE_NUMBER + " = " + KEY_LAST_PICTURE_NUMBER + " + 1, "+
-					KEY_NUMBER_OF_PICS + " = " + KEY_NUMBER_OF_PICS + " + 1, "+
-					KEY_TIME_LAST_PICTURE_ADDED + " = '" + (new Date()).getTime() + "' WHERE " + 
-					KEY_ROW_ID + " =?";
+			KEY_LAST_PICTURE_NUMBER + " = " + KEY_LAST_PICTURE_NUMBER + " + 1, "+
+			KEY_NUMBER_OF_PICS + " = " + KEY_NUMBER_OF_PICS + " + 1, "+
+			KEY_TIME_LAST_PICTURE_ADDED + " = '" + (new Date()).getTime() + "' WHERE " + 
+			KEY_ROW_ID + " =?";
 
 			try{
 				//database.execSQL(command1, new String[] {String.valueOf(rowId)});
@@ -1877,8 +2061,8 @@ extends TableAdapter <GroupsAdapter>{
 
 			// update the value
 			String command = "UPDATE " + TABLE_NAME + " SET " + 
-					KEY_LAST_PICTURE_NUMBER + " = " + KEY_LAST_PICTURE_NUMBER + " + 1 "+
-					" WHERE " + KEY_ROW_ID + " =?";
+			KEY_LAST_PICTURE_NUMBER + " = " + KEY_LAST_PICTURE_NUMBER + " + 1 "+
+			" WHERE " + KEY_ROW_ID + " =?";
 			try{
 				database.execSQL(command, new String[] {String.valueOf(rowId)});
 			}catch(SQLException e){
@@ -1893,8 +2077,8 @@ extends TableAdapter <GroupsAdapter>{
 	 */
 	protected void decrementPictureNumber(long groupRowId){
 		String command = "UPDATE " + TABLE_NAME + " SET " + 
-				KEY_NUMBER_OF_PICS + " = " + KEY_NUMBER_OF_PICS + " - 1 "+
-				" WHERE " + KEY_ROW_ID + " =?";
+		KEY_NUMBER_OF_PICS + " = " + KEY_NUMBER_OF_PICS + " - 1 "+
+		" WHERE " + KEY_ROW_ID + " =?";
 
 		try{
 			//database.execSQL(command1, new String[] {String.valueOf(rowId)});
@@ -1929,6 +2113,9 @@ extends TableAdapter <GroupsAdapter>{
 		private String groupFolderName;
 		private String picturePath;
 		private String thumbnailPath;
+		private String groupFolderNameAlternate;
+		private String picturePathAlternate;
+		private String thumbnailPathAlternate;
 		private boolean keepLocal;
 		private String lastUpdateAttemptTime;
 		private String pictureThumbPath;
@@ -1963,7 +2150,11 @@ extends TableAdapter <GroupsAdapter>{
 			setPicturePath(cursor.getString(cursor.getColumnIndexOrThrow(KEY_PICTURE_PATH)));
 			setThumbnailPath(cursor.getString(cursor.getColumnIndexOrThrow(KEY_THUMBNAIL_PATH)));
 			setUpdating(cursor.getInt(cursor.getColumnIndexOrThrow(KEY_IS_UPDATING))>0);
-			setSynced(cursor.getInt(cursor.getColumnIndexOrThrow(KEY_IS_SYNCED))>0);			
+			setSynced(cursor.getInt(cursor.getColumnIndexOrThrow(KEY_IS_SYNCED))>0);
+
+			setGroupFolderNameAlternate(cursor.getString(cursor.getColumnIndexOrThrow(KEY_GROUP_TOP_LEVEL_PATH_ALTERNATE)));
+			setPicturePathAlternate(cursor.getString(cursor.getColumnIndexOrThrow(KEY_PICTURE_PATH_ALTERNATE)));
+			setThumbnailPathAlternate(cursor.getString(cursor.getColumnIndexOrThrow(KEY_THUMBNAIL_PATH_ALTERNATE)));
 		}
 
 		public boolean canUserAddMembers(Context ctx){
@@ -2007,13 +2198,6 @@ extends TableAdapter <GroupsAdapter>{
 
 		public String getDateCreated() {
 			return dateCreated;
-		}
-		/**
-		 * The full path to the top level folder name of this group.
-		 * @return
-		 */
-		public String getGroupFolderName() {
-			return groupFolderName;
 		}
 
 		/**
@@ -2069,19 +2253,26 @@ extends TableAdapter <GroupsAdapter>{
 
 		/**
 		 * Get the next picture name that we can write to. Full path
-		 * @param groupId The groupId where we want the next picture number
+		 * @param useDesiredLocation Do we want to force to the backup folder (false) or use normal location (true)
 		 * @return The full path to the next available picture name and thumbnail name
 		 *  in the given groupId.
+		 * @throws IOException if we can't write folders and therefore there is no way to get a next picture
 		 */
-		public TwoStrings getNextPictureName(){
+		public TwoStrings getNextPictureName(boolean useDesiredLocation)
+		throws IOException{
 			//TODO: this could be really slow as it iterates trying to find the best picture number.
 
 			// get the current last number
 			long newNumber = getNextPictureNumber();
 
 			// now check the picture and thumbnail to make sure they are available, if not, go up one
-			String pathPicture = getPicturePath();
-			String pathThumbnail = getThumbnailPath();
+			Group3Folders folders = null;
+			if (useDesiredLocation)
+				folders = writeFoldersIfNeeded();
+			else
+				folders = writeBackupFoldersIfNeeded();
+			String pathPicture = folders.picFolder;
+			String pathThumbnail = folders.thumbFolder;
 			while ((new File(Utils.makeFullFileName(pathPicture, newNumber))).exists() ||
 					(new File(Utils.makeFullFileName(pathThumbnail, newNumber))).exists())
 				newNumber++;
@@ -2091,6 +2282,7 @@ extends TableAdapter <GroupsAdapter>{
 					Utils.makeFullFileName(pathPicture, newNumber),
 					Utils.makeFullFileName(pathThumbnail, newNumber));
 		}
+
 		/**
 		 * Return the picture path for the group. If none, then grabs the most recent picture
 		 * @param ctx Context is required, if we have not previously called this method on this exact object (not just the group, but the Java object).
@@ -2125,13 +2317,6 @@ extends TableAdapter <GroupsAdapter>{
 
 			return pictureId;
 		}
-		/**
-		 * Get the top path for all pictures. ie /sdcard/shareBear/folder1/pictures/
-		 * @return The full path to the pictures folder
-		 */
-		public String getPicturePath(){
-			return picturePath;
-		}
 
 		/**
 		 * Return the thumbnail for the group picture path. If none, thn grabs the most recent picture
@@ -2154,13 +2339,7 @@ extends TableAdapter <GroupsAdapter>{
 		public long getServerId() {
 			return serverId;
 		}
-		/**
-		 * Get the top path for all thumbnail. ie /sdcard/shareBear/folder1/thumbnails/
-		 * @return The full path to the pictures folder
-		 */
-		public String getThumbnailPath() {
-			return thumbnailPath;
-		}
+
 		public long getUserIdWhoCreated() {
 			return userIdWhoCreated;
 		}
@@ -2213,17 +2392,213 @@ extends TableAdapter <GroupsAdapter>{
 			else
 				return getName();
 		}
+
 		/**
-		 * Write the folders that need to be created before writing a picture to file.
+		 * Get the folders we want to write to read from sql database
+		 * @return
+		 */
+		private Group3Folders getDesiredFoldersFromDatabase(){
+			boolean useAlternate = false;
+			if (Prefs.isStoreExternal(ctx))
+				useAlternate = true;
+
+			// create the folders object
+			Group3Folders out = null;
+			if (useAlternate)
+				out = getAlternateFoldersFromDatabase();
+			else
+				out = getNormalFoldersFromDatabase();
+
+			return out;
+		}
+
+		/**
+		 * Get the folders we want to write to read from memory
+		 * @return
+		 */
+		private Group3Folders getDesiredFoldersFromMemory(){
+			boolean useAlternate = false;
+			if (Prefs.isStoreExternal(ctx))
+				useAlternate = true;
+
+			// create the folders object
+			Group3Folders out = null;
+			if (useAlternate)
+				out = new Group3Folders(
+						groupFolderNameAlternate,
+						picturePathAlternate,
+						thumbnailPathAlternate);
+			else
+				out = new Group3Folders(
+						groupFolderName,
+						picturePath,
+						thumbnailPath);
+
+			return out;
+		}
+
+		/**
+		 * Get the folders we dont' want to write to but will if we have to from sql database
+		 * @return
+		 */
+		private Group3Folders getBackupFoldersFromDatabase(){
+			boolean useAlternate = false;
+			if (Prefs.isStoreExternal(ctx))
+				useAlternate = true;
+			useAlternate = !useAlternate;
+
+			// create the folders object
+			Group3Folders out = null;
+			if (useAlternate)
+				out = getAlternateFoldersFromDatabase();
+			else
+				out = getNormalFoldersFromDatabase();
+
+			return out;
+		}
+
+		/**
+		 * Get the folders we dont' want to write to but will if we have to from memory
+		 * @return
+		 */
+		private Group3Folders getBackupFoldersFromMemory(){
+			boolean useAlternate = false;
+			if (Prefs.isStoreExternal(ctx))
+				useAlternate = true;
+			useAlternate = !useAlternate;
+
+			// create the folders object
+			Group3Folders out = null;
+			if (useAlternate)
+				out = new Group3Folders(
+						groupFolderNameAlternate,
+						picturePathAlternate,
+						thumbnailPathAlternate);
+			else
+				out = new Group3Folders(
+						groupFolderName,
+						picturePath,
+						thumbnailPath);
+
+			return out;
+		}
+
+		/**
+		 * Get the normal location folders directly from the database
+		 * @return The desired folders
+		 */
+		private Group3Folders getNormalFoldersFromDatabase(){
+			synchronized (getCreatingNewFolderLock(getRowId())) {
+				Group group = getGroup(getRowId());
+				return new Group3Folders(group.groupFolderName, group.picturePath, group.thumbnailPath);
+			}
+		}
+
+		/**
+		 * Get the altenrate location folders directly from the database
+		 * @return The desired folders
+		 */
+		private Group3Folders getAlternateFoldersFromDatabase(){
+			synchronized (getCreatingNewFolderLock(getRowId())) {
+				Group group = getGroup(getRowId());
+				return new Group3Folders(
+						group.groupFolderNameAlternate,
+						group.picturePathAlternate,
+						group.thumbnailPathAlternate);
+			}
+		}
+
+		/**
+		 * Write the folders that need to be created before writing a picture to file. Will write to backup location if required.
+		 * @return the top level path where folders were written
 		 * @throws IOException if we can't create the folders
 		 */
-		public void writeFoldersIfNeeded()
-				throws IOException{
+		public Group3Folders writeFoldersIfNeeded()
+		throws IOException{
 
 			// get the folders
-			String topFolder = getGroupFolderName();
-			String picFolder = getPicturePath();
-			String thumbFolder = getThumbnailPath();
+			Group3Folders folders = getDesiredFoldersFromMemory();
+
+			// check folders directly from database if empty
+			if (folders.isGroupsEmpty())
+				folders = getDesiredFoldersFromDatabase();
+
+			// if the folders are still empty and we are waiting for them to be created, then wait
+			while (folders.isGroupsEmpty() && isCreatingNewFolder(getRowId())){
+				ExpiringValue<Boolean> lock = getCreatingNewFolderLock(getRowId());
+				synchronized(lock){
+					try {
+						lock.wait((long)(GroupsAdapter.MAKE_NEW_FOLDER_TIMOUT*1000));
+					}catch(InterruptedException e){
+						Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+					}
+					folders = getDesiredFoldersFromMemory();
+				}
+			}
+
+			// if we're still empty, then make the folders
+			if (folders.isGroupsEmpty()){
+				try{
+					return makeRequiredFolderAtDesiredLocation();
+				}catch(IOException exception){
+					// if we errored, then write to backup folders
+					return makeRequiredFolderAtBackupLocation();
+				}
+			}else{
+				// write the folders if needed
+				writeFoldersIfNeededHelper(folders.topFolder, folders.picFolder, folders.thumbFolder);
+				return folders;
+			}
+		}
+
+
+		/**
+		 * Write the folders that need to be created before writing a picture to file at the backup location
+		 * @return the top level path where folders were written
+		 * @throws IOException if we can't create the folders
+		 */
+		public Group3Folders writeBackupFoldersIfNeeded()
+		throws IOException{
+
+			// get the folders
+			Group3Folders folders = getBackupFoldersFromMemory();
+
+			// check folders directly from database if empty
+			if (folders.isGroupsEmpty())
+				folders = getBackupFoldersFromDatabase();
+
+			// if the folders are still empty and we are waiting for them to be created, then wait
+			while (folders.isGroupsEmpty() && isCreatingNewFolder(getRowId())){
+				ExpiringValue<Boolean> lock = getCreatingNewFolderLock(getRowId());
+				synchronized(lock){
+					try {
+						lock.wait((long)(GroupsAdapter.MAKE_NEW_FOLDER_TIMOUT*1000));
+					}catch(InterruptedException e){
+						Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+					}
+					folders = getBackupFoldersFromDatabase();
+				}
+			}
+
+			// if we're still empty, then make the folders
+			if (folders.isGroupsEmpty())
+					return makeRequiredFolderAtBackupLocation();
+			else{
+				// write the folders if needed
+				writeFoldersIfNeededHelper(folders.topFolder, folders.picFolder, folders.thumbFolder);
+				return folders;
+			}
+		}
+
+		/**
+		 * Helper that simply creates the required folders need to store pictures. Also creates the .nomedia file in thumbs
+		 * @param topFolder The top level folder
+		 * @param picFolder The picture folder
+		 * @param thumbFolder The thumb folder
+		 * @throws IOException if we cannot create any of the files
+		 */
+		private void writeFoldersIfNeededHelper(String topFolder, String picFolder, String thumbFolder)
+		throws IOException{
 
 			// check for existence and make if not exist
 			File dir1 = new File(topFolder);
@@ -2251,6 +2626,166 @@ extends TableAdapter <GroupsAdapter>{
 				}
 			}
 		}
+
+		/**
+		 * Write the required folders and update database at the other location if needed. Not necessarilly the external storage, but just the non-user selected
+		 * @return 
+		 * @throws IOException If we failed
+		 */
+		private Group3Folders makeRequiredFolderAtBackupLocation()
+		throws IOException{
+			ExpiringValue<Boolean> lock = getCreatingNewFolderLock(getRowId());
+			synchronized (lock){
+				try{
+					// keep track that we are writing
+					setCreatingNewFolder(getRowId(), true);
+
+					// get the group name
+					String name = getName();
+					if (name == null || name.length() == 0)
+						throw new IOException("Group has no name to write as folder");
+
+					// check sd card mounted
+					if (!com.tools.Tools.isStorageAvailable(true))
+						throw new IOException("SD card not mounted and writable");
+
+					// should we use the alternate storage location?
+					boolean useAlternate = false;
+					if (Prefs.isStoreExternal(ctx))
+						useAlternate = true;
+
+					// now we want opposite, so switch it
+					useAlternate = !useAlternate;
+
+					// date created
+					String dateCreated = getDateCreated();
+
+					// make the folders
+					TwoObjects<String, TwoStrings> helper = makeRequiredFoldersHelper(name, dateCreated, useAlternate);
+
+					// what values to write to database
+					ContentValues values = new ContentValues(3);
+					if (useAlternate){
+						values.put(KEY_GROUP_TOP_LEVEL_PATH_ALTERNATE, helper.mObject1);
+						values.put(KEY_PICTURE_PATH_ALTERNATE, helper.mObject2.mObject1);
+						values.put(KEY_THUMBNAIL_PATH_ALTERNATE, helper.mObject2.mObject2);
+					}else{
+						values.put(KEY_GROUP_TOP_LEVEL_PATH, helper.mObject1);
+						values.put(KEY_PICTURE_PATH, helper.mObject2.mObject1);
+						values.put(KEY_THUMBNAIL_PATH, helper.mObject2.mObject2);
+					}
+
+					// where to write
+					final String where = KEY_ROW_ID + " =?";			
+
+					// write it
+					int update = database.update(TABLE_NAME, values, where, new String[] {String.valueOf(getRowId())});
+
+					// store in local object
+					if (useAlternate){
+						setGroupFolderNameAlternate(helper.mObject1);
+						setPicturePathAlternate(helper.mObject2.mObject1);
+						setThumbnailPathAlternate(helper.mObject2.mObject2);
+					}else{
+						setGroupFolderName(helper.mObject1);
+						setPicturePath(helper.mObject2.mObject1);
+						setThumbnailPath(helper.mObject2.mObject2);
+					}
+
+					// error if we couldn't update
+					if (update < 1)
+						throw new IOException("Could not update database");
+
+					// keep track that we are writing
+					setCreatingNewFolder(getRowId(), false);
+					lock.notifyAll();
+
+					return getBackupFoldersFromMemory();
+				}catch(IOException e){
+					lock.notifyAll();
+					throw(e);
+				}
+			}
+		}
+
+		/**
+		 * Write the required folders and update database at the desired location if needed. Not necessarilly the internal storage, but just the user selected
+		 * @return the folders written
+		 * @throws IOException If we failed
+		 */
+		private Group3Folders makeRequiredFolderAtDesiredLocation()
+		throws IOException{
+			ExpiringValue<Boolean> lock = getCreatingNewFolderLock(getRowId());
+			synchronized (lock){
+				try{
+					// keep track that we are writing
+					setCreatingNewFolder(getRowId(), true);
+
+					// get the group name
+					String name = getName();
+					if (name == null || name.length() == 0)
+						throw new IOException("Group has no name to write as folder");
+
+					// check sd card mounted
+					if (!com.tools.Tools.isStorageAvailable(true))
+						throw new IOException("SD card not mounted and writable");
+
+					// should we use the alternate storage location?
+					boolean useAlternate = false;
+					if (Prefs.isStoreExternal(ctx))
+						useAlternate = true;
+
+					// date created
+					String dateCreated = getDateCreated();
+
+					// make the folders
+					TwoObjects<String, TwoStrings> helper = makeRequiredFoldersHelper(name, dateCreated, useAlternate);
+
+					// what values to write to database
+					ContentValues values = new ContentValues(3);
+					if (useAlternate){
+						values.put(KEY_GROUP_TOP_LEVEL_PATH_ALTERNATE, helper.mObject1);
+						values.put(KEY_PICTURE_PATH_ALTERNATE, helper.mObject2.mObject1);
+						values.put(KEY_THUMBNAIL_PATH_ALTERNATE, helper.mObject2.mObject2);
+					}else{
+						values.put(KEY_GROUP_TOP_LEVEL_PATH, helper.mObject1);
+						values.put(KEY_PICTURE_PATH, helper.mObject2.mObject1);
+						values.put(KEY_THUMBNAIL_PATH, helper.mObject2.mObject2);
+					}
+
+					// where to write
+					final String where = KEY_ROW_ID + " =?";			
+
+					// write it
+					int update = database.update(TABLE_NAME, values, where, new String[] {String.valueOf(getRowId())});
+
+					// store in local object
+					if (useAlternate){
+						setGroupFolderNameAlternate(helper.mObject1);
+						setPicturePathAlternate(helper.mObject2.mObject1);
+						setThumbnailPathAlternate(helper.mObject2.mObject2);
+					}else{
+						setGroupFolderName(helper.mObject1);
+						setPicturePath(helper.mObject2.mObject1);
+						setThumbnailPath(helper.mObject2.mObject2);
+					}
+
+					// error if we couldn't update
+					if (update < 1)
+						throw new IOException("Could not update database");
+
+					// keep track that we are writing
+					setCreatingNewFolder(getRowId(), false);
+
+					lock.notifyAll();
+					return getDesiredFoldersFromMemory();
+				}catch(IOException e){
+					lock.notifyAll();
+					throw(e);
+				}
+			}
+		}
+
 		/**
 		 * compare each field in this class to be equal
 		 * @param group
@@ -2294,6 +2829,10 @@ extends TableAdapter <GroupsAdapter>{
 			this.groupFolderName = groupFolderName;
 		}
 
+		private void setGroupFolderNameAlternate(String groupFolderName) {
+			this.groupFolderNameAlternate = groupFolderName;
+		}
+
 		private void setKeepLocal(boolean keepLocal) {
 			this.keepLocal = keepLocal;
 		}
@@ -2324,6 +2863,10 @@ extends TableAdapter <GroupsAdapter>{
 
 		private void setPicturePath(String path){
 			picturePath = path;
+		}
+
+		private void setPicturePathAlternate(String path){
+			picturePathAlternate = path;
 		}
 
 		public boolean didIMakeGroup(Context ctx){
@@ -2358,12 +2901,46 @@ extends TableAdapter <GroupsAdapter>{
 			this.thumbnailPath = thumbnailPath;
 		}
 
+		private void setThumbnailPathAlternate(String thumbnailPath) {
+			this.thumbnailPathAlternate = thumbnailPath;
+		}
+
 		private void setUpdating(boolean isUpdating) {
 			this.isUpdating = isUpdating;
 		}
 
 		private void setUserIdWhoCreated(long userIdWhoCreated) {
 			this.userIdWhoCreated = userIdWhoCreated;
+		}
+	}
+
+	/**
+	 * Class used to determine exactly which folder we will attempt to write pictures to.
+	 * @author Kyle
+	 *
+	 */
+	public static class Group3Folders{
+		public String topFolder;
+		public String picFolder;
+		public String thumbFolder;
+
+		private Group3Folders(String topFolder, String picFolder, String thumbFolder) {
+			this.topFolder = topFolder;
+			this.picFolder = picFolder;
+			this.thumbFolder = thumbFolder;
+		}
+
+		/**
+		 * Are the group contained in this object empty?
+		 * @return
+		 */
+		public boolean isGroupsEmpty(){
+			if (topFolder != null && topFolder.length() != 0
+					&& picFolder != null && picFolder.length() != 0
+					&& thumbFolder != null && thumbFolder.length() != 0)
+				return false;
+			else
+				return true;
 		}
 	}
 

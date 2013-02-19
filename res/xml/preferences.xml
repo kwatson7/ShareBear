@@ -19,6 +19,18 @@
             android:defaultValue="true"
             android:dependency="@string/BACKGROUND_POLLING_AUTO_START"
         />
+        <CheckBoxPreference 
+            android:key="@string/HIGH_DEF_RENDERING"
+            android:summary="Enable to allow high definition zooming, but may cause memory failures"
+            android:title="High Def zooming?" 
+            android:defaultValue="false"
+        />
+         <CheckBoxPreference 
+            android:key="@string/STORE_EXTERNAL_SD_DEFAULT"
+            android:summary="Store on external SD card vs internal memory by default. Make sure you have an sd card."
+            android:title="External Store by default?" 
+            android:defaultValue="false"
+        />
            
     </PreferenceCategory>
     

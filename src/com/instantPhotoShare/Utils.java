@@ -21,6 +21,9 @@ import com.tools.ServerPost;
 import com.tools.SuccessReason;
 import com.tools.ServerPost.FileType;
 import com.tools.ServerPost.ServerReturn;
+import com.tools.Tools;
+import com.tools.TwoStrings;
+
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -30,7 +33,9 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Environment;
 import android.util.Log;
+import android.view.Display;
 import android.view.View;
+import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 
@@ -56,6 +61,7 @@ public class Utils {
 	public static final String APP_URL = "http://www.sharebearapp.com/download";
 	public static final String DEVELOPER_EMAIL = "info@sharebearapp.com";
 	public static final String GMAIL_SEARCH_TERM = "Share Bear";
+	public static final long PICTURE_REQUIRED_BYTES = 5000000;
 
 	// keys for sending to server
 	/** The key for the data to post to server */
@@ -166,6 +172,31 @@ public class Utils {
 		path += appPath + pathsep;
 
 		return path;
+	}
+	
+	/**
+	 * Correct the file path to be underneith the folder path
+	 * @param folderPath Where the file should be located
+	 * @param filePath The original file path
+	 * @return The new file path
+	 */
+	public static String putFilePathUnderFolder(String folderPath, String filePath){
+		File file = new File(filePath);
+		
+		File newfile = new File(new File(folderPath), file.getName());
+		
+		return newfile.getAbsolutePath();
+	}
+	
+	/**
+	 * Correct teh file paths to be underneight the folder path
+	 * @param folderPath Where the files should be located
+	 * @param filePaths The original file paths
+	 * @return The new file paths
+	 */
+	public static TwoStrings putFilePathUnderFolder(String folderPath, TwoStrings filePaths){
+		return new TwoStrings(putFilePathUnderFolder(folderPath, filePaths.mObject1), 
+				putFilePathUnderFolder(folderPath, filePaths.mObject2));
 	}
 
 	/**

@@ -919,6 +919,17 @@ extends CustomActivity{
 	/** Go button clicked. Start autofocus, disable button and then take picture */
 	public void goClicked(View view) {
 
+		/*
+		int min = cameraHelper.getCamera().getParameters().getMinExposureCompensation();
+		Log.e(Utils.LOG_TAG, "min="+min);
+		int max = cameraHelper.getCamera().getParameters().getMaxExposureCompensation();
+		Log.e(Utils.LOG_TAG, "max="+max);
+		Camera.Parameters params = cameraHelper.getCamera().getParameters();
+		int exp = 0;
+		params.setExposureCompensation(exp);
+		cameraHelper.getCamera().setParameters(params);
+		*/
+		
 		// check if the preview is running, if not, we can't take a picture. We should never have gotten here
 		if (cameraHelper.isWaitingForPictureSave()){
 			Toast.makeText(this, "Complete last picture first.", Toast.LENGTH_LONG).show();

@@ -1,4 +1,4 @@
-<menu xmlns:android="http://schemas.android.com/apk/res/android">
+<menu xmlns:android="http://schemas.android.com/apk/res/android"> 
     <item android:id="@+id/autoFlash"
         android:title="Auto Flash"
         android:icon="@drawable/flash_auto" />
@@ -7,5 +7,5 @@
         android:icon="@drawable/flash_on" />
     <item android:id="@+id/flashOff"
         android:title="Flash Off"
-        android:icon="@drawable/flash_off" />
+        android:icon="@drawable/flash_off" />  
 </menu>

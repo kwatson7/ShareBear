@@ -37,6 +37,9 @@ import com.tools.images.ImageLoader.LoadImage;
 public class GroupGallery 
 extends CustomActivity{
 
+	// private constants
+	private static final int DEFAULT_PIC_WIDTH_DP = 96;
+	
 	// private variables
 	private GridView gridView; 				// the gridview to show folder
 	private LazyAdapter adapter; 			// the adapter to show folders
@@ -45,6 +48,8 @@ extends CustomActivity{
 	private CustomActivity act = this; 		// This activity
 	private ImageView takePictureButton; 	// the pointer to the take picture button
 	private ImageView screen;
+	private int actualPicWidth = DEFAULT_PIC_WIDTH_DP; // the width of the pic item. Will be set later.
+	
 
 	@Override
 	protected void onCreateOverride(Bundle savedInstanceState) {
@@ -75,6 +80,9 @@ extends CustomActivity{
 
 		// add click listener
 		gridView.setOnItemClickListener(gridViewClick);
+		
+		// change size of images in grid view to have no space between tiles
+		actualPicWidth = com.tools.Tools.setGridViewColsBasedOnScreen(act, DEFAULT_PIC_WIDTH_DP, gridView, 0, true);
 
 		// pointers to graphics
 		takePictureButton = (ImageView) findViewById(R.id.takePictureButton);
@@ -315,6 +323,10 @@ extends CustomActivity{
 
 			TextView text=(TextView)vi.findViewById(R.id.groupName);
 			ImageView image=(ImageView)vi.findViewById(R.id.groupImage);
+			
+			// change view size
+			image.getLayoutParams().height = actualPicWidth;
+			image.getLayoutParams().width = actualPicWidth;
 
 			// move to correct position
 			if (!data.moveToPosition(position)){

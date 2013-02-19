@@ -14,5 +14,7 @@
 	<color name="turquoise_bright">#FF33CBCC</color>
 	<color name="turquoise_dark">#FF134C4D</color>
 	<color name="purple_dark">#A033CC</color>
+	<color name="purple_dark_semi_transparent">#99A033CC</color>
+	<color name="purple_light_semi_transparent">#DDFFAAFF</color>
 	<color name="purple_light">#FFAAFF</color>
 </resources>

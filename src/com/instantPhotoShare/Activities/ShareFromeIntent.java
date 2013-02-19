@@ -111,8 +111,18 @@ extends CustomActivity{
 						if (path != null && path.length() > 0)
 							picturePathsToShare.add(path);
 						cursor.close();
-					}else if (cursor != null)
-						cursor.close();	
+					}else{
+						if (cursor != null)
+							cursor.close();	
+						
+						// try reading as file
+						String path = uri.getPath();
+						if (path != null && path.length() > 0){
+							File file = new File(path);
+							if (file.exists())
+								picturePathsToShare.add(path);
+						}
+					}
 				}
 			} 
 		}else if (Intent.ACTION_SEND.equals(action)
@@ -135,8 +145,19 @@ extends CustomActivity{
 				if (path != null && path.length() > 0)
 					picturePathsToShare.add(path);
 				cursor.close();
-			}else if (cursor != null)
-				cursor.close();	
+			}else{
+				if (cursor != null)
+					cursor.close();	
+				
+				// try reading as file
+				String path = uri.getPath();
+				if (path != null && path.length() > 0){
+					File file = new File(path);
+					if (file.exists())
+						picturePathsToShare.add(path);
+				}
+			}
+				
 		}
 	}
 

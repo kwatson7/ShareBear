@@ -1,5 +1,11 @@
 package com.instantPhotoShare.Activities;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 
 import org.json.JSONException;
@@ -20,6 +26,7 @@ import com.instantPhotoShare.Tasks.SyncGroupsThatNeedIt;
 import com.instantPhotoShare.Tasks.SyncUsersInGroupThatNeedIt;
 import com.tools.CustomActivity;
 import com.tools.CustomAsyncTask;
+import com.tools.Tools;
 import com.tools.ServerPost.PostCallback;
 import com.tools.ServerPost.ServerReturn;
 import com.tools.TwoObjects;
@@ -34,6 +41,7 @@ import android.content.Intent;
 import android.database.StaleDataException;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
@@ -105,9 +113,10 @@ extends CustomActivity{
 
 	@Override
 	protected void onCreateOverride(Bundle savedInstanceState) {
+	
 		initializeLayout();	
 		getPictures();
-		
+
 		// increment that we've used this app
 		Prefs.incrementNumberTimesUsed(ctx);
 
@@ -139,6 +148,53 @@ extends CustomActivity{
 		com.tools.AppRater.app_launched(ctx, getResources().getString(R.string.app_name), getPackageName());
 	}
 
+	private void backupDb() throws IOException {
+	    File sd = Environment.getExternalStorageDirectory();
+	    File data = Environment.getDataDirectory();
+
+	    if (sd.canWrite()) {
+
+	        String currentDBPath = "/data/com.instantPhotoShare/databases/data.db";
+	        String backupDBPath = "/yourapp_logs/data.db";
+
+	        File currentDB = new File(data, currentDBPath);
+	        File backupDB = new File(sd, backupDBPath);
+
+	        if (backupDB.exists())
+	            backupDB.delete();
+
+	        if (currentDB.exists()) {
+	            makeLogsFolder();
+
+	            copy(currentDB, backupDB);
+	       }
+
+	     //   dbFilePath = backupDB.getAbsolutePath();
+	   }
+	}
+	private void copy(File from, File to) throws FileNotFoundException, IOException {
+	    FileChannel src = null;
+	    FileChannel dst = null;
+	    try {
+	        src = new FileInputStream(from).getChannel();
+	        dst = new FileOutputStream(to).getChannel();
+	        dst.transferFrom(src, 0, src.size());
+	    }
+	    finally {
+	        if (src != null)
+	            src.close();
+	        if (dst != null)
+	            dst.close();
+	    }
+	}
+	private void makeLogsFolder() {
+	    try {
+	        File sdFolder = new File(Environment.getExternalStorageDirectory(), "/yourapp_logs/");
+	        sdFolder.mkdirs();
+	    }
+	    catch (Exception e) {}
+	  }
+	
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		super.onCreateOptionsMenu(menu);
@@ -369,7 +425,7 @@ extends CustomActivity{
 
 			@Override
 			protected void onPostExectueOverride(Integer result) {
-				if (result <= 1 && callingActivity != null)
+				if (result <= 1 && callingActivity != null && Prefs.getNumberTimesUsed(ctx) > 1)
 					Toast.makeText(callingActivity, "You should make a group.", Toast.LENGTH_LONG).show();
 			}
 

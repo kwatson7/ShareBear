@@ -25,4 +25,6 @@
 	<string name="pick_a_group_to_add_pic_to">&quot;Pick a group to add picture to&quot;</string>
 	<string name="BACKGROUND_POLLING_AUTO_START">&quot;BACKGROUND_POLLING_AUTO_START&quot;</string>
 	<string name="BACKGROUND_NOTIFICATION_SOUND">&quot;BACKGROUND_NOTIFICATION_SOUND&quot;</string>
+	<string name="HIGH_DEF_RENDERING">&quot;HIGH_DEF_RENDERING&quot;</string>
+	<string name="STORE_EXTERNAL_SD_DEFAULT">&quot;STORE_EXTERNAL_SD_DEFAULT&quot;</string>
 </resources>

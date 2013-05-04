@@ -327,6 +327,7 @@ extends CustomActivity{
 
 			@Override
 			public void onIconContextItemSelected(MenuItem item, Object info) {
+				String oldFlash = cameraHelper.getFlashMode();
 				switch(item.getItemId()){
 				// set the flash to auto
 				case R.id.autoFlash:
@@ -356,7 +357,14 @@ extends CustomActivity{
 						Toast.makeText(ctx, "Could not set flash", Toast.LENGTH_SHORT).show();
 					break;
 				}
-
+				
+				// update camera if flash mode changed
+				if (cameraHelper.getFlashMode() != null && (oldFlash == null ||
+						!oldFlash.equalsIgnoreCase(cameraHelper.getFlashMode())) &&
+						com.tools.Tools.isDeviceThatRequiresNewCameraOnFlashChange()){
+					onPause();
+					onResume();
+				}
 			}
 		};
 		flashMenu.setOnIconContextItemSelectedListener(listener);
@@ -370,6 +378,7 @@ extends CustomActivity{
 	 */
 	public void onFlashClicked(View v){
 		String flashMode = cameraHelper.getFlashMode();
+		setupFlashMenu();
 		if (flashMode == null)
 			return;
 		int color = Color.argb(200, 0, 198, 253);

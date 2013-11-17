@@ -41,14 +41,14 @@ extends CustomActivity{
 
 		// check that we have logged in
 		if(!InitialLaunch.isUserAccountInfoAvailable(ctx)){
-			Toast.makeText(this, "Login first", Toast.LENGTH_SHORT).show();
+			Utils.showCustomToast(this, "Login first", true, 1);
 			return;
 		}
 
 		getPassedPictures(); 		
 
 		if (picturePathsToShare == null || picturePathsToShare.size() == 0){
-			Toast.makeText(ctx, "Picture(s) could not be shared", Toast.LENGTH_SHORT).show();
+			Utils.showCustomToast(ctx, "Picture(s) could not be shared", true, 1);
 			finish();
 			return;
 		}
@@ -195,7 +195,7 @@ extends CustomActivity{
 
 			@Override
 			public void onCancel(DialogInterface dialog) {
-				Toast.makeText(ShareFromeIntent.this, "No group selected. Finishing...", Toast.LENGTH_SHORT).show();
+				Utils.showCustomToast(ShareFromeIntent.this, "No group selected. Finishing...", true, 1);
 				finish();
 			}
 		});
@@ -212,7 +212,7 @@ extends CustomActivity{
 
 				// if we are empty, don't allow
 				if (groups.size() == 0){
-					Toast.makeText(ShareFromeIntent.this, "No groups selected. Leaving", Toast.LENGTH_SHORT).show();
+					Utils.showCustomToast(ShareFromeIntent.this, "No groups selected. Leaving", true, 1);
 					finish();
 					return;
 				}
@@ -235,7 +235,7 @@ extends CustomActivity{
 		// if no data, then just quit
 		if (picturePathsToShare == null || picturePathsToShare.size() == 0 ||
 				groups == null || groups.size() == 0){
-			Toast.makeText(this, "No shares", Toast.LENGTH_SHORT).show();
+			Utils.showCustomToast(this, "No shares", true, 1);
 			return;
 		}
 
@@ -263,7 +263,7 @@ extends CustomActivity{
 		@Override
 		protected void onPreExecute() {
 			if (applicationCtx != null)
-				Toast.makeText(applicationCtx, "Saving...", Toast.LENGTH_SHORT).show();
+				Utils.showCustomToast(applicationCtx, "Saving...", true, 1);
 		}
 
 		@Override
@@ -300,9 +300,9 @@ extends CustomActivity{
 			if (picturePathsToShare == null || picturePathsToShare.size() == 0)
 				return;
 			if (picturePathsToShare.size() == 1)
-				Toast.makeText(applicationCtx, "Picture uploaded", Toast.LENGTH_SHORT).show();
+				Utils.showCustomToast(applicationCtx, "Picture uploaded", true, 1);
 			if (picturePathsToShare.size() >= 1)
-				Toast.makeText(applicationCtx, picturePathsToShare.size() + " pictures uploaded", Toast.LENGTH_SHORT).show();
+				Utils.showCustomToast(applicationCtx, picturePathsToShare.size() + " pictures uploaded", true, 1);
 		}
 
 		@Override

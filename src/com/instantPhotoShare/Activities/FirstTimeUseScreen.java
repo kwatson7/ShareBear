@@ -7,11 +7,11 @@ import com.instantPhotoShare.Person;
 import com.instantPhotoShare.Prefs;
 import com.instantPhotoShare.R;
 import com.instantPhotoShare.Utils;
-import com.instantPhotoShare.Adapters.NotificationsAdapter;
-import com.instantPhotoShare.Adapters.NotificationsAdapter.NOTIFICATION_TYPES;
 import com.tools.CustomActivity;
+import com.tools.OverlayHelper;
 import com.tools.TwoStrings;
 
+import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -21,9 +21,15 @@ import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 public class FirstTimeUseScreen
@@ -31,7 +37,6 @@ extends com.tools.CustomActivity {
 
 	// pointers to graphics objects
 	private Button createNewAcccountButton;
-	private Button dontCreateNewAccountButton;
 	private Button signInButton;
 	private CustomActivity act = this;
 
@@ -68,7 +73,6 @@ extends com.tools.CustomActivity {
 
 		// grab pointers for graphics objects
 		createNewAcccountButton = (Button) findViewById(R.id.createNewAccountButton);
-		dontCreateNewAccountButton = (Button) findViewById(R.id.dontCreateAccountButton);
 		signInButton = (Button) findViewById(R.id.signInButton);
 	}
 
@@ -85,10 +89,9 @@ extends com.tools.CustomActivity {
 
 		// if no main phone, then we cannot use this options
 		if (self.getMainPhone() == null || self.getMainPhone().length() == 0){
-			Toast.makeText(
-					this,
+			Utils.showCustomToast(this,
 					"Phone number not present on device to be used as account identifier. You must create an account with username/password",
-					CANT_CREATE_ACCOUNT_TOAST_LENGTH).show();
+					true, 1);
 			return;
 		}
 
@@ -386,9 +389,7 @@ extends com.tools.CustomActivity {
 		// canceled
 		case RESULT_CANCELED:
 			// show toast that nothing happened
-			Toast.makeText(this,
-					R.string.registrationNotCompleted,
-					Toast.LENGTH_LONG).show();
+			Utils.showCustomToast(this, R.string.registrationNotCompleted, true, 1);
 			break;
 
 			// ok pressed	
@@ -436,6 +437,7 @@ extends com.tools.CustomActivity {
 
 	@Override
 	protected void onDestroyOverride() {
+		/*
 		// recyle the old bitmap if one exists
 		View view = findViewById(R.id.backgroundImage);
 		if (view == null)
@@ -446,9 +448,10 @@ extends com.tools.CustomActivity {
 		if (drawable instanceof BitmapDrawable) {
 			BitmapDrawable bitmapDrawable = (BitmapDrawable) drawable;
 			bitmapOld = bitmapDrawable.getBitmap();
-			if (bitmapOld != null)
+			if (bitmapOld != null && !bitmapOld.isRecycled())
 				bitmapOld.recycle();
 		}
+		*/
 	}
 
 	@Override

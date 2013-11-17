@@ -102,7 +102,7 @@ extends TableAdapter <GroupsAdapter>{
 	public static final String GROUP_ACCESS_ERROR = "GROUP_ACCESS_ERROR";
 
 	// static variables
-	private static com.tools.ExpiringValue<Boolean> isFetchingGroups = new com.tools.ExpiringValue<Boolean>(50f, false, false);
+	private static com.tools.ExpiringValue<Boolean> isFetchingGroups = new com.tools.ExpiringValue<Boolean>(50f, false, false, false);
 	private static Map<Long, ExpiringValue<Boolean>> isCreatingNewFolderLock =
 		Collections.synchronizedMap(new HashMap<Long, ExpiringValue<Boolean>>(10));
 
@@ -386,7 +386,7 @@ extends TableAdapter <GroupsAdapter>{
 
 		// if null, then initialize
 		if (isCreating == null){
-			isCreating = new ExpiringValue<Boolean>(MAKE_NEW_FOLDER_TIMOUT, false, false);
+			isCreating = new ExpiringValue<Boolean>(MAKE_NEW_FOLDER_TIMOUT, false, false, false);
 		}
 
 		return isCreating;
@@ -1078,7 +1078,7 @@ extends TableAdapter <GroupsAdapter>{
 
 		// we are already doing it, no need to do it twice
 		if (isFetchingGroups == null)
-			isFetchingGroups = new ExpiringValue<Boolean>(50f, false, false);
+			isFetchingGroups = new ExpiringValue<Boolean>(50f, false, false, false);
 		if(isFetchingGroups.getValue())
 			return false;
 		isFetchingGroups.setValue(true);
@@ -1256,7 +1256,7 @@ extends TableAdapter <GroupsAdapter>{
 							}
 						}finally{
 							if (isFetchingGroups == null)
-								isFetchingGroups = new ExpiringValue<Boolean>(50f, false, false);
+								isFetchingGroups = new ExpiringValue<Boolean>(50f, false, false, false);
 							isFetchingGroups.setValue(false);
 						}
 					}

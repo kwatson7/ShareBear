@@ -34,10 +34,15 @@ import android.graphics.drawable.Drawable;
 import android.os.Environment;
 import android.util.Log;
 import android.view.Display;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.TextView;
+import android.widget.Toast;
 
 public class Utils {
 
@@ -582,6 +587,50 @@ public class Utils {
 				});
 			}
 		}).start();
+	}
+	
+	/**
+	 * Show a toast with the app specific custom layout
+	 * @param ctx The context used to show 
+	 * @param text The text to show
+	 * @param showBottom true to show on bottom, false to show on top
+	 * @param displayTimeFactor Multiply default display time by this number (standard is 1) 
+	 */
+	public static void showCustomToast(Context ctx, String text, boolean showBottom, float extraFactor){
+
+		// constants
+		final int PIXELS_FROM_EDGE = 20;
+		
+		LayoutInflater inflater = (LayoutInflater) ctx.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+
+		// load the layout
+		View layout = inflater.inflate(R.layout.toast_layout, (ViewGroup) null);
+		TextView toast_text = (TextView) layout.findViewById(R.id.message);
+
+		// set display properties
+		Toast toast = new Toast(ctx.getApplicationContext());
+		if (showBottom)
+			toast.setGravity(Gravity.BOTTOM, 0, (int) com.tools.Tools.convertDpToPix(ctx, PIXELS_FROM_EDGE));
+		else
+			toast.setGravity(Gravity.TOP, 0, (int) com.tools.Tools.convertDpToPix(ctx, PIXELS_FROM_EDGE));
+		toast.setView(layout);
+
+		// set the text
+		toast_text.setText(text);
+
+		// show it for custom amount of time
+		com.tools.ToastExpander.showFor(toast, (long) (com.tools.Tools.getTimeToReadForToast(text)*extraFactor));
+	}
+	
+	/**
+	 * Show a custom toast using the apps custom toast layout
+	 * @param ctx The context used to show 
+	 * @param resId The text id to show
+	 * @param showBottom true to show on bottom, false to show on top
+	 * @param displayTimeFactor Multiply default display time by this number (standard is 1) 
+	 */
+	public static void showCustomToast(Context ctx, int resId, boolean showBottom, float extraFactor){
+		showCustomToast(ctx, ctx.getString(resId), showBottom, extraFactor);
 	}
 
 	/**

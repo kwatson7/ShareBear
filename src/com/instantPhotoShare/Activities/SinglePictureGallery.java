@@ -324,9 +324,9 @@ extends CustomActivity{
 			}catch(IOException e){
 				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 				if (!isFullRotated && !isThumbRotated)
-					Toast.makeText(ctx, "Rotation error. Full picture probably not downloaded yet", Toast.LENGTH_LONG).show();
+					Utils.showCustomToast(ctx, "Rotation error. Full picture probably not downloaded yet", true, 1);
 				else if (isFullRotated && !isThumbRotated){
-					Toast.makeText(ctx, "Rotation error.", Toast.LENGTH_LONG).show();
+					Utils.showCustomToast(ctx, "Rotation error.", true, 1);
 					try {
 						com.tools.ImageProcessing.rotateExif(path, 1);
 					} catch (IOException e1) {
@@ -371,9 +371,9 @@ extends CustomActivity{
 			}catch(IOException e){
 				Log.w(Utils.LOG_TAG, Log.getStackTraceString(e));
 				if (!isFullRotated && !isThumbRotated)
-					Toast.makeText(ctx, "Rotation error. Full picture probably not downloaded yet", Toast.LENGTH_LONG).show();
+					Utils.showCustomToast(ctx, "Rotation error. Full picture probably not downloaded yet", true, 1);
 				else if (isFullRotated && !isThumbRotated){
-					Toast.makeText(ctx, "Rotation error.", Toast.LENGTH_LONG).show();
+					Utils.showCustomToast(ctx, "Rotation error.", true, 1);
 					try {
 						com.tools.ImageProcessing.rotateExif(path, -1);
 					} catch (IOException e1) {
@@ -452,9 +452,9 @@ extends CustomActivity{
 						String msg = e.getMessage();
 						if (msg == null || msg.length() == 0)
 							msg = "Could not delete picture.";
-						Toast.makeText(act, msg, Toast.LENGTH_LONG).show();
+						Utils.showCustomToast(act, msg, true, 1);
 					}else{
-						Toast.makeText(act, "Picture deleted", Toast.LENGTH_SHORT).show();
+						Utils.showCustomToast(act, "Picture deleted", true, 1);
 						getPictures();
 						fillPictures();
 					}
@@ -469,7 +469,7 @@ extends CustomActivity{
 			String msg = e.getMessage();
 			if (msg == null || msg.length() == 0)
 				msg = "Could not delete picture.";
-			Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show();
+			Utils.showCustomToast(ctx, msg, true, 1);
 		}
 	}
 
@@ -483,7 +483,7 @@ extends CustomActivity{
 			if (result != null){
 				Log.e(Utils.LOG_TAG, Log.getStackTraceString(result));
 				if (activity != null)
-					Toast.makeText(activity, "Picture could not be rotated", Toast.LENGTH_SHORT).show();
+					Utils.showCustomToast(activity, "Picture could not be rotated", true, 1);
 			}
 
 		}
@@ -502,13 +502,13 @@ extends CustomActivity{
 		picturesAdapater.moveToPosition(gallery.getLastVisiblePosition());
 		String fileName = picturesAdapater.getFullPicturePath();
 		if (fileName == null || fileName.length() == 0 || !(new File(fileName)).exists()){
-			Toast.makeText(this, "No full picture. Thumbnail used", Toast.LENGTH_SHORT).show();
+			Utils.showCustomToast(this, "No full picture. Thumbnail used", true, 1);
 			fileName = picturesAdapater.getThumbnailPath();
 		}
 
 		// send the intent
 		if(!com.tools.Tools.sharePicture(this, shareSubject, shareBody, fileName, prompt))
-			Toast.makeText(this, "Picture could not be sent", Toast.LENGTH_SHORT).show();
+			Utils.showCustomToast(this, "Picture could not be sent", true, 1);
 	}
 
 	private void showChooseGroup(){
@@ -523,7 +523,7 @@ extends CustomActivity{
 
 		// make sure there are groups
 		if (groups == null || groups.size() == 0){
-			Toast.makeText(this, "No groups to add to. Create one First", Toast.LENGTH_LONG).show();
+			Utils.showCustomToast(this, "No groups to add to. Create one First", true, 1);
 			return;
 		}
 
@@ -588,9 +588,9 @@ extends CustomActivity{
 						String msg = e.getMessage();
 						if (msg == null || msg.length() == 0)
 							msg = "Could not copy picture.";
-						Toast.makeText(act, msg, Toast.LENGTH_LONG).show();
+						Utils.showCustomToast(act, msg, true, 1);
 					}else{
-						Toast.makeText(act, "Picture copied", Toast.LENGTH_SHORT).show();
+						Utils.showCustomToast(act, "Picture copied", true, 1);
 					}
 				}
 
@@ -603,7 +603,7 @@ extends CustomActivity{
 			String msg = e.getMessage();
 			if (msg == null || msg.length() == 0)
 				msg = "Could not copy picture.";
-			Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show();
+			Utils.showCustomToast(ctx, msg, true, 1);
 		}
 	}
 

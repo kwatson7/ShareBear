@@ -154,7 +154,7 @@ extends CustomActivity{
 					msg = "Camera not working. Try again.";
 				else
 					msg += " Try again";
-				Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show();
+				Utils.showCustomToast(ctx, msg, true, 1);
 				finish();
 			}
 		});
@@ -336,7 +336,7 @@ extends CustomActivity{
 					if (cameraHelper.setFlash(Camera.Parameters.FLASH_MODE_AUTO)){
 						flashButton.setImageDrawable(getResources().getDrawable(R.drawable.flash_auto));
 					}else
-						Toast.makeText(ctx, "Could not set flash", Toast.LENGTH_SHORT).show();
+						Utils.showCustomToast(ctx, "Could not set flash", true, 1);
 					break;
 
 					// turn the flash on	
@@ -345,7 +345,7 @@ extends CustomActivity{
 					if (cameraHelper.setFlash(Camera.Parameters.FLASH_MODE_ON)){
 						flashButton.setImageDrawable(getResources().getDrawable(R.drawable.flash_on));
 					}else
-						Toast.makeText(ctx, "Could not set flash", Toast.LENGTH_SHORT).show();
+						Utils.showCustomToast(ctx, "Could not set flash", true, 1);
 					break;
 
 					// turn the flash off	
@@ -354,7 +354,7 @@ extends CustomActivity{
 					if (cameraHelper.setFlash(Camera.Parameters.FLASH_MODE_OFF)){
 						flashButton.setImageDrawable(getResources().getDrawable(R.drawable.flash_off));
 					}else
-						Toast.makeText(ctx, "Could not set flash", Toast.LENGTH_SHORT).show();
+						Utils.showCustomToast(ctx, "Could not set flash", true, 1);
 					break;
 				}
 				
@@ -474,7 +474,7 @@ extends CustomActivity{
 			@Override
 			protected void onPostExectueOverride(Integer result) {
 				if (result <= 1 && callingActivity != null)
-					Toast.makeText(callingActivity, "You should make a shared group first.", Toast.LENGTH_LONG).show();
+					Utils.showCustomToast(callingActivity, "You should make a shared group first.", true, 1);
 			}
 
 			@Override
@@ -628,7 +628,7 @@ extends CustomActivity{
 			public void onDismiss(DialogInterface dialog) {
 				isChangeGroupShowing = false;
 				if (selectedGroups.size() == 0){
-					//Toast.makeText(act, "must select at lesat one group", Toast.LENGTH_SHORT).show();
+					//Utils.showCustomToast(act, "must select at lesat one group", true, 1);
 					//changeGroupClicked(groupsPortraitView);
 					finish();
 				}	
@@ -648,7 +648,7 @@ extends CustomActivity{
 
 				// if we are empty, don't allow
 				if (selectedGroups.size() == 0){
-					Toast.makeText(act, "must select at least one group", Toast.LENGTH_SHORT).show();
+					Utils.showCustomToast(act, "must select at least one group", true, 1);
 					return;
 				}
 
@@ -883,7 +883,7 @@ extends CustomActivity{
 
 				// camera not generating any data	
 			}else{
-				Toast.makeText(act, "**Problem ** Camera is not generating any jpeg data", Toast.LENGTH_LONG).show();
+				Utils.showCustomToast(act, "**Problem ** Camera is not generating any jpeg data", true, 1);
 				setupForNewPicture();
 			}
 		}
@@ -941,7 +941,7 @@ extends CustomActivity{
 		
 		// check if the preview is running, if not, we can't take a picture. We should never have gotten here
 		if (cameraHelper.isWaitingForPictureSave()){
-			Toast.makeText(this, "Complete last picture first.", Toast.LENGTH_LONG).show();
+			Utils.showCustomToast(this, "Complete last picture first.", true, 1);
 			return;
 		}
 

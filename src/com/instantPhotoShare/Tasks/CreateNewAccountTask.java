@@ -125,16 +125,16 @@ extends com.tools.CustomAsyncTask <ACTIVITY_TYPE, Integer, CreateNewAccountTask<
 
 		//make a toast saying if we were succesfful or not
 		if (result.isSuccess()){
-			Toast.makeText(callingActivity,
+			Utils.showCustomToast(callingActivity,
 					"Successfully created account on server",
-					Toast.LENGTH_SHORT).show();
+					true, 1);
 		
 		}else{
 			String reason = result.getDetailErrorMessage();
 			if (callingActivity != null)
-				Toast.makeText(callingActivity,
+				Utils.showCustomToast(callingActivity,
 						"Failed to create account because:\n" + reason,
-						Toast.LENGTH_LONG).show();
+						true, 1);
 		}
 
 		// send result back to activity

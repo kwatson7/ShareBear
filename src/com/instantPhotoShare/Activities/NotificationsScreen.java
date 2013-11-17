@@ -259,7 +259,7 @@ extends CustomActivity{
 			case NEW_PICTURE_IN_GROUP:
 				group = notes.getHelperLong();
 				if (group == -1){
-					Toast.makeText(act, "No group error!", Toast.LENGTH_SHORT).show();
+					Utils.showCustomToast(act, "No group error!", true, 1);
 					break;
 				}
 				

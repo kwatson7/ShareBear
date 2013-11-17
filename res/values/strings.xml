@@ -1,16 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="app_name">Share Bear</string>
-	<string name="signIn">Sign in</string>
 	<string name="firstUseStatement">
-		We\'ve noticed you don\'t have an account on this phone. Please select one of
-		the following and then you can start sharing pictures with your friends:
+	    Share Bear is the easiest way to share photos with friends. Click the button below to get started.
 		</string>
-	<string name="createAccount">Create a new account with user name</string>
+	<string name="createAccount">Get started</string>
 	<string name="noAccountContinue">Create new account without a user name</string>
 	<string name="identifyingInformationExplanation">Please enter your name, your phone number(s) (separated by commas if multiple numbers), and your email address(es) (separated by commas if multiple addresses).\n\nThis information is required so others know who you are when you add them to groups.\n\nSome information may already be filled in that was read from your address book.</string>
 	<string name="yourFirstName">Your first name</string>
-	<string name="yourPhoneNumbers">Your phone numbers</string>
+	<string name="yourPhoneNumbers">Your phone number</string>
 	<string name="yourEmailAddresses">Your email addresses</string>
 	<string name="ok">OK</string>
 	<string name="cancel">Cancel</string>
@@ -27,4 +25,5 @@
 	<string name="BACKGROUND_NOTIFICATION_SOUND">&quot;BACKGROUND_NOTIFICATION_SOUND&quot;</string>
 	<string name="HIGH_DEF_RENDERING">&quot;HIGH_DEF_RENDERING&quot;</string>
 	<string name="STORE_EXTERNAL_SD_DEFAULT">&quot;STORE_EXTERNAL_SD_DEFAULT&quot;</string>
+	<string name="signIn"><u><b><i>Sign in</i></b></u></string>
 </resources>

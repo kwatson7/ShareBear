@@ -197,7 +197,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, CreateGroupTask.ReturnFromCreate
 
 		// show toast if successful and send result to activity
 		if (result.isSuccess())	{
-			Toast.makeText(applicationCtx, groupName + " group created.", Toast.LENGTH_SHORT).show();
+			Utils.showCustomToast(applicationCtx, groupName + " group created.", true, 1);
 			task.sendObjectToActivityFromPostExecute(result);
 			// change default group
 			Prefs.setGroupIds(applicationCtx, rowId);
@@ -206,7 +206,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, CreateGroupTask.ReturnFromCreate
 		
 		// show toast if we only tried local
 		if (result.isOnlyTryLocalSuccess())	{
-			Toast.makeText(applicationCtx, groupName + " group created.", Toast.LENGTH_SHORT).show();
+			Utils.showCustomToast(applicationCtx, groupName + " group created.", true, 1);
 			task.sendObjectToActivityFromPostExecute(result);
 			// change default group
 			Prefs.setGroupIds(applicationCtx, rowId);
@@ -216,7 +216,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, CreateGroupTask.ReturnFromCreate
 		// if not successful, then see how
 		// local error
 		if (result.isLocalError()){
-			Toast.makeText(applicationCtx, result.getDetailErrorMessage(), Toast.LENGTH_LONG).show();
+			Utils.showCustomToast(applicationCtx, result.getDetailErrorMessage(), true, 1);
 			return;
 
 			// server error
@@ -261,9 +261,9 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, CreateGroupTask.ReturnFromCreate
 			}
 
 			// show the toast
-			Toast.makeText(applicationCtx,
+			Utils.showCustomToast(applicationCtx,
 					toastMessage,
-					Toast.LENGTH_LONG).show();
+					true, 1);
 
 			// store in log
 			Log.e(Utils.LOG_TAG, notesMessage);

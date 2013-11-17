@@ -523,7 +523,7 @@ extends TableAdapter<PicturesAdapter>{
 		
 		// show toast
 		if (act != null)
-			Toast.makeText(act, "Copying picture...", Toast.LENGTH_SHORT).show();
+			Utils.showCustomToast(act, "Copying picture...", true, 1);
 		
 		// get some data 
 		final long rowId = getRowId();
@@ -1155,7 +1155,7 @@ extends TableAdapter<PicturesAdapter>{
 		
 		// show toast
 		if (act != null)
-			Toast.makeText(act, "Deleting...", Toast.LENGTH_SHORT).show();
+			Utils.showCustomToast(act, "Deleting ...", true, 1);
 		
 		// get some data 
 		final long rowId = getRowId();

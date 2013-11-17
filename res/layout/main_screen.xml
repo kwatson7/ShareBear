@@ -3,7 +3,8 @@
 	android:orientation="vertical"
 	android:layout_width="fill_parent"
 	android:layout_height="fill_parent"
-	android:background="@drawable/gray_gradient">
+	android:background="@drawable/gray_gradient"
+	android:id="@+id/frame_layout">"
 
 <LinearLayout
 	android:orientation="vertical"
@@ -222,7 +223,7 @@
 				android:layout_width="wrap_content"
 				android:layout_height="wrap_content"
 				android:lines="1"
-				android:text="Email Developer"
+				android:text="Ask a question"
 				android:layout_gravity="center_horizontal|center_vertical"
 				android:gravity="center"
 				android:textColor="@android:color/primary_text_dark"
@@ -249,11 +250,26 @@
     android:layout_gravity="center|bottom"
     android:background="@drawable/purple_gradient"
     android:gravity="center"
-    android:text="Remember to validate your email address(es)"
+    android:text="Check your email to validate email address"
     android:textSize="13dp"
     android:textStyle="bold"
     android:typeface="serif"
     android:visibility="gone"
+/>
+<Button
+    android:id="@+id/youShouldMakeAGroup"
+    style="@style/ShadowText"
+    android:layout_width="fill_parent"
+    android:layout_height="48dp"
+    android:layout_gravity="center|bottom"
+    android:background="@drawable/purple_selector"
+    android:gravity="center"
+    android:text="You should make a group to share with friends"
+    android:textSize="13dp"
+    android:textStyle="bold"
+    android:typeface="serif"
+    android:visibility="gone"
+    android:onClick="createNewGroupClicked"
 />
 <ProgressBar
 	android:id="@+id/fetchingData"

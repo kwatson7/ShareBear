@@ -316,14 +316,14 @@ extends CustomActivity{
 		public void onItemsFetchedUiThread(InsideGroupGallery act, String errorCode) {
 			// update adatper if there are new pictures
 			if (act != null && act.nNewPictures > 0){
-				Toast.makeText(act, act.nNewPictures + " new pictures!", Toast.LENGTH_SHORT).show();
+				Utils.showCustomToast(act, act.nNewPictures + " new pictures!", true, 1);
 				act.getPictures();
 			}
 
 			// if there was an error
 			if (errorCode != null){
 				if (act!= null && errorCode.compareToIgnoreCase(GroupsAdapter.GROUP_ACCESS_ERROR) == 0){
-					Toast.makeText(act, "Not in group", Toast.LENGTH_LONG).show();
+					Utils.showCustomToast(act, "Not in group", true, 1);
 				}else{
 					String group = "unknown";
 					if (act != null)
@@ -502,7 +502,7 @@ extends CustomActivity{
 	 * @param v
 	 */
 	public void shareClicked(View v){
-		Toast.makeText(ctx, "Sharing pictures...", Toast.LENGTH_SHORT).show();
+		Utils.showCustomToast(ctx, "Sharing pictures...", true, 0.5f);
 		
 		// download task, as we may need to download some files
 		DownloadPicturesTask<InsideGroupGallery> task = new DownloadPicturesTask<InsideGroupGallery>(
@@ -520,7 +520,7 @@ extends CustomActivity{
 	}
 	
 	/**
-	 * Callback when we are down downloading pictures.
+	 * Callback when we are done downloading pictures.
 	 */
 	private static FinishedCallback<InsideGroupGallery, DownloadPicturesTask.DownloadOutput> 
 		downloadFinishedCallback =
@@ -532,14 +532,14 @@ extends CustomActivity{
 					return;
 				
 				if (result.cancelled == true){
-					Toast.makeText(activity, "Cancelled", Toast.LENGTH_SHORT).show();
+					Utils.showCustomToast(activity, "Cancelled", true, 1);
 					activity.showMultiSelectBar(false);
 					return;
 				}
 				
 				// if no items, then quit
 				if (result.successfulPictures == 0){
-					Toast.makeText(activity, "No pictures available. Try again later", Toast.LENGTH_SHORT).show();
+					Utils.showCustomToast(activity, "No pictures available. Try again later", true, 1);
 					activity.showMultiSelectBar(false);
 					return;
 				}
@@ -565,18 +565,17 @@ extends CustomActivity{
 				picturesAdapater.moveToPosition(gallery.getLastVisiblePosition());
 				String fileName = picturesAdapater.getFullPicturePath();
 				if (fileName == null || fileName.length() == 0 || !(new File(fileName)).exists()){
-					Toast.makeText(this, "No full picture. Thumbnail used", Toast.LENGTH_SHORT).show();
+					Utils.showCustomToast(this, "No full picture. Thumbnail used", true, 1);
 					fileName = picturesAdapater.getThumbnailPath();
 				}
 
 				// send the intent
 				if(!com.tools.Tools.sharePicture(this, shareSubject, shareBody, fileName, prompt))
-					Toast.makeText(this, "Picture could not be sent", Toast.LENGTH_SHORT).show();
+					Utils.showCustomToast(this, "Picture could not be sent", true, 1);
 				 */
-
-				Toast.makeText(activity,
-						result.successfulPictures + " of " + result.attemptedPictures + " pictures shared",
-						Toast.LENGTH_SHORT).show();			
+	
+				Utils.showCustomToast(activity,
+						result.successfulPictures + " of " + result.attemptedPictures + " pictures ready to share", true, 1);
 				activity.showMultiSelectBar(false);
 			}
 		};

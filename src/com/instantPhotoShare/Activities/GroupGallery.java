@@ -165,7 +165,7 @@ extends CustomActivity{
 			@Override
 			protected void onPostExectueOverride(Integer result) {
 				if (result <= 1 && callingActivity != null)
-					Toast.makeText(callingActivity, "You should make a shared group.", Toast.LENGTH_LONG).show();
+					Utils.showCustomToast(callingActivity, "You should make a shared group.", true, 1);
 			}
 
 			@Override

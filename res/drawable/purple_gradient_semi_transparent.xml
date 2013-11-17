@@ -3,11 +3,11 @@
 
     <gradient
         android:angle="270"
-        android:endColor="@color/purple_dark"
-        android:startColor="@color/purple_light" />
+        android:endColor="@color/purple_dark_semi_transparent"
+        android:startColor="@color/purple_light_semi_transparent" />
 
     <stroke
-        android:width="0dp"
+        android:width="1dp"
         android:color="@color/grey333" />
 
     <corners android:radius="3dp" />

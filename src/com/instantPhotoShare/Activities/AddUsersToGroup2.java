@@ -132,12 +132,12 @@ extends CustomActivity{
 		GroupsAdapter groupsAdapter = new GroupsAdapter(this);
 		Group group = groupsAdapter.getGroup(groupId);
 		if (group == null){
-			Toast.makeText(this, "Group does not exist", Toast.LENGTH_SHORT).show();
+			Utils.showCustomToast(mCtx, "Group does not exist", true, 1);
 			finish();
 			return;
 		}
 		if(group.isKeepLocal()){
-			Toast.makeText(this, "Group is private to phone", Toast.LENGTH_SHORT).show();
+			Utils.showCustomToast(mCtx, "Group is private to phone", true, 1);
 			finish();
 			return;
 		}
@@ -374,7 +374,7 @@ extends CustomActivity{
 
 		// check we have a groupId and there are users
 		if (groupId == -1){
-			Toast.makeText(this, "No people selected to share with", Toast.LENGTH_LONG).show();
+			Utils.showCustomToast(this, "No people selected to share with", true, 1);
 			return;
 		}
 
@@ -394,18 +394,14 @@ extends CustomActivity{
 
 		// cannot make a new group with too many contacts because of google services error
 		if (mContactChecked.getNChecked() > MAX_CONTACTS_BECAUSE_GOOGLE_SERVICES){
-			Toast.makeText(mCtx, 
-					"Cannot add more than " + MAX_CONTACTS_BECAUSE_GOOGLE_SERVICES + 
-					" contacts to a group at once, because of a google services sync error. Sorry, blame google.",
-					Toast.LENGTH_LONG).show();
+			Utils.showCustomToast(mCtx, "Cannot add more than " + MAX_CONTACTS_BECAUSE_GOOGLE_SERVICES + 
+					" contacts to a group at once, because of a google services sync error. Sorry, blame google.", true, 1);
 			return;
 		}
 
 		// if nothing selected, then no group
 		if (mContactChecked.getNChecked() == 0){
-			Toast.makeText(mCtx, 
-					"You haven't selected anyone to add to a new group! Select someone first.", 
-					Toast.LENGTH_LONG).show();
+			Utils.showCustomToast(mCtx, "You haven't selected anyone to add to a new group! Select someone first.", true, 1);
 			return;
 		}
 
@@ -441,7 +437,7 @@ extends CustomActivity{
 
 				//empty name, don't allow
 				if (groupName.length() == 0){
-					Toast.makeText(mCtx, "Cannot have an empty group name! No group made", Toast.LENGTH_SHORT).show();
+					Utils.showCustomToast(mCtx, "Cannot have an empty group name! No group made", true, 1);
 					return;
 				}
 				int accountId = newGroupDialog.getChecked();	
@@ -635,9 +631,7 @@ extends CustomActivity{
 						possibleContactMethods.mObject1.size() == 0) &&
 						(possibleContactMethods.mObject2 == null || 
 								possibleContactMethods.mObject2.size() == 0))){
-			Toast.makeText(mCtx,
-					"Fail!! No method to contact user. Must have an email or phone",
-					Toast.LENGTH_LONG).show();
+			Utils.showCustomToast(mCtx, "Fail!! No method to contact user. Must have an email or phone", true, 1);
 			return null;
 		}
 
@@ -755,9 +749,7 @@ extends CustomActivity{
 						possibleContactMethods.mObject1.size() == 0) &&
 						(possibleContactMethods.mObject2 == null || 
 								possibleContactMethods.mObject2.size() == 0))){
-			Toast.makeText(mCtx,
-					"Fail!! No method to contact user. Must have an email or phone",
-					Toast.LENGTH_LONG).show();
+			Utils.showCustomToast(mCtx, "Fail!! No method to contact user. Must have an email or phone", true, 1);
 			return null;
 		}
 
@@ -918,7 +910,7 @@ extends CustomActivity{
 			case POST:
 				mContactChecked = (ContactCheckedArray) data;
 				if (mContactChecked == null){
-					Toast.makeText(mCtx, "Cancelled group loading", Toast.LENGTH_SHORT).show();
+					Utils.showCustomToast(mCtx, "Cancelled group loading", true, 1);
 					finish();
 				}else{
 					updateNContacts();
@@ -970,7 +962,7 @@ extends CustomActivity{
 				String name = " names added.";
 				if (namesAdded == 1)
 					name = " name added.";
-				Toast.makeText(mCtx, namesAdded+name, Toast.LENGTH_SHORT).show();
+				Utils.showCustomToast(mCtx, namesAdded+name, true, 1);
 				updateNContacts();
 				updateVisibleView();
 			}
@@ -1173,7 +1165,7 @@ extends CustomActivity{
 				groups.fetchGroup(groupId);
 				boolean canRemove = groups.canIRemoveThisMember(mCtx, mContactChecked.getRowId(contactId));
 				if (!canRemove){
-					Toast.makeText(mCtx, "You do not have permission to remove this member", Toast.LENGTH_SHORT).show();
+					Utils.showCustomToast(mCtx, "You do not have permission to remove this member", true, 1);
 					return;
 				}
 				
@@ -1326,7 +1318,7 @@ extends CustomActivity{
 				groups.fetchGroup(groupId);
 				boolean canRemove = groups.canIRemoveThisMember(mCtx, data.getRowId(contactId));
 				if (!canRemove){
-					Toast.makeText(mCtx, "You do not have permission to remove this member", Toast.LENGTH_SHORT).show();
+					Utils.showCustomToast(mCtx, "You do not have permission to remove this member", true, 1);
 					return;
 				}
 				

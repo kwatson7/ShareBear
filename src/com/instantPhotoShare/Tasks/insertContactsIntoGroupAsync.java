@@ -3,6 +3,7 @@ package com.instantPhotoShare.Tasks;
 import java.util.Hashtable;
 
 import com.instantPhotoShare.ContactCheckedArray;
+import com.instantPhotoShare.Utils;
 import com.tools.CustomActivity;
 import com.tools.CustomAsyncTask;
 
@@ -111,7 +112,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, Integer> {
 			dialog.dismiss();
 		dialog = null;
 		if (applicationCtx != null)
-			Toast.makeText(applicationCtx, result + " contacts added to new group", Toast.LENGTH_SHORT).show();
+			Utils.showCustomToast(applicationCtx, result + " contacts added to new group", true, 1);
 	}
 
 	@Override

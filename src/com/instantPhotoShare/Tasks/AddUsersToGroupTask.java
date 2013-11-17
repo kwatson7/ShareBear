@@ -277,7 +277,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 
 		// no edits
 		if (getTotalEdits() == 0 && result.getErrorCode() == ReturnFromAddUsersToGroupTask.UNKNOWN_ERROR_CODE){
-			Toast.makeText(applicationCtx, "No changes", Toast.LENGTH_SHORT).show();
+			Utils.showCustomToast(applicationCtx, "No changes", true, 1);
 			sendObjectToActivityFromPostExecute(result);
 			return;
 		}
@@ -286,11 +286,10 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 		GroupsAdapter groupsAdapter = new GroupsAdapter(applicationCtx);
 		Group group = groupsAdapter.getGroup(groudRowId);
 		if (result.isSuccess())	{
-			Toast.makeText(
+			Utils.showCustomToast(
 					applicationCtx,
 					getTotalEdits() + " users updated to " + group.getName(),
-					Toast.LENGTH_SHORT)
-					.show();
+					true, 1);
 			sendObjectToActivityFromPostExecute(result);
 			return;
 		}
@@ -298,7 +297,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Integer, AddUsersToGroupTask.ReturnFromAd
 		// if not successful, then see how
 		// local error
 		if (result.isLocalError()){
-			Toast.makeText(applicationCtx, result.getDetailErrorMessage(), Toast.LENGTH_LONG).show();
+			Utils.showCustomToast(applicationCtx, result.getDetailErrorMessage(), true, 1);
 			return;
 
 		}else{

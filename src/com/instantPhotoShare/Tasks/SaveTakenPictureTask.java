@@ -358,14 +358,14 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 		// null result means we were successful local, and there was no need for server to receive anything
 		if (result == null){
 			if (toShowPostExecutionAlerts)
-				Toast.makeText(context, "Image Saved on Device only.", Toast.LENGTH_SHORT).show();
+				Utils.showCustomToast(context, "Image Saved on Device only.", true, 1);
 			return;
 		}
 
 		// show toast if successful
 		if (result.isSuccess())	{
 			if (toShowPostExecutionAlerts)
-				Toast.makeText(context, "Picture uploaded to the interwebs", Toast.LENGTH_SHORT).show();
+				Utils.showCustomToast(context, "Picture sent to group", true, 1);
 			return;
 		}
 
@@ -385,9 +385,9 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 			
 			// default values
 			toastMessage = "Picture not saved on server because:\n" + result.getDetailErrorMessage() +
-			".\nPictre is still saved on device, but is not shared!";
+			".\nPictre is still saved on device, but is not shared.";
 			notesMessage = "Picture with rowId " + result.getPictureRowId() + " not created on server because:\n"
-			+ result.getDetailErrorMessage() + ".\nPicture is still saved on device, but is not shared!";
+			+ result.getDetailErrorMessage() + ".\nPicture is still saved on device, but is not shared.";
 			notesType = NOTIFICATION_TYPES.SERVER_ERROR;
 
 			// no internet, just log error and don't show error
@@ -434,7 +434,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 				intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 				context.startActivity(intent);
 
-				//Toast.makeText(context, message, Toast.LENGTH_LONG);
+				//Utils.showCustomToast(context, message, Toast.LENGTH_LONG);
 			}
 		}catch(Exception e){
 			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));

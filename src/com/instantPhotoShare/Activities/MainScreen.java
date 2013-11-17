@@ -26,7 +26,6 @@ import com.instantPhotoShare.Tasks.SyncGroupsThatNeedIt;
 import com.instantPhotoShare.Tasks.SyncUsersInGroupThatNeedIt;
 import com.tools.CustomActivity;
 import com.tools.CustomAsyncTask;
-import com.tools.Tools;
 import com.tools.ServerPost.PostCallback;
 import com.tools.ServerPost.ServerReturn;
 import com.tools.TwoObjects;
@@ -55,7 +54,6 @@ import android.widget.Button;
 import android.widget.Gallery;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 import android.widget.AdapterView.OnItemClickListener;
 
 /**
@@ -78,11 +76,14 @@ extends CustomActivity{
 	private PicturesAdapter picturesAdapater;	// An array of all the pictures
 	private TextView nNotificationsText;
 	private TextView validateReminder;
+	private Button youShouldMakeAGroup;
 
 	// misc private variables
 	private CustomActivity act = this;
 	private AlertDialog noEmailDialog = null;
 	private int nNewGroups = 0;
+	private boolean isEmailValidated = false;
+	private boolean isGroupsFetched = false;
 
 	// enums for menu items
 	private enum MENU_ITEMS { 										
@@ -230,18 +231,16 @@ extends CustomActivity{
 	 */
 	private Dialog getHelpDialog(){
 		// the string to show
-		String message = "Take pictures inside a given group and all members of the group instantly get the pictures. And if they take pictures, you get them too."
+		String message = "Simply take a picture and all your friends in the group will automatically have the picture on their phone."
 				+ System.getProperty ("line.separator")
 				+ System.getProperty ("line.separator")
-				+ "1. Make a group"
+				+ "1. Create a group"
 				+ System.getProperty ("line.separator")
-				+ "2. Add your friends to the group"
+				+ "2. Invite your friends to the group"
 				+ System.getProperty ("line.separator")
-				+ "3. Take a picture"
+				+ "3. Take pictures"
 				+ System.getProperty ("line.separator")
-				+ "4. Friends automatically get pictures"
-				+ System.getProperty ("line.separator")
-				+ "5. View your pictures and pictures of others";
+				+ "4. Everyone in the group automatically gets the pictures on their phone!";
 		
 		// build the dialog
 		AlertDialog.Builder dlgAlert  = new AlertDialog.Builder(act);
@@ -297,7 +296,7 @@ extends CustomActivity{
 			// save the number of groups
 			if (act != null && errorCode == null){
 				act.nNewGroups = nNewItems;
-
+				act.isGroupsFetched = true;
 				//TODO: should these calls just be insided the calling function instead of out here.
 			}
 		}
@@ -309,9 +308,10 @@ extends CustomActivity{
 
 			// update adatper if there are new pictures
 			if (act!= null && act.nNewGroups > 0 && errorCode == null){
-				Toast.makeText(act, "You've been added to " + act.nNewGroups + " new groups!", Toast.LENGTH_SHORT).show();
 				act.setNotificationsNumber();
 			}
+			if (act != null && errorCode == null)
+				act.showMakeGroupBannerIfRequired();
 
 			// if there was an error
 			if (errorCode != null){
@@ -397,6 +397,8 @@ extends CustomActivity{
 		if (adapter != null)
 			adapter.imageLoader.restartThreads();
 		adapter.notifyDataSetChanged();
+		isEmailValidated = false;
+		isGroupsFetched = false;
 		fetchNewGroups();
 		fetchIsEmailValidated();
 		setNotificationsNumber();
@@ -405,36 +407,6 @@ extends CustomActivity{
 		if (picturesAdapater.size() == 0 && Prefs.getNumberTimesUsed(ctx) <= 3){
 			showDialog(DialogId.SHOW_HELP.ordinal());
 		}
-		
-		// show toast if only 1 group
-		new CustomAsyncTask<MainScreen, Void, Integer>(MainScreen.this, -1, true, true, null){
-
-			@Override
-			protected void onPreExecute() {
-			}
-
-			@Override
-			protected Integer doInBackground(Void... params) {
-				GroupsAdapter groups = new GroupsAdapter(applicationCtx);
-				return groups.getNGroups();
-			}
-
-			@Override
-			protected void onProgressUpdate(Void... progress) {
-			}
-
-			@Override
-			protected void onPostExectueOverride(Integer result) {
-				if (result <= 1 && callingActivity != null && Prefs.getNumberTimesUsed(ctx) > 1)
-					Toast.makeText(callingActivity, "You should make a group.", Toast.LENGTH_LONG).show();
-			}
-
-			@Override
-			protected void setupDialog() {
-
-			}
-
-		}.execute();	
 	}
 	
 	/**
@@ -445,6 +417,8 @@ extends CustomActivity{
 		// it was already validated, no need to check with server
 		if (Prefs.isEmailValidated(act)){
 			validateReminder.setVisibility(View.GONE);
+			isEmailValidated = true;
+			showMakeGroupBannerIfRequired();
 			return;
 		}
 		
@@ -482,14 +456,59 @@ extends CustomActivity{
 				if (data.isSuccess()){
 					Prefs.setIsEmailValidated(act, true);
 					act.validateReminder.setVisibility(View.GONE);
+					isEmailValidated = true;
 				}else if (!data.isSuccess() && "NO_VALID_EMAIL".compareToIgnoreCase(data.getErrorCode()) == 0){
 					act.validateReminder.setVisibility(View.VISIBLE);
+					isEmailValidated = false;
 				}else{
 					Log.e(Utils.LOG_TAG, data.getDetailErrorMessage());
 					act.validateReminder.setVisibility(View.GONE);
-				}			
+				}	
+				
+				// show banner if we need to
+				act.showMakeGroupBannerIfRequired();
 			}
 		});
+	}
+	
+	/**
+	 * Show the make a group banner if we've 1. validated email, 2. fetched all groups 
+	 */
+	private void showMakeGroupBannerIfRequired(){
+
+		// show banner if only 1 group (private group) and we've already fetched groups and checked email
+		if (isEmailValidated && isGroupsFetched){
+			new CustomAsyncTask<MainScreen, Void, Integer>(MainScreen.this, -1, true, true, null){
+
+				@Override
+				protected void onPreExecute() {
+				}
+
+				@Override
+				protected Integer doInBackground(Void... params) {
+					GroupsAdapter groups = new GroupsAdapter(applicationCtx);
+					return groups.getNGroups();
+				}
+
+				@Override
+				protected void onProgressUpdate(Void... progress) {
+				}
+
+				@Override
+				protected void onPostExectueOverride(Integer result) {
+					if (result <= 1 && callingActivity != null){
+						callingActivity.youShouldMakeAGroup.setVisibility(View.VISIBLE);
+					}else
+						callingActivity.youShouldMakeAGroup.setVisibility(View.GONE);
+				}
+
+				@Override
+				protected void setupDialog() {
+
+				}
+
+			}.execute();	
+		}
 	}
 	
 	/**
@@ -500,7 +519,7 @@ extends CustomActivity{
 		try {
 			com.tools.Tools.launchGmailSearchDOESNTWORK(this, Utils.GMAIL_SEARCH_TERM);
 		} catch (Exception e) {
-			Toast.makeText(this, "Gmail client could not be launched", Toast.LENGTH_SHORT).show();
+			Utils.showCustomToast(this, "Gmail client could not be launched", true, 1);
 		}
 	}
 
@@ -517,6 +536,7 @@ extends CustomActivity{
 		gallery = (Gallery) findViewById(R.id.galleryView);
 		nNotificationsText = (TextView) findViewById(R.id.nNotificationsText);
 		validateReminder = (TextView) findViewById(R.id.validateReminder);
+		youShouldMakeAGroup = (Button) findViewById(R.id.youShouldMakeAGroup);
 
 		// add click listener
 		gallery.setOnItemClickListener(pictureClick);

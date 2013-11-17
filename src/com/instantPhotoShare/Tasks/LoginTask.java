@@ -77,15 +77,15 @@ extends com.tools.CustomAsyncTask<ACTIVITY_TYPE, Integer, LoginTask<ACTIVITY_TYP
 
 		//make a toast saying if we were succesfful or not
 		if (result.isSuccess()){
-			Toast.makeText(callingActivity,
+			Utils.showCustomToast(callingActivity,
 					"Successfully logged in",
-					Toast.LENGTH_SHORT).show();
+					true, 1);
 		}else{
 			String reason = result.getDetailErrorMessage();
 			if (callingActivity != null)
-				Toast.makeText(callingActivity,
+				Utils.showCustomToast(callingActivity,
 						"Failed to login because:\n" + reason,
-						Toast.LENGTH_LONG).show();
+						true, 1);
 		}
 
 		// send result back to activity

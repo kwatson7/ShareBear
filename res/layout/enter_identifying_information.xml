@@ -5,29 +5,17 @@
 	android:layout_width="fill_parent"
 	xmlns:android="http://schemas.android.com/apk/res/android"
 	android:background="@drawable/gray_gradient">
+
+<LinearLayout
+    android:id="@+id/widget32"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical" >
+
 <LinearLayout
 	android:id="@+id/widget32"
 	android:layout_width="fill_parent"
-	android:layout_height="fill_parent"
-	android:orientation="vertical">
-<LinearLayout
-	android:id="@+id/widget32"
-	android:layout_width="fill_parent"
-	android:layout_height="fill_parent"
-	android:orientation="vertical">
-<TextView
-	android:text="@string/identifyingInformationExplanation"
-	android:id="@+id/widget33"
 	android:layout_height="wrap_content"
-	android:layout_width="fill_parent"
-	android:layout_gravity="center_horizontal"
-	android:gravity="left"
-	android:textColor="@android:color/black">
-</TextView>
-<LinearLayout
-	android:id="@+id/widget32"
-	android:layout_width="fill_parent"
-	android:layout_height="fill_parent"
 	android:orientation="horizontal">
 <EditText
 	android:id="@+id/yourFirstName"
@@ -109,26 +97,31 @@
 	android:singleLine="true"
 	android:inputType="textPassword"
 	android:imeOptions="actionDone"/>
-</LinearLayout>
-<LinearLayout
+<RelativeLayout
 	android:id="@+id/widget40"
 	android:layout_width="fill_parent"
-	android:layout_height="wrap_content"
-	android:orientation = "horizontal" >
+	android:layout_height="fill_parent">
 <Button
 	android:id="@+id/okButton"
-	android:layout_width="0dp"
+	android:layout_width="wrap_content"
 	android:layout_height="wrap_content"
 	android:text="@string/ok"
-	android:layout_weight="1" 
-	android:onClick="okClicked"/>
-<Button
-	android:id="@+id/cancelButton"
-	android:layout_width="0dp"
-	android:layout_height="wrap_content"
-	android:text="@string/cancel"
-	android:layout_weight="1" 
-	android:onClick="cancelClicked"/>
-</LinearLayout>
+	android:layout_gravity="right"
+	android:onClick="okClicked"
+	android:paddingLeft="40dp"
+	android:paddingRight="40dp"
+	android:layout_alignParentRight="true"
+	android:layout_margin="2dp"
+	android:background="@drawable/rounded_corners_turquoise"/>
+<TextView
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:text="Your information is always kept confidential and is never sold and will never be used outside this app. It is only used to let your friends know who you are."
+    style="@style/ShadowText"
+    android:textStyle="bold"
+    android:layout_below="@+id/okButton"
+    android:layout_marginTop="50dp"
+    />
+</RelativeLayout>
 </LinearLayout>
 </ScrollView>

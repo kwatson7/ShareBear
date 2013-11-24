@@ -87,10 +87,10 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, String>{
 	protected void onPostExectueOverride(String result) {
 		isRunning = false;
 		if (result.length() != 0 && applicationCtx != null)
-			Toast.makeText(
+			Utils.showCustomToast(
 					applicationCtx,
 					result,
-					Toast.LENGTH_LONG).show();		
+					true, 1);		
 	}
 
 	@Override

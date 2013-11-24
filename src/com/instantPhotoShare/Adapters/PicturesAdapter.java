@@ -2,6 +2,7 @@ package com.instantPhotoShare.Adapters;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InvalidObjectException;
 import java.lang.ref.WeakReference;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -16,9 +17,11 @@ import com.instantPhotoShare.ShareBearServerReturn;
 import com.instantPhotoShare.ThumbnailServerReturn;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter.Group;
+import com.instantPhotoShare.Adapters.GroupsAdapter.Group3Folders;
 import com.tools.CustomActivity;
 import com.tools.ServerPost.ServerReturn;
 import com.tools.SuccessReason;
+import com.tools.Tools;
 import com.tools.TwoObjects;
 import com.tools.images.ImageLoader.LoadImage;
 
@@ -36,7 +39,8 @@ public class PicturesAdapter
 extends TableAdapter<PicturesAdapter>{
 
 	// other contants
-	private static final float PICTURE_OVERSIZE = 2f;
+	private static final float PICTURE_OVERSIZED_DEFAULT = 1f;
+	private static final float PICTURE_OVERSIZED_HIGH_DEF = 2f;
 	private static final int THUMBNAILS_TO_GRAB_AT_ONCE = 1;
 	private static final int TIMEOUT_ON_THUMBNAIL = 10;
 	private static final int TIMEOUT_ON_FULLSIZE = 90;
@@ -186,16 +190,49 @@ extends TableAdapter<PicturesAdapter>{
 			return null;
 		}
 
-		// write the required folders
+		// what group to save pictures
 		Group group = (new GroupsAdapter(appCtx)).getGroup(groupRowId);
-		try {
-			group.writeFoldersIfNeeded();
-		} catch (IOException e1) {
-			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e1));
+		
+		// check where we should be saving this file and write the required folders
+		com.instantPhotoShare.Adapters.GroupsAdapter.Group3Folders topFolders = null;
+		try{
+			topFolders = group.writeFoldersIfNeeded();
+		}catch(IOException e){
+			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 			pic.setFinishedDownloadingFullsize(pictureRowId);
 			return null;
 		}
+		
+		// the correct location of pictures
+		path = Utils.putFilePathUnderFolder(topFolders.picFolder, path);
+		
+		// update location in database
+		pic.fetchPicture(pictureRowId);
+		pic.updateFullSizePath(path);
+		pic.close();
+		
+		// check that we have enough space if not, pick alternate path
+		long availableBytes = Tools.getAvailableSpace((new File(path)).getParent());	
+		if (Utils.PICTURE_REQUIRED_BYTES > availableBytes){
 
+			// get the back up path
+			try{
+				topFolders = group.writeBackupFoldersIfNeeded();
+			}catch(IOException e){
+				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+				pic.setFinishedDownloadingFullsize(pictureRowId);
+				return null;
+			}
+
+			// get alternate location
+			path = Utils.putFilePathUnderFolder(topFolders.picFolder, path);
+
+			// update location in database
+			pic.fetchPicture(pictureRowId);
+			pic.updateFullSizePath(path);
+			pic.close();
+		}
+		
 		// post to the server
 		ShareBearServerReturn result = Utils.postToServerToGetFile(ServerKeys.GetFullSize.COMMAND, json.toString(), path, weakProgess.get());
 		if (!result.isSuccess()){
@@ -317,16 +354,6 @@ extends TableAdapter<PicturesAdapter>{
 			return null;
 		}
 
-		// write the required folders
-		Group group = (new GroupsAdapter(appCtx)).getGroup(groupRowId);
-		try {
-			group.writeFoldersIfNeeded();
-		} catch (IOException e1) {
-			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e1));
-			pics.setFinishedDownloadingThumbnail(pictureRowId, false);
-			return null;
-		}
-
 		// create the data required to post to server
 		JSONObject json = new JSONObject();
 		try{
@@ -378,6 +405,23 @@ extends TableAdapter<PicturesAdapter>{
 				continue;
 			}
 			String thumbPath = pics.getThumbnailPath();
+			
+			// check where we should be saving this file and write the required folders
+			Group group = (new GroupsAdapter(appCtx)).getGroup(groupRowId);
+			Group3Folders topFolders = null;
+			try{
+				topFolders = group.writeFoldersIfNeeded();
+			}catch(IOException e){
+				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+				pics.setFinishedDownloadingThumbnail(pictureRowId, false);
+				return null;
+			}
+			
+			// the correct location of pictures
+			thumbPath = Utils.putFilePathUnderFolder(topFolders.thumbFolder, thumbPath);
+			
+			// update location in database
+			pics.updateThumbnailPath(thumbPath);
 			pics.close();
 
 			// write to file
@@ -391,6 +435,39 @@ extends TableAdapter<PicturesAdapter>{
 							thumbPath,
 							ExifInterface.ORIENTATION_NORMAL,
 							false);
+				
+				// if we had a no space left error, change the location of the thumbnail and try again
+				if (!result2.getSuccess() && result2.getReason().equalsIgnoreCase(" No space left on device")){
+
+					// get the back up path
+					try{
+						topFolders = group.writeBackupFoldersIfNeeded();
+					}catch(IOException e){
+						Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+						pics.setFinishedDownloadingThumbnail(pictureRowId, false);
+						return null;
+					}
+
+					// get alternate location
+					thumbPath = Utils.putFilePathUnderFolder(topFolders.thumbFolder, thumbPath);
+
+					// save to the new location
+					result2 = 
+						com.tools.ImageProcessing.saveByteDataToFile(
+								appCtx,
+								data,
+								false,
+								thumbPath,
+								ExifInterface.ORIENTATION_NORMAL,
+								false);
+
+					// update path in database
+					if (result2.getSuccess()){
+						pics.fetchPictureFromServerId(pictureServerId);
+						pics.updateThumbnailPath(thumbPath);
+						pics.close();
+					}
+				}
 
 				// find the user who took this picture
 				UsersAdapter users = new UsersAdapter(appCtx);
@@ -446,7 +523,7 @@ extends TableAdapter<PicturesAdapter>{
 		
 		// show toast
 		if (act != null)
-			Toast.makeText(act, "Copying picture...", Toast.LENGTH_SHORT).show();
+			Utils.showCustomToast(act, "Copying picture...", true, 1);
 		
 		// get some data 
 		final long rowId = getRowId();
@@ -858,6 +935,17 @@ extends TableAdapter<PicturesAdapter>{
 	}
 
 	/**
+	 * What value should we use to oversize larger than the screen for bitmap
+	 * @return
+	 */
+	private  float getPictureOversizeValue(){
+		if (!Prefs.isRenderHighDef(ctx))
+			return PICTURE_OVERSIZED_DEFAULT;
+		else
+			return PICTURE_OVERSIZED_HIGH_DEF;
+	}
+	
+	/**
 	 * Fetch the pictures that still need to be uploaded to the server for a given group.
 	 * @param groupRowId
 	 */
@@ -1067,7 +1155,7 @@ extends TableAdapter<PicturesAdapter>{
 		
 		// show toast
 		if (act != null)
-			Toast.makeText(act, "Deleting...", Toast.LENGTH_SHORT).show();
+			Utils.showCustomToast(act, "Deleting ...", true, 1);
 		
 		// get some data 
 		final long rowId = getRowId();
@@ -1332,7 +1420,10 @@ extends TableAdapter<PicturesAdapter>{
 	 * @return The bitmap, or null if none
 	 */
 	public Bitmap getFullImage(int desiredWidth, int desiredHeight){
-		return com.tools.images.ImageLoader.getFullImage(getFullPicturePath(), (int)(desiredWidth*PICTURE_OVERSIZE), (int)(desiredHeight*PICTURE_OVERSIZE));
+		return com.tools.images.ImageLoader.getFullImage(
+				getFullPicturePath(),
+				(int)(desiredWidth*getPictureOversizeValue()),
+				(int)(desiredHeight*getPictureOversizeValue()));
 	}	
 
 	/**
@@ -1343,11 +1434,13 @@ extends TableAdapter<PicturesAdapter>{
 	 * @return
 	 */
 	public String getFullPicturePath(){
-		if (!checkCursor())
-			return "";
-		else{
-			return getString(KEY_PATH);
-		}
+		PicturesAdapter pics = new PicturesAdapter(ctx);
+		pics.fetchPicture(getRowId());
+		String path = "";
+		if (pics.checkCursor())
+			path = pics.getString(KEY_PATH);
+		pics.close();
+		return path;
 	}
 
 	/**
@@ -1403,7 +1496,22 @@ extends TableAdapter<PicturesAdapter>{
 			return out;
 		
 		// read the file
-		return com.tools.Tools.getThumbnail(path);
+		out = com.tools.Tools.getThumbnail(path);
+		
+		// if bad, then try reading from database again just to be safe we didn't cahnge filename
+		if (out == null){
+			PicturesAdapter pic = new PicturesAdapter(ctx);
+			pic.fetchPicture(getRowId());
+			
+			path = getThumbnailPath();
+			if (path.length() == 0)
+				return out;
+			
+			// read the file
+			out = com.tools.Tools.getThumbnail(path);
+		}
+		
+		return out;
 	}
 
 	/**
@@ -1418,6 +1526,51 @@ extends TableAdapter<PicturesAdapter>{
 			return "";
 		}else{
 			return getString(KEY_THUMBNAIL_PATH);
+		}
+	}
+	
+	/**
+	 * Update the path for the given thumbnail
+	 * @param newPath
+	 */
+	private void updateThumbnailPath(String newPath){
+		// the values
+		ContentValues values = new ContentValues();
+		values.put(KEY_THUMBNAIL_PATH, newPath);
+		long rowId = getRowId();
+
+		// update the values to the table
+		if (database.update(
+				TABLE_NAME,
+				values,
+				KEY_ROW_ID + "='" + rowId + "'", null) <=0)
+			Log.e(Utils.LOG_TAG, "updateThumbnailPath did not update properly");
+
+		synchronized (PicturesAdapter.class) {
+			PicturesAdapter.class.notifyAll();
+		}
+		
+	}
+	
+	/**
+	 * Update the path for the given full size picture
+	 * @param newPath
+	 */
+	private void updateFullSizePath(String newPath){
+		// the values
+		ContentValues values = new ContentValues();
+		values.put(KEY_PATH, newPath);
+		long rowId = getRowId();
+
+		// update the values to the table
+		if (database.update(
+				TABLE_NAME,
+				values,
+				KEY_ROW_ID + "='" + rowId + "'", null) <=0)
+			Log.e(Utils.LOG_TAG, "updateFullSizePath did not update properly");
+
+		synchronized (PicturesAdapter.class) {
+			PicturesAdapter.class.notifyAll();
 		}
 	}
 

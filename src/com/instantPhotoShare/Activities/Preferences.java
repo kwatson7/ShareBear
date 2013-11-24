@@ -6,6 +6,8 @@ import com.instantPhotoShare.R;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.preference.Preference;
+import android.preference.Preference.OnPreferenceClickListener;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceManager;
 
@@ -18,6 +20,7 @@ public class Preferences extends PreferenceActivity {
 		prefMgr.setSharedPreferencesName(Prefs.PREF_FILE);
 		prefMgr.setSharedPreferencesMode(MODE_WORLD_READABLE);
 		addPreferencesFromResource(R.xml.preferences);
+		
 	}
 
 	@Override

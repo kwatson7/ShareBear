@@ -4,6 +4,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -64,14 +65,14 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, Void>{
 
 					// find all the groups this picture is in
 					groupsHelper.fetchGroupsContainPicture(pics.getRowId());
-					ArrayList<Long> groupServerIds = new ArrayList<Long>(groupsHelper.size());
+
+					JSONArray groupServerIds = new JSONArray();
 					while(groupsHelper.moveToNext()){
 						if (groupsHelper.isSynced()
 								&& !groupsHelper.isKeepLocal())
-							groupServerIds.add(groupsHelper.getServerId());
+							groupServerIds.put(groupsHelper.getServerId());
 					}
-					groupsHelper.close();
-					String ids = groupServerIds.toString();
+					groupsHelper.close();								
 					
 					// grab the thumbnail data
 					//TODO: re-encoding file which will lead to artifacts
@@ -101,7 +102,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, Void>{
 					try {
 						json.put(KEY_USER_ID, Prefs.getUserServerId(applicationCtx));
 						json.put(KEY_SECRET_CODE, Prefs.getSecretCode(applicationCtx));
-						json.put(KEY_GROUP_ID, ids);
+						json.put(KEY_GROUP_ID, groupServerIds);
 					} catch (JSONException e) {
 						Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 						continue;

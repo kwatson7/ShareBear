@@ -251,7 +251,7 @@ extends CustomActivity{
 		
 		// make sure there are groups
 		if (groups == null || groups.size() == 0){
-			Toast.makeText(this, "No groups to edit. Create one First", Toast.LENGTH_LONG).show();
+			Utils.showCustomToast(this, "No groups to edit. Create one First", true, 1);
 			finish();
 			return;
 		}
@@ -282,7 +282,7 @@ extends CustomActivity{
 
 			@Override
 			public void onNothingSelected(AdapterView<?> parentView) {
-				Toast.makeText(ctx, "No Group Selected. Finishing...", Toast.LENGTH_LONG).show();
+				Utils.showCustomToast(ctx, "No Group Selected. Finishing...", true, 1);
 				finish();
 			}
 		});
@@ -312,7 +312,7 @@ extends CustomActivity{
 			GroupsAdapter adapter = new GroupsAdapter(this);
 			ArrayList<Group> groups = adapter.getAllGroups();
 			if (groups == null || groups.size() == 0){
-				Toast.makeText(this, "No groups to edit. Create one First", Toast.LENGTH_LONG).show();
+				Utils.showCustomToast(this, "No groups to edit. Create one First", true, 1);
 				finish();
 				return;
 			}

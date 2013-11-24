@@ -45,7 +45,13 @@ extends ShareBearServerReturnWithArray{
 		
 		// extract important values
 		byte[] base64Bytes = new byte[base64.length() - IGNORE_CHARACTERS_BEGINNING_BASE64];
-		base64.getBytes(IGNORE_CHARACTERS_BEGINNING_BASE64, base64.length(), base64Bytes, 0);
+		try{
+			base64.getBytes(IGNORE_CHARACTERS_BEGINNING_BASE64, base64.length(), base64Bytes, 0);
+		}catch (Exception e){ // android 3.0 does not work with the above, so do this command instead
+			byte[] tmp = base64.getBytes();
+			System.arraycopy(tmp, IGNORE_CHARACTERS_BEGINNING_BASE64, base64Bytes, 0, base64Bytes.length);
+			tmp = null;
+		}
 		
 		// clear base64
 		base64 = null;

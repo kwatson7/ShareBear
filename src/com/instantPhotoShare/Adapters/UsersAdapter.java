@@ -1119,6 +1119,13 @@ extends TableAdapter <UsersAdapter>{
 		// if we have a lookup key, then use it to search database
 		Uri uri = ContactsContract.Contacts.getLookupUri(getLong(KEY_CONTACTS_ROW_ID), getLookupKey());
 		Uri uri2 = ContactsContract.Contacts.lookupContact(ctx.getContentResolver(), uri);
+		
+		// if we can't find the contact in our database, then then must be gone
+		//TODO: rewrite of logic, if we remvoe user from phone database, they will still be in sharebear database and not really make sense
+		if (uri2 == null){
+			return -1;
+		}
+		
 		String[] projection = {ContactsContract.Contacts._ID};
 		Cursor cursor = ctx.getContentResolver().query(
 				uri2,

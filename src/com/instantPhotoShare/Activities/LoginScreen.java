@@ -53,9 +53,7 @@ extends CustomActivity {
     	String pass = yourPasswordEdit.getText().toString();
     	if (user == null || user.length() == 0
     			|| pass == null || pass.length() == 0){
-    		Toast.makeText(this,
-    				R.string.allFieldsRequired,
-    				Toast.LENGTH_LONG).show();
+    		Utils.showCustomToast(this, R.string.allFieldsRequired, false, 1);
     		return;
     	}
 

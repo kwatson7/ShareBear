@@ -228,7 +228,7 @@ public class Prefs {
 	 * @param notificationRowId The rowId of the notificaation
 	 */
 	public static void setMostRecentNotificationRowId(Context ctx, long notificationRowId){
-		setLongPref(ctx, MOST_RECENT_GROUP, notificationRowId);
+		setLongPref(ctx, MOST_RECENT_NOTIFICATION_NUMBER, notificationRowId);
 	}
 	/**
 	 * get the rowId of the most recent notification number 
@@ -278,12 +278,30 @@ public class Prefs {
 	}
 	
 	/**
+	 * Return whether we should store data to external storage by default
+	 * @param ctx Context required
+	 * @return true if we should, false otherwise
+	 */
+	public static boolean isStoreExternal(Context ctx){
+		return getBooleanPref(ctx, getSTORE_EXTERNAL_SD_DEFAULT(ctx), false);
+	}
+	
+	/**
 	 * Return whether we should play notification sound on new notification in notification bar
 	 * @param ctx Context required
 	 * @return true if we should, false otherwise
 	 */
 	public static boolean isPlayNotificationSound(Context ctx){
 		return getBooleanPref(ctx, getBACKGROUND_NOTIFICATION_SOUND(ctx), true);
+	}
+	
+	/**
+	 * Do we want high def rendering of pictures?
+	 * @param ctx
+	 * @return
+	 */
+	public static boolean isRenderHighDef(Context ctx){
+		return getBooleanPref(ctx, getHIGH_DEF_RENDERING(ctx), false);
 	}
 	
 	/**
@@ -305,12 +323,30 @@ public class Prefs {
 	}
 	
 	/**
+	 * Get the string for querying if we want to have high def rendering
+	 * @param ctx Context required to query preference
+	 * @return 
+	 */
+	private static String getHIGH_DEF_RENDERING(Context ctx){
+		return ctx.getResources().getString(R.string.HIGH_DEF_RENDERING);
+	}
+	
+	/**
 	 * Get the string for querying if we want to do background notifications sounds
 	 * @param ctx Context required to query preference
 	 * @return 
 	 */
 	private static String getBACKGROUND_NOTIFICATION_SOUND(Context ctx){
 		return ctx.getResources().getString(R.string.BACKGROUND_NOTIFICATION_SOUND);
+	}
+	
+	/**
+	 * Get the string for querying if we to store to external sd card by default
+	 * @param ctx Context required to query preference
+	 * @return 
+	 */
+	private static String getSTORE_EXTERNAL_SD_DEFAULT(Context ctx){
+		return ctx.getResources().getString(R.string.STORE_EXTERNAL_SD_DEFAULT);
 	}
 	
 	/**

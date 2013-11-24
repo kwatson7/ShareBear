@@ -9,6 +9,7 @@ import com.instantPhotoShare.Prefs;
 import com.instantPhotoShare.ServerKeys;
 import com.instantPhotoShare.Utils;
 import com.instantPhotoShare.Adapters.GroupsAdapter;
+import com.instantPhotoShare.Adapters.UsersInGroupsAdapter;
 import com.instantPhotoShare.Tasks.CreateGroupTask.ReturnFromCreateGroupTask;
 import com.tools.CustomActivity;
 import com.tools.CustomAsyncTask;
@@ -85,6 +86,11 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, Void>{
 		if (callingActivity != null){
 			UploadPicturesThatNeedIt<ACTIVITY_TYPE> task = new UploadPicturesThatNeedIt<ACTIVITY_TYPE>(callingActivity);
 			task.execute();
+		}
+		
+		// now that we've synced groups, sync users
+		if (callingActivity != null){
+			(new SyncUsersInGroupThatNeedIt<CustomActivity>(callingActivity)).execute();
 		}
 	}
 

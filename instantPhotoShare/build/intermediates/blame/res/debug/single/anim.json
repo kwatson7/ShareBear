@@ -1,0 +1,18 @@
+[
+    {
+        "merged": "C:\\Users\\kyle\\Documents\\androidCode\\ShareBear\\instantPhotoShare\\build\\intermediates\\res\\merged\\debug\\anim\\picture_scale_down_animation.xml",
+        "source": "C:\\Users\\kyle\\Documents\\androidCode\\ShareBear\\instantPhotoShare\\src\\main\\res\\anim\\picture_scale_down_animation.xml"
+    },
+    {
+        "merged": "C:\\Users\\kyle\\Documents\\androidCode\\ShareBear\\instantPhotoShare\\build\\intermediates\\res\\merged\\debug\\anim\\picture_scale_up_animation.xml",
+        "source": "C:\\Users\\kyle\\Documents\\androidCode\\ShareBear\\instantPhotoShare\\src\\main\\res\\anim\\picture_scale_up_animation.xml"
+    },
+    {
+        "merged": "C:\\Users\\kyle\\Documents\\androidCode\\ShareBear\\instantPhotoShare\\build\\intermediates\\res\\merged\\debug\\anim\\fade_out.xml",
+        "source": "C:\\Users\\kyle\\Documents\\androidCode\\ShareBear\\instantPhotoShare\\src\\main\\res\\anim\\fade_out.xml"
+    },
+    {
+        "merged": "C:\\Users\\kyle\\Documents\\androidCode\\ShareBear\\instantPhotoShare\\build\\intermediates\\res\\merged\\debug\\anim\\shake.xml",
+        "source": "C:\\Users\\kyle\\Documents\\androidCode\\ShareBear\\instantPhotoShare\\src\\main\\res\\anim\\shake.xml"
+    }
+]

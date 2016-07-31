@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="vertical"
+	android:layout_width="fill_parent"
+	android:layout_height="fill_parent"
+	android:id="@+id/frame_layout">
+<ImageView
+	android:src="@drawable/main_background6"
+	android:scaleType="centerCrop"
+	android:layout_width="fill_parent"
+	android:layout_height="fill_parent"
+	android:id="@+id/backgroundImage"
+/>
+<RelativeLayout
+	android:id="@+id/widget33"
+	android:layout_width="fill_parent"
+	android:layout_height="fill_parent"
+	android:orientation="vertical">
+<TextView
+	android:id="@+id/firstUseStatementText"
+	android:layout_width="wrap_content"
+	android:layout_height="wrap_content"
+	android:text="@string/firstUseStatement"
+	android:gravity="center" 
+	android:textStyle="bold"
+	android:textSize="15dp"
+	style="@style/ShadowText"
+	android:padding="5dp"
+	android:layout_alignParentTop="true"
+	android:background="@color/black25"/>
+<Button
+	android:id="@+id/createNewAccountButton"
+	android:layout_width="fill_parent"
+	android:layout_height="wrap_content"
+	android:text="@string/createAccount"
+	android:padding="15dp"
+	android:typeface="serif"
+	android:textStyle="bold"
+	android:gravity="center"
+	android:layout_gravity="center_horizontal" 
+	android:layout_below="@+id/firstUseStatementText"
+	android:onClick="createNewAccountButtonClicked"
+	android:layout_margin="50dp"
+	android:textSize="20dp"
+	android:background="@drawable/rounded_corners_turquoise"/>
+<Button
+	android:id="@+id/signInButton"
+	android:layout_width="wrap_content"
+	android:layout_height="wrap_content"
+	android:text="@string/signIn"
+	android:background="@android:color/transparent"
+	android:textStyle="bold"
+	android:textColor="@android:color/white"
+	android:padding="2dp"
+	android:gravity="center"
+	android:layout_alignParentRight="true"
+	android:layout_alignParentBottom="true"
+	android:layout_margin="50dp"
+	android:onClick="signInButtonClicked"
+	/>
+</RelativeLayout>
+</FrameLayout>

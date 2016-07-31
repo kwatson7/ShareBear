@@ -1,5 +1,0 @@
-*.class
-*/drawable*/*Thumbs.db
-*.jar
-bin/
-gen/*

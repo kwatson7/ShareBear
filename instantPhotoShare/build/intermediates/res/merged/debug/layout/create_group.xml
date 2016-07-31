@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/ScrollView01"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:background="@drawable/gray_gradient"
+    android:fillViewport="true" >
+
+    <LinearLayout
+        android:id="@+id/topLayout"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:orientation="vertical" >
+
+        <LinearLayout
+            android:id="@+id/dummyView"
+            android:layout_width="0px"
+            android:layout_height="0px"
+            android:focusable="true"
+            android:focusableInTouchMode="true" />
+
+        <EditText
+            android:id="@+id/groupName"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:hint="Group Name"
+            android:imeOptions="actionDone"
+            android:lines="1"
+            android:singleLine="true"
+            android:textSize="18dp" />
+
+        <LinearLayout
+            android:id="@+id/advancedOptions"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" 
+            android:visibility="gone">
+
+            <CheckBox
+                android:id="@+id/keepPrivate"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:text="Only on Phone?" />
+
+            <EditText
+                android:id="@+id/location"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:enabled="false"
+                android:hint="Location"
+                android:textSize="18sp"
+                android:visibility="gone" />
+
+            <CheckBox
+                android:id="@+id/publicGroup"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:enabled="false"
+                android:text="Public Group"
+                android:visibility="gone" />
+
+            <CheckBox
+                android:id="@+id/allowOtherMembersToAddMembers"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:checked="true"
+                android:enabled="false"
+                android:text="Allow Members to Themselves Add Members"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/goButton"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:onClick="goClicked"
+            android:text="Make Group"
+            android:textSize="18dp"
+            android:textStyle="bold"
+            android:typeface="serif" />
+    </LinearLayout>
+
+</ScrollView>

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="48dp"
+    android:layout_gravity="bottom|center_horizontal"
+    android:background="@color/purple_dark_semi_transparent"
+    android:baselineAligned="false"
+    android:orientation="horizontal"
+    android:visibility="gone" >
+
+    <TextView
+        android:id="@+id/nItemsSelected"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_centerVertical="true"
+        android:layout_gravity="center_vertical"
+        android:layout_marginLeft="5dp"
+        android:gravity="center_vertical"
+        android:text="0 Items Clicked"
+        android:textColor="@android:color/white"
+        android:textSize="20dp"
+        android:textStyle="bold"
+        android:typeface="serif" />
+
+    <ImageView
+        android:id="@+id/shareButton"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_centerVertical="true"
+        android:layout_marginLeft="5dp"
+        android:layout_marginRight="5dp"
+        android:onClick="shareClicked"
+        android:scaleType="centerCrop"
+        android:src="@drawable/share_white" 
+        android:layout_centerHorizontal="true"
+        android:background="@drawable/blue_selector"/>
+
+    <Button
+        android:id="@+id/cancelButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_centerVertical="true"
+        android:layout_gravity="right|center_vertical"
+        android:layout_marginLeft="5dp"
+        android:layout_marginRight="5dp"
+        android:onClick="cancelClicked"
+        android:text="Cancel"
+        android:textSize="20dp"
+        android:textStyle="bold"
+        android:typeface="serif" >
+    </Button>
+
+</RelativeLayout>

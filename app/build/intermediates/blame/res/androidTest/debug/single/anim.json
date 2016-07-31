@@ -1,0 +1,18 @@
+[
+    {
+        "merged": "C:\\Users\\kyle\\Documents\\androidCode\\ShareBear\\app\\build\\intermediates\\res\\merged\\androidTest\\debug\\anim\\picture_scale_down_animation.xml",
+        "source": "C:\\Users\\kyle\\Documents\\androidCode\\ShareBear\\app\\build\\intermediates\\bundles\\debug\\res\\anim\\picture_scale_down_animation.xml"
+    },
+    {
+        "merged": "C:\\Users\\kyle\\Documents\\androidCode\\ShareBear\\app\\build\\intermediates\\res\\merged\\androidTest\\debug\\anim\\shake.xml",
+        "source": "C:\\Users\\kyle\\Documents\\androidCode\\ShareBear\\app\\build\\intermediates\\bundles\\debug\\res\\anim\\shake.xml"
+    },
+    {
+        "merged": "C:\\Users\\kyle\\Documents\\androidCode\\ShareBear\\app\\build\\intermediates\\res\\merged\\androidTest\\debug\\anim\\picture_scale_up_animation.xml",
+        "source": "C:\\Users\\kyle\\Documents\\androidCode\\ShareBear\\app\\build\\intermediates\\bundles\\debug\\res\\anim\\picture_scale_up_animation.xml"
+    },
+    {
+        "merged": "C:\\Users\\kyle\\Documents\\androidCode\\ShareBear\\app\\build\\intermediates\\res\\merged\\androidTest\\debug\\anim\\fade_out.xml",
+        "source": "C:\\Users\\kyle\\Documents\\androidCode\\ShareBear\\app\\build\\intermediates\\bundles\\debug\\res\\anim\\fade_out.xml"
+    }
+]

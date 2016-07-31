@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory 
+        android:title="Preferences"
+        android:key="first_category">
+        
+        <CheckBoxPreference 
+            android:key="@string/BACKGROUND_POLLING_AUTO_START"
+            android:summary="Enable or disable background updates"
+            android:title="Background notifications?" 
+            android:defaultValue="true"
+        />
+        <CheckBoxPreference 
+            android:key="@string/BACKGROUND_NOTIFICATION_SOUND"
+            android:summary="Play sound on new picture"
+            android:title="Play Notification Sound?" 
+            android:defaultValue="true"
+            android:dependency="@string/BACKGROUND_POLLING_AUTO_START"
+        />
+        <CheckBoxPreference 
+            android:key="@string/HIGH_DEF_RENDERING"
+            android:summary="Enable to allow high definition zooming, but may cause memory failures"
+            android:title="High Def zooming?" 
+            android:defaultValue="false"
+        />
+         <CheckBoxPreference 
+            android:key="@string/STORE_EXTERNAL_SD_DEFAULT"
+            android:summary="Store on external SD card vs internal memory by default. Make sure you have an sd card."
+            android:title="External Store by default?" 
+            android:defaultValue="false"
+        />
+           
+    </PreferenceCategory>
+    
+</PreferenceScreen>

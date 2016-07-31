@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:layout_gravity="center">
+<ProgressBar 
+	android:id="@+id/progressBar"
+	android:layout_width="45dp"
+	android:layout_height="45dp"
+	android:indeterminateOnly="true"
+	android:layout_gravity="center"
+/>
+<com.tools.images.ImageViewTouch
+    android:id="@+id/picture"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:scaleType="fitXY"
+    android:layout_gravity="center"
+/>
+<TextView
+    android:id="@+id/personWhoTookPicture"
+	android:layout_width="wrap_content"
+	android:layout_height="wrap_content"
+	android:layout_gravity="center_horizontal|bottom"
+/>
+<ProgressBar
+    android:id="@+id/fullPictureProgressBar"
+    android:layout_width="100dp"
+    android:layout_height="wrap_content"
+    android:indeterminate="false"
+    android:visibility="invisible"
+    android:layout_gravity="bottom|right"
+    android:max="100"
+     style="@android:style/Widget.ProgressBar.Horizontal"
+/>
+</FrameLayout>

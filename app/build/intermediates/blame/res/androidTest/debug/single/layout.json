@@ -1,0 +1,14 @@
+[
+    {
+        "merged": "C:\\Users\\kyle\\Documents\\androidCode\\ShareBear\\app\\build\\intermediates\\res\\merged\\androidTest\\debug\\layout\\transparant.xml",
+        "source": "C:\\Users\\kyle\\Documents\\androidCode\\ShareBear\\app\\build\\intermediates\\bundles\\debug\\res\\layout\\transparant.xml"
+    },
+    {
+        "merged": "C:\\Users\\kyle\\Documents\\androidCode\\ShareBear\\app\\build\\intermediates\\res\\merged\\androidTest\\debug\\layout\\help_layout.xml",
+        "source": "C:\\Users\\kyle\\Documents\\androidCode\\ShareBear\\app\\build\\intermediates\\bundles\\debug\\res\\layout\\help_layout.xml"
+    },
+    {
+        "merged": "C:\\Users\\kyle\\Documents\\androidCode\\ShareBear\\app\\build\\intermediates\\res\\merged\\androidTest\\debug\\layout\\main.xml",
+        "source": "C:\\Users\\kyle\\Documents\\androidCode\\ShareBear\\app\\build\\intermediates\\bundles\\debug\\res\\layout\\main.xml"
+    }
+]

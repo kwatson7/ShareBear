@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<items version="2" >
+
+    <item
+        jar="C:\Users\kyle\Documents\androidCode\ShareBear\instantPhotoShare\build\intermediates\exploded-aar\ShareBear\tools\unspecified\jars\libs\httpcore-4.2.1.jar"
+        jumboMode="true"
+        revision="23.0.1"
+        sha1="e594791b896a958a4296e8e8219ba907333913c9">
+        <dex dex="C:\Users\kyle\Documents\androidCode\ShareBear\instantPhotoShare\build\intermediates\transforms\dex\debug\folders\1000\8\httpcore-4.2.1_7ef43ef3089c435a0533bde7c7d39d63337fe0f7\classes.dex" />
+    </item>
+    <item
+        jar="C:\Users\kyle\Documents\androidCode\ShareBear\instantPhotoShare\build\intermediates\incremental-classes\debug\instant-run-bootstrap.jar"
+        jumboMode="true"
+        revision="23.0.1"
+        sha1="ba12fbd1f829b3a7be79819d2985ae4388f59186">
+        <dex dex="C:\Users\kyle\Documents\androidCode\ShareBear\instantPhotoShare\build\intermediates\transforms\dex\debug\folders\1000\10\instant-run-bootstrap_1babdb33d6a04ec1b1995be24033567baf6dc27f\classes.dex" />
+    </item>
+    <item
+        jar="C:\Users\kyle\Documents\androidCode\ShareBear\instantPhotoShare\build\intermediates\exploded-aar\ShareBear\tools\unspecified\jars\libs\commons-logging-1.1.1.jar"
+        jumboMode="true"
+        revision="23.0.1"
+        sha1="a8f0687c3d58850d89b2b490cfb8a3364587815e">
+        <dex dex="C:\Users\kyle\Documents\androidCode\ShareBear\instantPhotoShare\build\intermediates\transforms\dex\debug\folders\1000\8\commons-logging-1.1.1_c727b28dc0e8c229595ba89de76bc57e00bede36\classes.dex" />
+    </item>
+    <item
+        jar="C:\Users\kyle\Documents\androidCode\ShareBear\instantPhotoShare\build\intermediates\exploded-aar\ShareBear\tools\unspecified\jars\libs\maps.jar"
+        jumboMode="true"
+        revision="23.0.1"
+        sha1="1d0c5211780da0382ea0d67be493ed9ad9224212">
+        <dex dex="C:\Users\kyle\Documents\androidCode\ShareBear\instantPhotoShare\build\intermediates\transforms\dex\debug\folders\1000\8\maps_8e962599304ea41af087cf6a55b7ad66ad5d2bba\classes.dex" />
+    </item>
+    <item
+        jar="C:\Users\kyle\Documents\androidCode\ShareBear\instantPhotoShare\build\intermediates\exploded-aar\ShareBear\tools\unspecified\jars\libs\httpclient-cache-4.2.1.jar"
+        jumboMode="true"
+        revision="23.0.1"
+        sha1="b1af5398d8a318f498e32b78ff815de7122c1d96">
+        <dex dex="C:\Users\kyle\Documents\androidCode\ShareBear\instantPhotoShare\build\intermediates\transforms\dex\debug\folders\1000\8\httpclient-cache-4.2.1_6b4127289f55caf33b12a4656c0fb79ea9290afb\classes.dex" />
+    </item>
+    <item
+        jar="C:\Users\kyle\Documents\androidCode\ShareBear\instantPhotoShare\build\intermediates\incremental-runtime-classes\debug\instant-run.jar"
+        jumboMode="true"
+        revision="23.0.1"
+        sha1="6686eeb24c1307e82ee4b0e7bc5953c472d92bdc">
+        <dex dex="C:\Users\kyle\Documents\androidCode\ShareBear\instantPhotoShare\build\intermediates\transforms\dex\debug\folders\1000\10\instant-run_6d268332e8869185bf7f37c183a8e24a2cdd65c8\classes.dex" />
+    </item>
+    <item
+        jar="C:\Users\kyle\Documents\androidCode\ShareBear\instantPhotoShare\build\intermediates\exploded-aar\ShareBear\tools\unspecified\jars\libs\commons-codec-1.6.jar"
+        jumboMode="true"
+        revision="23.0.1"
+        sha1="22c0e7fb8027768bfc86f3709e82f6079f9d3aa6">
+        <dex dex="C:\Users\kyle\Documents\androidCode\ShareBear\instantPhotoShare\build\intermediates\transforms\dex\debug\folders\1000\8\commons-codec-1.6_56860869ef0e676f4e522f296d504b7634e8e101\classes.dex" />
+    </item>
+    <item
+        jar="C:\Users\kyle\Documents\androidCode\ShareBear\instantPhotoShare\build\intermediates\exploded-aar\ShareBear\tools\unspecified\jars\libs\httpmime-4.2.1.jar"
+        jumboMode="true"
+        revision="23.0.1"
+        sha1="cc67155d23cee0e87f6da23de49e364c5df7f875">
+        <dex dex="C:\Users\kyle\Documents\androidCode\ShareBear\instantPhotoShare\build\intermediates\transforms\dex\debug\folders\1000\8\httpmime-4.2.1_f3f8c880db062c61feab352eccffcbf2d613810c\classes.dex" />
+    </item>
+    <item
+        jar="C:\Users\kyle\Documents\androidCode\ShareBear\instantPhotoShare\build\intermediates\exploded-aar\ShareBear\tools\unspecified\jars\libs\httpclient-4.2.1.jar"
+        jumboMode="true"
+        revision="23.0.1"
+        sha1="4e93cbdf8b89f1c1ab2d970de5af9518a832074f">
+        <dex dex="C:\Users\kyle\Documents\androidCode\ShareBear\instantPhotoShare\build\intermediates\transforms\dex\debug\folders\1000\8\httpclient-4.2.1_a0749515768fd69496ce382304f72a01adf4b5f8\classes.dex" />
+    </item>
+    <item
+        jar="C:\Users\kyle\Documents\androidCode\ShareBear\instantPhotoShare\build\intermediates\exploded-aar\ShareBear\tools\unspecified\jars\libs\fluent-hc-4.2.1.jar"
+        jumboMode="true"
+        revision="23.0.1"
+        sha1="d989f93479ad4e812aabaf83a2429a0b1b5a5185">
+        <dex dex="C:\Users\kyle\Documents\androidCode\ShareBear\instantPhotoShare\build\intermediates\transforms\dex\debug\folders\1000\8\fluent-hc-4.2.1_37b374cc8a3ca9739a2527a973c0359d338c2b0b\classes.dex" />
+    </item>
+
+</items>

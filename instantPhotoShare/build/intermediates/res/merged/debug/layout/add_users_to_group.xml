@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:background="@color/listViewColor"
+    android:orientation="vertical"
+    android:paddingLeft="5dp" >
+
+    <LinearLayout
+        android:id="@+id/dummyView"
+        android:layout_width="0px"
+        android:layout_height="0px"
+        android:focusable="true"
+        android:focusableInTouchMode="true" />
+
+    <TextView
+        android:id="@+id/whoText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="Who should be in the group?"
+        android:textColor="@android:color/black"
+        android:textSize="20sp" >
+    </TextView>
+
+    <com.tools.ClearableAutoComplete
+        android:id="@+id/searchName"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:completionThreshold="1"
+        android:hint="Search Contacts"
+        android:imeOptions="actionSearch"
+        android:inputType="textFilter"
+        android:lines="1"
+        android:scrollHorizontally="true"
+        android:textSize="20sp" >
+    </com.tools.ClearableAutoComplete>
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal" >
+
+        <TextView
+            android:id="@+id/totalContactsString"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="left"
+            android:text="Total Selected: "
+            android:textSize="20sp" >
+        </TextView>
+
+        <TextView
+            android:id="@+id/totalContactsNumber"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="left"
+            android:text="0 selected."
+            android:textSize="20sp" >
+        </TextView>
+    </LinearLayout>
+
+    <com.tools.NoDefaultSpinner
+        android:id="@+id/spinner"
+        android:layout_width="0px"
+        android:layout_height="0px"
+        android:prompt="@string/pickGroupString"
+        android:visibility="invisible" >
+    </com.tools.NoDefaultSpinner>
+
+    <com.tools.NoDefaultSpinner
+        android:id="@+id/chooseDefaultSpinner"
+        android:layout_width="0px"
+        android:layout_height="0px"
+        android:prompt="@string/chooseDefaultSpinner"
+        android:visibility="invisible" >
+    </com.tools.NoDefaultSpinner>
+
+    <ListView
+        android:id="@+id/list"
+        android:layout_width="fill_parent"
+        android:layout_height="0dip"
+        android:layout_weight="1"
+        android:cacheColorHint="@color/listViewColor"
+        android:choiceMode="multipleChoice"
+        android:fastScrollEnabled="true" />
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal" >
+
+        <Button
+            android:id="@+id/cancelButton"
+            android:layout_width="0px"
+            android:layout_height="fill_parent"
+            android:layout_gravity="center|bottom"
+            android:layout_weight="1"
+            android:onClick="cancelClicked"
+            android:text="Nope / Do it Later"
+            android:textSize="15sp"/>
+
+        <Button
+            android:id="@+id/goButton1"
+            android:layout_width="0px"
+            android:layout_height="fill_parent"
+            android:layout_gravity="center|bottom"
+            android:layout_weight="1"
+            android:onClick="goClicked"
+            android:text="Complete"
+            android:textSize="15sp" />
+    </LinearLayout>
+
+</LinearLayout>

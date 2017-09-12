@@ -125,7 +125,7 @@ extends CustomAsyncTask<ACTIVITY_TYPE, Void, SaveTakenPictureTask.ReturnFromPost
 				true,
 				false,
 				null);
-		//TODO: actually input and save catpion
+		//TODO: actually input and save caption
 
 		// save data
 		this.camData = null;

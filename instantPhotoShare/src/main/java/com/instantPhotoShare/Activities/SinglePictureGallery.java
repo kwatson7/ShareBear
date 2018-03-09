@@ -58,7 +58,6 @@ public class SinglePictureGallery
 		extends CustomActivity {
 
 	// private variables
-	private com.tools.images.MemoryCache<Long> oldCache = null; 		// the old imageloader cache. use this to handle screen rotations.
 	private PicturesGridAdapter adapter;        // the adapter to show pictures
 	private PicturesAdapter picturesAdapater;    // An array of all the pictures
 	private long groupId;                        // the groupId that we are currently showing
@@ -67,6 +66,7 @@ public class SinglePictureGallery
 	private String unformatedGroupName;        // the unformatted group name
 	private int pictureWindowWidth;            // the width of the area the picture fits inside
 	private int pictureWindowHeight;            // the height of the area the picture fits inside
+	private MemoryCache<Long> oldCache = null;        // the old imageloader cache. use this to handle screen rotations.
 	private boolean isChangeGroupShowing = false;        // boolean to keep track if group selector is showing
 
 	// graphics
@@ -75,10 +75,11 @@ public class SinglePictureGallery
 	private TextView groupNameText;            // Pointer to textView showing the group name
 
 	// public static variables for passing values, be very careful with these
-	/** Static variable for passing in MemoryCache <br>
+	/**
+	 * Static variable for passing in MemoryCache <br>
 	 * only should be used from InsidePictureGallery, right before calling startActivity.
 	 */
-	public static com.tools.images.MemoryCache<Long> passedCache = null;
+	public static MemoryCache<Long> passedCache = null;
 
 	// variables to indicate what can be passed in through intents
 	public static final String GROUP_ID = "GROUP_ID";

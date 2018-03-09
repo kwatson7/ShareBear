@@ -493,7 +493,7 @@ public class SinglePictureGallery
 			}
 
 		}
-	};
+	}
 
 	/**
 	 * Share the current picture with a sharing intent

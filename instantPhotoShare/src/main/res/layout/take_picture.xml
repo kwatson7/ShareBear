@@ -43,6 +43,18 @@
 	android:padding="5dp"
 	android:cropToPadding="true"
 />
+	<ImageView
+		android:id="@+id/switchCameraButton"
+		android:layout_width="64dp"
+		android:layout_height="64dp"
+		android:layout_gravity="right|bottom"
+		android:scaleType="centerCrop"
+		android:onClick="onSwitchCameraClicked"
+		android:src="@drawable/switch_camera_icon"
+		android:background="@drawable/blue_selector"
+		android:padding="5dp"
+		android:cropToPadding="true"
+		/>
 </FrameLayout>
 <LinearLayout
 	android:orientation="horizontal"

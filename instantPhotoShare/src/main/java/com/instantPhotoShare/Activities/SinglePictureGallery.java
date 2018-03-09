@@ -50,25 +50,25 @@ import com.tools.ViewLoader.LoadData;
 import com.tools.images.CustomGallery;
 import com.tools.images.ImageViewTouch;
 
-public class SinglePictureGallery 
-extends CustomActivity{
+public class SinglePictureGallery
+		extends CustomActivity {
 
 	// private variables
-	private PicturesGridAdapter adapter; 		// the adapter to show pictures
-	private PicturesAdapter picturesAdapater;	// An array of all the pictures
-	private long groupId; 						// the groupId that we are currently showing
-	private int initialPicturePosition; 		// The first picture to show
-	private String formattedGroupName; 			// The group name we are currently showing with formatting
-	private String unformatedGroupName; 		// the unformatted group name
-	private int pictureWindowWidth; 			// the width of the area the picture fits inside
-	private int pictureWindowHeight; 			// the height of the area the picture fits inside
 	private com.tools.images.MemoryCache<Long> oldCache = null; 		// the old imageloader cache. use this to handle screen rotations.
-	private boolean isChangeGroupShowing = false;		// boolean to keep track if group selector is showing
+	private PicturesGridAdapter adapter;        // the adapter to show pictures
+	private PicturesAdapter picturesAdapater;    // An array of all the pictures
+	private long groupId;                        // the groupId that we are currently showing
+	private int initialPicturePosition;        // The first picture to show
+	private String formattedGroupName;            // The group name we are currently showing with formatting
+	private String unformatedGroupName;        // the unformatted group name
+	private int pictureWindowWidth;            // the width of the area the picture fits inside
+	private int pictureWindowHeight;            // the height of the area the picture fits inside
+	private boolean isChangeGroupShowing = false;        // boolean to keep track if group selector is showing
 
 	// graphics
-	private CustomGallery gallery; 				// the gallery to show pictures
-	private ImageView takePictureButton; 		// the pointer to the take picture button
-	private TextView groupNameText; 			// Pointer to textView showing the group name
+	private CustomGallery gallery;                // the gallery to show pictures
+	private ImageView takePictureButton;        // the pointer to the take picture button
+	private TextView groupNameText;            // Pointer to textView showing the group name
 
 	// public static variables for passing values, be very careful with these
 	/** Static variable for passing in MemoryCache <br>
@@ -83,9 +83,9 @@ extends CustomActivity{
 
 	//enums for async calls
 	private enum MENU_ITEMS {
-		SET_AS_DEFAULT_PICTURE, SHARE_PICTURE, ADD_TO_ANOTHER_GROUP, DELETE_PICTURE, ROTATE_CW, ROTATE_CCW, ;
-		private static MENU_ITEMS convert(int value)
-		{
+		SET_AS_DEFAULT_PICTURE, SHARE_PICTURE, ADD_TO_ANOTHER_GROUP, DELETE_PICTURE, ROTATE_CW, ROTATE_CCW,;
+
+		private static MENU_ITEMS convert(int value) {
 			return MENU_ITEMS.class.getEnumConstants()[value];
 		}
 	}
@@ -94,7 +94,7 @@ extends CustomActivity{
 	protected void onCreateOverride(Bundle savedInstanceState) {
 
 		// load in passed info
-		Bundle extras = getIntent().getExtras(); 
+		Bundle extras = getIntent().getExtras();
 		if (extras == null)
 			throw new IllegalArgumentException("SinglePictureGallery cannot be called without a groupId passed in");
 
@@ -110,10 +110,10 @@ extends CustomActivity{
 
 		// grab the group name
 		GroupsAdapter groups = new GroupsAdapter(this);
-		try{
+		try {
 			formattedGroupName = groups.getGroup(groupId).toString();
 			unformatedGroupName = groups.getGroup(groupId).getName();
-		}catch(Exception e){
+		} catch (Exception e) {
 			Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
 			finish();
 			return;
@@ -121,35 +121,35 @@ extends CustomActivity{
 
 		// get configuration data and copy over any old data from old configuration.
 		ConfigurationProperties config = (ConfigurationProperties) getLastNonConfigurationInstance();
-		if (config != null && config.customData != null){
+		if (config != null && config.customData != null) {
 			ConfigurationPropertiesCustom data = (ConfigurationPropertiesCustom) config.customData;
-			if (data != null){
+			if (data != null) {
 				oldCache = data.cache;
 			}
 		}
 
 		// get any passed cache
-		if (passedCache != null){
+		if (passedCache != null) {
 			oldCache = passedCache;
 			passedCache = null;
 		}
 
 		// initialize layout
-		initializeLayout();	
+		initializeLayout();
 
 		// grab cursor for all the groups
 		getPictures();
 		fillPictures();
 
 		// move to correct position
-		if (picturesAdapater.size() > initialPicturePosition) 
+		if (picturesAdapater.size() > initialPicturePosition)
 			gallery.setSelection(initialPicturePosition, false);
 	}
 
 	@Override
-	public void onPause(){
+	public void onPause() {
 		overridePendingTransition(0, R.anim.picture_scale_down_animation);
-		if (adapter != null){
+		if (adapter != null) {
 			adapter.imageLoader.stopThreads();
 			adapter.nameLoader.stopThreads();
 		}
@@ -157,8 +157,8 @@ extends CustomActivity{
 	}
 
 	@Override
-	public void onResume(){
-		if (adapter != null){
+	public void onResume() {
+		if (adapter != null) {
 			adapter.imageLoader.restartThreads();
 			adapter.nameLoader.restartThreads();
 		}
@@ -172,28 +172,28 @@ extends CustomActivity{
 		index = gallery.getFirstVisiblePosition();
 		if (index == 0)
 			index = Gallery.INVALID_POSITION;
-				
+
 		// set adapter
 		if (adapter != null)
 			adapter.imageLoader.stopThreads();
 		adapter = new PicturesGridAdapter(this, picturesAdapater);
-		if (oldCache != null){
+		if (oldCache != null) {
 			adapter.restoreMemoryCache(oldCache);
 			oldCache = null;
 		}
 		gallery.setAdapter(adapter);
-		
+
 		// restore position
 		if (index >= picturesAdapater.size())
-			index = picturesAdapater.size()-1;
+			index = picturesAdapater.size() - 1;
 		if (index != Gallery.INVALID_POSITION)
-			gallery.setSelection(index);	
+			gallery.setSelection(index);
 	}
 
 	/**
 	 * Find the cursor required for pictures
 	 */
-	private void getPictures(){
+	private void getPictures() {
 		picturesAdapater = new PicturesAdapter(this);
 		picturesAdapater.fetchPicturesInGroup(groupId);
 		picturesAdapater.startManagingCursor(this);
@@ -201,7 +201,7 @@ extends CustomActivity{
 
 	@Override
 	public void onAsyncExecute(int requestCode, AsyncTypeCall asyncTypeCall,
-			Object data) {
+							   Object data) {
 
 	}
 
@@ -219,7 +219,7 @@ extends CustomActivity{
 		setContentView(R.layout.single_picture_gallery);
 
 		// grab pointers to objects
-		gallery = (CustomGallery)findViewById(R.id.galleryView);
+		gallery = (CustomGallery) findViewById(R.id.galleryView);
 		gallery.setImageViewTouchId(R.id.picture);
 		takePictureButton = (ImageView) findViewById(R.id.takePictureButton);
 		groupNameText = (TextView) findViewById(R.id.groupName);
@@ -245,7 +245,7 @@ extends CustomActivity{
 	/**
 	 * Currently empty, but set up to allow action on picture click
 	 */
-	private OnItemClickListener pictureClick =  new OnItemClickListener() {
+	private OnItemClickListener pictureClick = new OnItemClickListener() {
 
 		@Override
 		public void onItemClick(
@@ -258,9 +258,10 @@ extends CustomActivity{
 
 	/**
 	 * When this is clicked, set default group to this one, and open cameara
+	 *
 	 * @param v
 	 */
-	public void takePictureClicked(View v){
+	public void takePictureClicked(View v) {
 		Prefs.setGroupIds(this, groupId);
 		Intent intent = new Intent(this, TakePicture.class);
 		intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -439,11 +440,11 @@ extends CustomActivity{
 	/**
 	 * Delete the picture at the given location
 	 */
-	private void deletePicture(){
+	private void deletePicture() {
 		ArrayList<String> bars = new ArrayList<String>(1);
 		bars.add(FETCHING_DATA_TAG);
 		try {
-			picturesAdapater.deletePicture(bars, this, new PicturesAdapter.ItemsFinished<SinglePictureGallery>(){
+			picturesAdapater.deletePicture(bars, this, new PicturesAdapter.ItemsFinished<SinglePictureGallery>() {
 
 				@Override
 				public void onItemsFinishedUI(SinglePictureGallery act,
@@ -462,7 +463,7 @@ extends CustomActivity{
 
 				@Override
 				public void onItemsFinishedBackground(SinglePictureGallery act,
-						Exception e) {					
+													  Exception e) {
 				}
 			});
 		} catch (Exception e) {
@@ -474,13 +475,13 @@ extends CustomActivity{
 	}
 
 	private static class OnRotateCallback
-	implements CustomAsyncTask.FinishedCallback<SinglePictureGallery, IOException>{
+			implements CustomAsyncTask.FinishedCallback<SinglePictureGallery, IOException> {
 
 		@Override
 		public void onFinish(
 				SinglePictureGallery activity,
 				IOException result) {
-			if (result != null){
+			if (result != null) {
 				Log.e(Utils.LOG_TAG, Log.getStackTraceString(result));
 				if (activity != null)
 					Utils.showCustomToast(activity, "Picture could not be rotated", true, 1);
@@ -492,7 +493,7 @@ extends CustomActivity{
 	/**
 	 * Share the current picture with a sharing intent
 	 */
-	private void sharePicture(){
+	private void sharePicture() {
 		// create subject, body, and prompt
 		String shareBody = "Take a look at my picture from Share Bear. You can share instantly by downloading Share Bear at " + Utils.APP_URL;
 		String shareSubject = "A Picture from my Share Bear group " + unformatedGroupName;
@@ -511,7 +512,7 @@ extends CustomActivity{
 			Utils.showCustomToast(this, "Picture could not be sent", true, 1);
 	}
 
-	private void showChooseGroup(){
+	private void showChooseGroup() {
 		// grab the spinner
 		com.tools.NoDefaultSpinner spinner = (com.tools.NoDefaultSpinner) findViewById(R.id.spinner);
 		if (spinner.isShown())
@@ -522,7 +523,7 @@ extends CustomActivity{
 		final ArrayList<Group> groups = groupsAdapter.getAllGroups();
 
 		// make sure there are groups
-		if (groups == null || groups.size() == 0){
+		if (groups == null || groups.size() == 0) {
 			Utils.showCustomToast(this, "No groups to add to. Create one First", true, 1);
 			return;
 		}
@@ -532,18 +533,18 @@ extends CustomActivity{
 				this, android.R.layout.simple_spinner_item, groups);
 
 		// grab standard android spinner
-		spinnerArrayAdapter.setDropDownViewResource( R.layout.spinner_layout );
+		spinnerArrayAdapter.setDropDownViewResource(R.layout.spinner_layout);
 
 		// make listener when spinner is clicked
 		spinner.setOnItemSelectedListener(new Spinner.OnItemSelectedListener() {
 			@Override
-			public void onItemSelected(AdapterView<?> parentView, 
-					View selectedItemView, int position, long id) {
+			public void onItemSelected(AdapterView<?> parentView,
+									   View selectedItemView, int position, long id) {
 
-				if (!isChangeGroupShowing){
+				if (!isChangeGroupShowing) {
 					isChangeGroupShowing = !isChangeGroupShowing;
 					return;
-				}else
+				} else
 					isChangeGroupShowing = !isChangeGroupShowing;
 
 				long sourceGroupId = groups.get(position).getRowId();
@@ -573,9 +574,10 @@ extends CustomActivity{
 
 	/**
 	 * Add this picture to another group
+	 *
 	 * @param sourceGroupId the groupRowId to move to
 	 */
-	private void addToAnotherGroup(long sourceGroupId){
+	private void addToAnotherGroup(long sourceGroupId) {
 		ArrayList<String> bars = new ArrayList<String>(1);
 		bars.add(FETCHING_DATA_TAG);
 		try {
@@ -624,7 +626,7 @@ extends CustomActivity{
 	}
 
 	private class PicturesGridAdapter
-	extends BaseAdapter {
+			extends BaseAdapter {
 
 		private PicturesAdapter data;
 		private LayoutInflater inflater = null;
@@ -668,14 +670,14 @@ extends CustomActivity{
 		}
 
 		public Object getItem(int position) {
-			if(data.moveToPosition(position))
+			if (data.moveToPosition(position))
 				return data;
 			else
 				return null;
 		}
 
 		public long getItemId(int position) {
-			if(data.moveToPosition(position))
+			if (data.moveToPosition(position))
 				return data.getRowId();
 			else
 				return 0;
@@ -695,7 +697,7 @@ extends CustomActivity{
 		/**
 		 * Clear cache as we need to reload picture
 		 */
-		public void clearCache(){
+		public void clearCache() {
 			imageLoader.clearCache();
 		}
 
@@ -711,23 +713,23 @@ extends CustomActivity{
 		public View getView(int position, View convertView, ViewGroup parent) {
 
 			// inflate a new view if we have to
-			View vi=convertView;
-			if(convertView==null){
+			View vi = convertView;
+			if (convertView == null) {
 				vi = inflater.inflate(R.layout.single_picture_item, null);
-				ImageView image2 = (ImageView)vi.findViewById(R.id.picture);
 				FrameLayout.LayoutParams params = (android.widget.FrameLayout.LayoutParams) image2.getLayoutParams();
+				ImageView image2 = (ImageView) vi.findViewById(R.id.picture);
 				params.height = pictureWindowHeight;
 				params.width = pictureWindowWidth;
 				image2.setLayoutParams(params);
 			}
 
 			// grab the items to display
-			ImageViewTouch image = (ImageViewTouch)vi.findViewById(R.id.picture);
+			ImageViewTouch image = (ImageViewTouch) vi.findViewById(R.id.picture);
 			TextView name = (TextView) vi.findViewById(R.id.personWhoTookPicture);
-			ProgressBar progress = (ProgressBar)vi.findViewById(R.id.fullPictureProgressBar);
+			ProgressBar progress = (ProgressBar) vi.findViewById(R.id.fullPictureProgressBar);
 
 			// move to correct location and fill views
-			if (data.moveToPosition(position)){
+			if (data.moveToPosition(position)) {
 				TwoObjects<Long, Long> loaderData = new TwoObjects<Long, Long>(data.getRowId(), groupId);
 				imageLoader.DisplayImage(data.getRowId(), loaderData, loaderData, image, progress);
 				nameLoader.DisplayView(data.getRowId(), data.getUserIdWhoTook(), name);
@@ -737,10 +739,10 @@ extends CustomActivity{
 			// return the view
 			return vi;
 		}
-		
+
 		private HashMap<Long, WeakReference<TextView>> nameViews = new HashMap<Long, WeakReference<TextView>>();
 		private ThumbnailListener reloadName = new ThumbnailListener() {
-			
+
 			@Override
 			public void onThumbNailDownloaded(final long pictureId) {
 				// null leave
@@ -759,7 +761,7 @@ extends CustomActivity{
 				pics.fetchPicture(pictureId);
 				final long userId = pics.getUserIdWhoTook();
 				pics.close();
-				((Activity)view.getContext()).runOnUiThread(new Runnable() {
+				((Activity) view.getContext()).runOnUiThread(new Runnable() {
 
 					@Override
 					public void run() {

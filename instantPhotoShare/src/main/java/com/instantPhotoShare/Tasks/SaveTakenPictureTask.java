@@ -15,7 +15,6 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.media.ExifInterface;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.instantPhotoShare.Prefs;
 import com.instantPhotoShare.ServerKeys;
@@ -30,7 +29,6 @@ import com.tools.CustomActivity;
 import com.tools.CustomAsyncTask;
 import com.tools.ServerPost.ServerReturn;
 import com.tools.SuccessReason;
-import com.tools.Tools;
 import com.tools.TwoObjects;
 import com.tools.TwoStrings;
 

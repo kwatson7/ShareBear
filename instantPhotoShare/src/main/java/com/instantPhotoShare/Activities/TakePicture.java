@@ -22,9 +22,9 @@ import android.hardware.Camera;
 import android.hardware.Camera.AutoFocusCallback;
 import android.hardware.Camera.ShutterCallback;
 import android.app.AlertDialog;
-import android.app.Dialog;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.text.Html;
@@ -49,13 +49,13 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
-import android.widget.Toast;
 
 import com.tools.CameraHelper;
 import com.tools.CameraHelper.*;
 import com.tools.CustomActivity;
 import com.tools.CustomAsyncTask;
 import com.tools.MultipleCheckPopUp;
+import com.tools.images.ImageLoader;
 
 public class TakePicture
 extends CustomActivity{

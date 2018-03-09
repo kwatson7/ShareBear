@@ -31,7 +31,6 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.instantPhotoShare.GroupSpinnerAdapter;
 import com.instantPhotoShare.Prefs;
@@ -44,11 +43,16 @@ import com.instantPhotoShare.Adapters.UsersAdapter;
 import com.instantPhotoShare.Adapters.GroupsAdapter.Group;
 import com.tools.CustomActivity;
 import com.tools.CustomAsyncTask;
+import com.tools.ImageProcessing;
+import com.tools.NoDefaultSpinner;
+import com.tools.Tools;
 import com.tools.TwoObjects;
 import com.tools.ViewLoader;
 import com.tools.ViewLoader.LoadData;
 import com.tools.images.CustomGallery;
+import com.tools.images.ImageLoader;
 import com.tools.images.ImageViewTouch;
+import com.tools.images.MemoryCache;
 
 public class SinglePictureGallery
 		extends CustomActivity {

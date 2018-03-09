@@ -318,30 +318,30 @@ public class SinglePictureGallery
 		boolean isThumbRotated = false;
 
 		// decide on what each button should do
-		switch(id) {
-		case ROTATE_CCW:
+		switch (id) {
+			case ROTATE_CCW:
 
-			// rotate teh picture in the background
-			try{
-				com.tools.ImageProcessing.rotateExif(path, -1);//, new OnRotateCallback());
-				isFullRotated = true;
-				com.tools.ImageProcessing.rotateExif(thumbPath, -1);//, new OnRotateCallback());
-				isThumbRotated = true;
-			}catch(IOException e){
-				Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
-				if (!isFullRotated && !isThumbRotated)
-					Utils.showCustomToast(ctx, "Rotation error. Full picture probably not downloaded yet", true, 1);
-				else if (isFullRotated && !isThumbRotated){
-					Utils.showCustomToast(ctx, "Rotation error.", true, 1);
-					try {
-						com.tools.ImageProcessing.rotateExif(path, 1);
-					} catch (IOException e1) {
-						Log.e("TAG", Log.getStackTraceString(e1));
+				// rotate teh picture in the background
+				try {
+					ImageProcessing.rotateExif(path, -1);//, new OnRotateCallback());
+					isFullRotated = true;
+					ImageProcessing.rotateExif(thumbPath, -1);//, new OnRotateCallback());
+					isThumbRotated = true;
+				} catch (IOException e) {
+					Log.e(Utils.LOG_TAG, Log.getStackTraceString(e));
+					if (!isFullRotated && !isThumbRotated)
+						Utils.showCustomToast(ctx, "Rotation error. Full picture probably not downloaded yet", true, 1);
+					else if (isFullRotated && !isThumbRotated) {
+						Utils.showCustomToast(ctx, "Rotation error.", true, 1);
+						try {
+							ImageProcessing.rotateExif(path, 1);
+						} catch (IOException e1) {
+							Log.e("TAG", Log.getStackTraceString(e1));
+						}
 					}
+					return true;
 				}
-				return true;
-			}
-			adapter.imageLoader.clearCacheAtId(picturesAdapater.getRowId());
+				adapter.imageLoader.clearCacheAtId(picturesAdapater.getRowId());
 
 			/*
 			// rotation animation
@@ -358,37 +358,37 @@ public class SinglePictureGallery
 			view.startAnimation(set);
 			 */
 
-			adapter.imageLoader.DisplayImage(picturesAdapater.getRowId(), loaderData, loaderData, (ImageViewTouch)view.findViewById(R.id.picture), null);
+				adapter.imageLoader.DisplayImage(picturesAdapater.getRowId(), loaderData, loaderData, (ImageViewTouch) view.findViewById(R.id.picture), null);
 
-			return true;
-		case SET_AS_DEFAULT_PICTURE:
-			GroupsAdapter groups = new GroupsAdapter(this);
-			groups.setPictureId(groupId, picturesAdapater.getRowId());
-			return true;
-		case ROTATE_CW:
-			// rotate teh picture in the background
-			isFullRotated = false;
-			isThumbRotated = false;
-			try{
-				com.tools.ImageProcessing.rotateExif(path, 1);//, new OnRotateCallback());
-				isFullRotated = true;
-				com.tools.ImageProcessing.rotateExif(thumbPath, 1);//, new OnRotateCallback());
-				isThumbRotated = true;
-			}catch(IOException e){
-				Log.w(Utils.LOG_TAG, Log.getStackTraceString(e));
-				if (!isFullRotated && !isThumbRotated)
-					Utils.showCustomToast(ctx, "Rotation error. Full picture probably not downloaded yet", true, 1);
-				else if (isFullRotated && !isThumbRotated){
-					Utils.showCustomToast(ctx, "Rotation error.", true, 1);
-					try {
-						com.tools.ImageProcessing.rotateExif(path, -1);
-					} catch (IOException e1) {
-						Log.e("TAG", Log.getStackTraceString(e1));
-					}
-				}
 				return true;
-			}
-			adapter.imageLoader.clearCacheAtId(picturesAdapater.getRowId());
+			case SET_AS_DEFAULT_PICTURE:
+				GroupsAdapter groups = new GroupsAdapter(this);
+				groups.setPictureId(groupId, picturesAdapater.getRowId());
+				return true;
+			case ROTATE_CW:
+				// rotate teh picture in the background
+				isFullRotated = false;
+				isThumbRotated = false;
+				try {
+					ImageProcessing.rotateExif(path, 1);//, new OnRotateCallback());
+					isFullRotated = true;
+					ImageProcessing.rotateExif(thumbPath, 1);//, new OnRotateCallback());
+					isThumbRotated = true;
+				} catch (IOException e) {
+					Log.w(Utils.LOG_TAG, Log.getStackTraceString(e));
+					if (!isFullRotated && !isThumbRotated)
+						Utils.showCustomToast(ctx, "Rotation error. Full picture probably not downloaded yet", true, 1);
+					else if (isFullRotated && !isThumbRotated) {
+						Utils.showCustomToast(ctx, "Rotation error.", true, 1);
+						try {
+							ImageProcessing.rotateExif(path, -1);
+						} catch (IOException e1) {
+							Log.e("TAG", Log.getStackTraceString(e1));
+						}
+					}
+					return true;
+				}
+				adapter.imageLoader.clearCacheAtId(picturesAdapater.getRowId());
 
 			/*
 			// rotation animation
@@ -405,38 +405,38 @@ public class SinglePictureGallery
 			view.startAnimation(set2);
 			 */
 
-			adapter.imageLoader.DisplayImage(picturesAdapater.getRowId(), loaderData, loaderData, (ImageViewTouch)view.findViewById(R.id.picture), null);
-			return true;
-		case SHARE_PICTURE:
-			sharePicture();
-			return true;
-		case ADD_TO_ANOTHER_GROUP:
-			showChooseGroup();
-			return true;
-		case DELETE_PICTURE:
+				adapter.imageLoader.DisplayImage(picturesAdapater.getRowId(), loaderData, loaderData, (ImageViewTouch) view.findViewById(R.id.picture), null);
+				return true;
+			case SHARE_PICTURE:
+				sharePicture();
+				return true;
+			case ADD_TO_ANOTHER_GROUP:
+				showChooseGroup();
+				return true;
+			case DELETE_PICTURE:
 
-			DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
-				@Override
-				public void onClick(DialogInterface dialog, int which) {
-					switch (which){
-					case DialogInterface.BUTTON_POSITIVE:
-						deletePicture();
-						break;
+				DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+					@Override
+					public void onClick(DialogInterface dialog, int which) {
+						switch (which) {
+							case DialogInterface.BUTTON_POSITIVE:
+								deletePicture();
+								break;
 
-					case DialogInterface.BUTTON_NEGATIVE:
-						//No button clicked
-						break;
+							case DialogInterface.BUTTON_NEGATIVE:
+								//No button clicked
+								break;
+						}
 					}
-				}
-			};
+				};
 
-			// show the dialog
-			AlertDialog.Builder builder = new AlertDialog.Builder(this);
-			AlertDialog dialog = builder.setMessage("Are you sure you want to delete this picture? It will be gone from all groups forever.").setPositiveButton("Yes", dialogClickListener)
-					.setNegativeButton("No", dialogClickListener).create();
-			addDialog(dialog);
-			dialog.show();
-			return true;
+				// show the dialog
+				AlertDialog.Builder builder = new AlertDialog.Builder(this);
+				AlertDialog dialog = builder.setMessage("Are you sure you want to delete this picture? It will be gone from all groups forever.").setPositiveButton("Yes", dialogClickListener)
+						.setNegativeButton("No", dialogClickListener).create();
+				addDialog(dialog);
+				dialog.show();
+				return true;
 		}
 
 		return super.onMenuItemSelected(featureId, item);
@@ -453,13 +453,13 @@ public class SinglePictureGallery
 
 				@Override
 				public void onItemsFinishedUI(SinglePictureGallery act,
-						Exception e) {
-					if (e != null){
+											  Exception e) {
+					if (e != null) {
 						String msg = e.getMessage();
 						if (msg == null || msg.length() == 0)
 							msg = "Could not delete picture.";
 						Utils.showCustomToast(act, msg, true, 1);
-					}else{
+					} else {
 						Utils.showCustomToast(act, "Picture deleted", true, 1);
 						getPictures();
 						fillPictures();
@@ -507,19 +507,19 @@ public class SinglePictureGallery
 		// grab the picture file
 		picturesAdapater.moveToPosition(gallery.getLastVisiblePosition());
 		String fileName = picturesAdapater.getFullPicturePath();
-		if (fileName == null || fileName.length() == 0 || !(new File(fileName)).exists()){
+		if (fileName == null || fileName.length() == 0 || !(new File(fileName)).exists()) {
 			Utils.showCustomToast(this, "No full picture. Thumbnail used", true, 1);
 			fileName = picturesAdapater.getThumbnailPath();
 		}
 
 		// send the intent
-		if(!com.tools.Tools.sharePicture(this, shareSubject, shareBody, fileName, prompt))
+		if (!Tools.sharePicture(this, shareSubject, shareBody, fileName, prompt))
 			Utils.showCustomToast(this, "Picture could not be sent", true, 1);
 	}
 
 	private void showChooseGroup() {
 		// grab the spinner
-		com.tools.NoDefaultSpinner spinner = (com.tools.NoDefaultSpinner) findViewById(R.id.spinner);
+		NoDefaultSpinner spinner = (NoDefaultSpinner) findViewById(R.id.spinner);
 		if (spinner.isShown())
 			return;
 
@@ -567,8 +567,8 @@ public class SinglePictureGallery
 
 		// find which group is currenlty selected
 		spinner.setSelection(0);
-		for (int i = 0; i < groups.size(); i++){
-			if (groups.get(i).getRowId() == groupId){
+		for (int i = 0; i < groups.size(); i++) {
+			if (groups.get(i).getRowId() == groupId) {
 				spinner.setSelection(i);
 				break;
 			}
@@ -586,24 +586,24 @@ public class SinglePictureGallery
 		ArrayList<String> bars = new ArrayList<String>(1);
 		bars.add(FETCHING_DATA_TAG);
 		try {
-			picturesAdapater.addPictureToGroup(bars, this, groupId, sourceGroupId, new PicturesAdapter.ItemsFinished<SinglePictureGallery>(){
+			picturesAdapater.addPictureToGroup(bars, this, groupId, sourceGroupId, new PicturesAdapter.ItemsFinished<SinglePictureGallery>() {
 
 				@Override
 				public void onItemsFinishedUI(SinglePictureGallery act,
-						Exception e) {
-					if (e != null){
+											  Exception e) {
+					if (e != null) {
 						String msg = e.getMessage();
 						if (msg == null || msg.length() == 0)
 							msg = "Could not copy picture.";
 						Utils.showCustomToast(act, msg, true, 1);
-					}else{
+					} else {
 						Utils.showCustomToast(act, "Picture copied", true, 1);
 					}
 				}
 
 				@Override
 				public void onItemsFinishedBackground(SinglePictureGallery act,
-						Exception e) {					
+													  Exception e) {
 				}
 			});
 		} catch (Exception e) {
@@ -616,18 +616,17 @@ public class SinglePictureGallery
 
 	/**
 	 * Additional configuration properties
-	 *
 	 */
-	private static class ConfigurationPropertiesCustom{
-		com.tools.images.MemoryCache<Long> cache = null;	
+	private static class ConfigurationPropertiesCustom {
+		MemoryCache<Long> cache = null;
 	}
 
 	@Override
 	protected void onDestroyOverride() {
-		com.tools.NoDefaultSpinner spinner = (com.tools.NoDefaultSpinner) findViewById(R.id.spinner);
+		NoDefaultSpinner spinner = (NoDefaultSpinner) findViewById(R.id.spinner);
 		ViewGroup enclosingFrame = (ViewGroup) findViewById(R.id.enclosingFrame);
 		enclosingFrame.removeView(spinner);
-		gallery.setAdapter(null);	
+		gallery.setAdapter(null);
 	}
 
 	private class PicturesGridAdapter
@@ -635,18 +634,18 @@ public class SinglePictureGallery
 
 		private PicturesAdapter data;
 		private LayoutInflater inflater = null;
-		private com.tools.images.ImageLoader<Long, TwoObjects<Long, Long>, TwoObjects<Long, Long>> imageLoader; 
-		private com.tools.ViewLoader<Long, Long, String, TextView> nameLoader;
+		private ImageLoader<Long, TwoObjects<Long, Long>, TwoObjects<Long, Long>> imageLoader;
+		private ViewLoader<Long, Long, String, TextView> nameLoader;
 
 		public PicturesGridAdapter(Activity a, PicturesAdapter pictures) {
 			data = pictures;
-			inflater = (LayoutInflater)a.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-			imageLoader = new com.tools.images.ImageLoader<Long, TwoObjects<Long, Long>, TwoObjects<Long, Long>>(
+			inflater = (LayoutInflater) a.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+			imageLoader = new ImageLoader<Long, TwoObjects<Long, Long>, TwoObjects<Long, Long>>(
 					android.R.color.transparent,
 					pictureWindowWidth,
 					pictureWindowHeight,
 					true,
-					PicturesAdapter.imageLoaderCallback(ctx, reloadName));		
+					PicturesAdapter.imageLoaderCallback(ctx, reloadName));
 
 			nameLoader = new ViewLoader<Long, Long, String, TextView>(
 					"Photographer ...",
@@ -692,9 +691,10 @@ public class SinglePictureGallery
 		 * Return the memory cache.<br>
 		 * **** This should only be used when storing this memory cache to be passed into again useing restoreMemoryCache
 		 * for example on orientation changes *****
+		 *
 		 * @return
 		 */
-		public com.tools.images.MemoryCache<Long> getMemoryCache(){
+		public MemoryCache<Long> getMemoryCache() {
 			return imageLoader.getMemoryCache();
 		}
 
@@ -708,10 +708,10 @@ public class SinglePictureGallery
 
 		/**
 		 * Set the memory cache to this new value, clearing old one.
-		 * @see getMemoryCache.
+		 *
 		 * @param mem
 		 */
-		public void restoreMemoryCache(com.tools.images.MemoryCache<Long> mem){
+		public void restoreMemoryCache(MemoryCache<Long> mem) {
 			imageLoader.restoreMemoryCache(mem);
 		}
 
@@ -721,8 +721,8 @@ public class SinglePictureGallery
 			View vi = convertView;
 			if (convertView == null) {
 				vi = inflater.inflate(R.layout.single_picture_item, null);
-				FrameLayout.LayoutParams params = (android.widget.FrameLayout.LayoutParams) image2.getLayoutParams();
 				ImageView image2 = (ImageView) vi.findViewById(R.id.picture);
+				FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) image2.getLayoutParams();
 				params.height = pictureWindowHeight;
 				params.width = pictureWindowWidth;
 				image2.setLayoutParams(params);
